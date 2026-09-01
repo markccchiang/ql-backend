@@ -19,35 +19,23 @@ process for now, so a cancel that has to kill cannot (DESIGN §3), and
 replay-after-death is never exercised.
 
 ```bash
-git submodule update --init --recursive
-cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions
+git submodule update --init --recursive                        # uWebSockets + uSockets
+git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
+cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
 cmake --build build -j
 ./build/qlserviced --port 9111
 ```
 
-uWebSockets is vendored at `third_party/uWebSockets` (with uSockets nested
-inside it) and built from source, so the submodule init is the only external
-step. Without it the library still builds and only `qlserviced` is skipped.
+That builds QuantLib from the submodule, which is the route that works
+unmodified from a clean clone: `CMakeLists.txt` forces `QL_ENABLE_SESSIONS=ON`,
+without which two sessions in one process silently share one
+`Settings::evaluationDate()` (DESIGN §2). Linking an installed QuantLib instead
+is the default and is much faster to rebuild, but it can only be got right by
+hand.
 
-`CMAKE_PREFIX_PATH` points at a QuantLib built with `QL_ENABLE_SESSIONS=ON`,
-which is what makes `Singleton<T>::instance()` thread-local. Anything else
-compiles and prices a single session correctly, then silently shares one
-`Settings::evaluationDate()` across two (DESIGN §2).
-
-Nothing in the build can check that, which is what the second option is for:
-
-```bash
-git submodule update --init --checkout third_party/QuantLib
-cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
-```
-
-QuantLib is then built from the submodule pinned at v1.43, with
-`QL_ENABLE_SESSIONS=ON` and `QL_ENABLE_OPENMP=OFF` (DESIGN §2.2) set by this
-project's `CMakeLists.txt` rather than assumed of someone's install tree. It
-costs a QuantLib build — nearly a thousand translation units — and Boost is
-still an external dependency either way, so the installed-prefix path stays the
-default. The QuantLib submodule is marked `update = none` and is not fetched by
-the plain `--init --recursive` above.
+[`INSTALL.md`](INSTALL.md) has both routes, the prerequisites, how to build a
+sessions-enabled QuantLib into a prefix of its own, and the failures that are
+silent rather than loud.
 
 Compiling it was worth doing. Four things in this code were wrong in ways no
 amount of re-reading would have shown: `namespace pb` collides with protobuf's
@@ -59,6 +47,7 @@ has priced anything — but it is no longer unproven *and* unbuildable.
 
 | File | What it holds |
 | --- | --- |
+| [`INSTALL.md`](INSTALL.md) | Prerequisites, both build routes, and what fails silently |
 | [`DESIGN.md`](DESIGN.md) | The architecture: what each component owns and which QuantLib constraint forces it |
 | [`proto/quantlib/v1/envelope.proto`](proto/quantlib/v1/envelope.proto) | Transport envelope, session lifecycle, cancellation, progress |
 | [`proto/quantlib/v1/conventions.proto`](proto/quantlib/v1/conventions.proto) | Convention enums and messages — the schema half of the registry |
