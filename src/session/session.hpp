@@ -58,6 +58,23 @@ namespace qlservice {
             double calculationSeconds = 0.0;
         };
 
+        //! The live handles one quanto engine is assembled from.
+        /*! Nothing in here is a value. `QuantoEngine` registers with all four
+            members (`ql/pricingengines/quanto/quantoengine.hpp`), so a write
+            to any of the seven underlying quotes invalidates the instrument
+            and the next price recomputes — the same contract the vanilla path
+            gets from its two quotes (DESIGN §5).
+
+            Public only so the engine tables in session.cpp can name it; it
+            never crosses the wire and nothing outside this file builds one.
+        */
+        struct QuantoGraph {
+            QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> process;
+            QuantLib::Handle<QuantLib::YieldTermStructure> fxRiskFree;
+            QuantLib::Handle<QuantLib::BlackVolTermStructure> fxVol;
+            QuantLib::Handle<QuantLib::Quote> correlation;
+        };
+
         //! Called between Monte Carlo batches; returning false aborts.
         /*! The only place this layer can interrupt a calculation, and it works
             only because the worker owns the batching. Inside a single engine
@@ -120,20 +137,6 @@ namespace qlservice {
                                  const ProgressSink& progress);
 
         PriceOutcome priceSwap(const quantlib::v1::PriceRequest& msg);
-
-        //! The live handles one quanto engine is assembled from.
-        /*! Nothing in here is a value. `QuantoEngine` registers with all four
-            members (`ql/pricingengines/quanto/quantoengine.hpp`), so a write
-            to any of the seven underlying quotes invalidates the instrument
-            and the next price recomputes — the same contract the vanilla path
-            gets from its two quotes (DESIGN §5).
-        */
-        struct QuantoGraph {
-            QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> process;
-            QuantLib::Handle<QuantLib::YieldTermStructure> fxRiskFree;
-            QuantLib::Handle<QuantLib::BlackVolTermStructure> fxVol;
-            QuantLib::Handle<QuantLib::Quote> correlation;
-        };
 
         //! Resolves a QuantoMarket message against this session's graph.
         QuantoGraph quantoGraph(const quantlib::v1::QuantoMarket& msg,

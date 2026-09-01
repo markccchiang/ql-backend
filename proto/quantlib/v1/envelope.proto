@@ -270,6 +270,32 @@ message Engine {
     uint64 seed = 3;
 
     uint64 time_steps = 4;
+
+    // Finite difference only, and required there.
+    //
+    // A grid rather than a pair of integers because it cannot be a pair of
+    // integers: QuantoEngine builds its inner engine as
+    // `make_shared<Engine>(quantoProcess)`
+    // (ql/pricingengines/quanto/quantoengine.hpp), with no way to pass that
+    // engine's own arguments through. The grid therefore has to be baked into
+    // the engine type, which makes this a menu of what was compiled in —
+    // exactly the CurveBootstrap situation, for exactly the same reason
+    // (DESIGN §6.1).
+    FdGrid fd_grid = 5;
+}
+
+// Finite-difference grids compiled into the service, as (time steps x space
+// points). Each is a distinct C++ type; adding one is a line of source and a
+// recompile.
+//
+// The choice is part of the answer, not a hint: two grids give two different
+// prices for the same trade, the way two Monte Carlo seeds do. PriceResult
+// echoes it for that reason (DESIGN §4).
+enum FdGrid {
+    FD_GRID_UNSPECIFIED = 0;
+    FD_GRID_COARSE = 1;    // 100 x 100, QuantLib's own defaults
+    FD_GRID_STANDARD = 2;  // 400 x 200
+    FD_GRID_FINE = 3;      // 2000 x 800
 }
 
 enum ResultKind {
@@ -326,6 +352,12 @@ message PriceResult {
     uint64 progress_every_paths = 5;
 
     double calculation_seconds = 4;
+
+    // Echoed for the same reason as the three above, on the finite-difference
+    // side: a price is reproducible only against the grid that produced it,
+    // and FD_GRID_COARSE and FD_GRID_FINE disagree by more than most market
+    // moves. FD_GRID_UNSPECIFIED for every other engine.
+    FdGrid fd_grid = 7;
 }
 
 // ---------------------------------------------------------------------------

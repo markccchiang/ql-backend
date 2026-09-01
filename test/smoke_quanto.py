@@ -232,6 +232,43 @@ def double_barrier_frame(session, row):
     return f
 
 
+def vanilla_frame(session, row, strike, grid=None):
+    """A quanto vanilla on a row's market, at an arbitrary strike."""
+    f = E.ClientFrame(request_id=next_id(), session_id=session)
+    o = f.price.instrument.quanto_vanilla_option
+    o.type = row["type"]
+    o.strike = strike
+    o.expiry.iso = maturity(row["t"]).isoformat()
+    fill_market(o.market)
+    engine(f, grid)
+    return f
+
+
+def barrier_variant(session, row, barrier_type, barrier, rebate, strike, grid=None):
+    """A quanto barrier on a row's market, with the barrier terms overridden."""
+    f = E.ClientFrame(request_id=next_id(), session_id=session)
+    o = f.price.instrument.quanto_barrier_option
+    o.type = row["type"]
+    o.strike = strike
+    o.expiry.iso = maturity(row["t"]).isoformat()
+    o.barrier_type = barrier_type
+    o.barrier = barrier
+    o.rebate = rebate
+    fill_market(o.market)
+    engine(f, grid)
+    return f
+
+
+def engine(frame, grid):
+    """ANALYTIC, or FINITE_DIFFERENCE on the named grid."""
+    if grid is None:
+        frame.price.engine.kind = E.Engine.ANALYTIC
+    else:
+        frame.price.engine.kind = E.Engine.FINITE_DIFFERENCE
+        frame.price.engine.fd_grid = grid
+    return frame
+
+
 # ---------------------------------------------------------------------------
 # Input verification: what the wire carries must be what the table says
 # ---------------------------------------------------------------------------
@@ -414,6 +451,141 @@ async def main():
               r.HasField("error") and r.error.code == E.Error.UNSPECIFIED_ENUM,
               f"code={r.error.code} field={r.error.field_path!r}")
 
+        # -------------------------------------------------------------------
+        # Benchmark: the three barrier rows against an independent method
+        # -------------------------------------------------------------------
+        #
+        # testBarrierValues in quantooption.cpp carries "TODO: bench results
+        # against an existing prop calculator" and a tolerance of 0.5 to match.
+        # We have no vendor pricer, but quantooption.cpp itself shows the
+        # substitute: testPDEOptionValues benchmarks the analytic quanto
+        # vanilla against a PDE at 2e-4. The same trick works for barriers,
+        # because FdBlackScholesBarrierEngine is single-argument constructible
+        # and so can be wrapped by QuantoEngine.
+        #
+        # What this does and does not establish. Both routes take the quanto
+        # adjustment from the same QuantoTermStructure, so this does not test
+        # the quanto wrapper -- it tests the barrier closed form on top of it.
+        # The wrapper is covered separately and independently: the quanto rows
+        # above reproduce Haug's published values to 2e-05 through that same
+        # QuantoTermStructure. The two legs together cover the price.
+        print("\n  -- analytic vs PDE, the benchmark testBarrierValues asks for --")
+
+        async def cross_check(label, build, expected_tol=1.0e-3):
+            errs = {}
+            r = await send(ws, build(None))
+            analytic = r.price_result.npv
+            for name, grid in [("coarse", E.FD_GRID_COARSE),
+                               ("standard", E.FD_GRID_STANDARD),
+                               ("fine", E.FD_GRID_FINE)]:
+                r = await send(ws, build(grid))
+                if not r.HasField("price_result"):
+                    check(f"{label} PDE {name}", False, f"{r.error.code} {r.error.message!r}")
+                    return None, None
+                errs[name] = abs(r.price_result.npv - analytic)
+                if name == "fine":
+                    fine, echo = r.price_result.npv, r.price_result.fd_grid
+
+            check(f"{label} analytic vs PDE", errs["fine"] <= expected_tol,
+                  f"analytic={analytic:.6f} pde={fine:.6f} err={errs['fine']:.2e} "
+                  f"tol={expected_tol:g}")
+            # Refining the grid must keep reducing the gap. A fixed offset
+            # would mean the two methods agree on a different instrument.
+            check(f"{label} PDE converges",
+                  errs["coarse"] > errs["standard"] > errs["fine"],
+                  " > ".join(f"{n}={errs[n]:.2e}" for n in ("coarse", "standard", "fine")))
+            check(f"{label} fd_grid echoed", echo == E.FD_GRID_FINE, f"fd_grid={echo}")
+            return analytic, fine
+
+        for n, row in enumerate(BARRIER_VALUES):
+            await send(ws, set_market(sid, row))
+            analytic, _ = await cross_check(
+                f"barrier[{n}]", lambda g, row=row: barrier_variant(
+                    sid, row, row["barrier_type"], row["barrier"], row["rebate"],
+                    row["strike"], g))
+            if analytic is not None:
+                gap = abs(analytic - row["result"])
+                # Reported, not asserted. The recorded value is the thing under
+                # test here, and it is the one without a provenance.
+                print(f"         recorded={row['result']} ours={analytic:.6f} "
+                      f"gap={gap:.3e}" + ("   <-- recorded value not reproduced"
+                                          if gap > 1.0e-2 else ""))
+
+        # The same cross-check where the analytic side is already pinned to
+        # Haug, so a disagreement would indict the PDE rather than the closed
+        # form. It agrees, which is what makes the barrier result above worth
+        # anything.
+        for n, row in enumerate(QUANTO_VALUES):
+            await send(ws, set_market(sid, row))
+            await cross_check(f"vanilla[{n}]", lambda g, row=row: vanilla_frame(
+                sid, row, row["strike"], g))
+
+        # -------------------------------------------------------------------
+        # Guardrails that need no second engine at all
+        # -------------------------------------------------------------------
+        print("\n  -- internal consistency --")
+
+        row = BARRIER_VALUES[0]
+        await send(ws, set_market(sid, row))
+        strike, barrier = row["strike"], row["barrier"]
+
+        # In-out parity: at zero rebate a knock-in plus its knock-out is the
+        # unbarriered option, whatever the barrier level. Nothing external is
+        # involved, and a wrong closed form breaks it immediately.
+        r = await send(ws, barrier_variant(sid, row, E.DOWN_IN, barrier, 0.0, strike))
+        down_in = r.price_result.npv
+        r = await send(ws, barrier_variant(sid, row, E.DOWN_OUT, barrier, 0.0, strike))
+        down_out = r.price_result.npv
+        r = await send(ws, vanilla_frame(sid, row, strike))
+        plain = r.price_result.npv
+        check("in-out parity", abs(down_in + down_out - plain) < 1.0e-9,
+              f"{down_in:.9f} + {down_out:.9f} = {down_in + down_out:.9f} vs {plain:.9f}")
+
+        # A barrier the spot cannot reach is not a barrier.
+        r = await send(ws, barrier_variant(sid, row, E.DOWN_OUT, 1.0e-3, 0.0, strike))
+        check("unreachable barrier degrades to vanilla", abs(r.price_result.npv - plain) < 1.0e-9,
+              f"npv={r.price_result.npv:.9f} vs vanilla {plain:.9f}")
+
+        # -------------------------------------------------------------------
+        # Where finite difference is not available, and what it needs
+        # -------------------------------------------------------------------
+        f = barrier_variant(sid, row, E.DOWN_OUT, barrier, 0.0, strike, E.FD_GRID_FINE)
+        f.price.engine.ClearField("fd_grid")
+        r = await send(ws, f)
+        check("FD without a grid rejected",
+              r.HasField("error") and r.error.field_path == "engine.fd_grid",
+              f"code={r.error.code} field={r.error.field_path!r}")
+
+        dbl = DOUBLE_BARRIER_VALUES[0]
+        await send(ws, set_market(sid, dbl))
+        f = double_barrier_frame(sid, dbl)
+        f.price.engine.kind = E.Engine.FINITE_DIFFERENCE
+        f.price.engine.fd_grid = E.FD_GRID_FINE
+        r = await send(ws, f)
+        check("FD rejected for double barriers",
+              r.HasField("error") and r.error.field_path == "engine.kind",
+              f"{r.error.message}")
+
+        fwd = FORWARD_VALUES[0]
+        await send(ws, set_market(sid, fwd))
+        f = forward_frame(sid, fwd, False)
+        f.price.engine.kind = E.Engine.FINITE_DIFFERENCE
+        f.price.engine.fd_grid = E.FD_GRID_FINE
+        r = await send(ws, f)
+        check("FD rejected for forward-start",
+              r.HasField("error") and r.error.field_path == "engine.kind",
+              f"{r.error.message}")
+
+        # Every FD request above moved the session from the shared pool to a
+        # sacrificial process and back (Supervisor::placementFor), and each
+        # move is a replay of the session log rather than a migration
+        # (DESIGN §2.1). If replay lost anything, this price would differ.
+        await send(ws, set_market(sid, QUANTO_VALUES[0]))
+        r = await send(ws, quanto_frame(sid, QUANTO_VALUES[0]))
+        check("session survives the placement thrash",
+              abs(r.price_result.npv - QUANTO_VALUES[0]["result"]) <= QUANTO_VALUES[0]["tol"],
+              f"npv={r.price_result.npv:.6f} after {rid} requests")
+
         f = E.ClientFrame(request_id=next_id(), session_id=sid)
         f.close_session.SetInParent()
         r = await send(ws, f)
@@ -424,4 +596,5 @@ async def main():
     return 1 if failures else 0
 
 
-sys.exit(asyncio.run(main()))
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

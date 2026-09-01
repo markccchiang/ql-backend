@@ -17,11 +17,13 @@
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
+#include <ql/pricingengines/vanilla/fdblackscholesvanillaengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
 #include <ql/settings.hpp>
@@ -779,6 +781,70 @@ namespace qlservice {
                            "unspecified double barrier type at '" << fieldPath << "'");
         }
 
+        //! An FD engine with its grid fixed at compile time.
+        /*! `QuantoEngine` builds its inner engine as
+            `make_shared<Engine>(quantoProcess)`
+            (ql/pricingengines/quanto/quantoengine.hpp:114), so there is no
+            seam through which an FD engine's own tGrid and xGrid can be
+            passed. Baking them into the type is the only way to vary them,
+            and that is what turns the grid into a menu rather than a number.
+        */
+        template <class Base, std::size_t TGrid, std::size_t XGrid>
+        class FixedGrid : public Base {
+          public:
+            explicit FixedGrid(ext::shared_ptr<GeneralizedBlackScholesProcess> process)
+            : Base(std::move(process), TGrid, XGrid) {}
+        };
+
+        //! The compiled-in grids, for one (instrument, FD engine) pair.
+        /*! Three entries times two instruments is six distinct template
+            instantiations, which is the whole cost of the feature and the
+            reason the enum is deliberately short (DESIGN §6.1).
+        */
+        template <class Instr, class FdBase>
+        ext::shared_ptr<PricingEngine> fdQuantoEngine(qlpb::FdGrid grid,
+                                                      const Session::QuantoGraph& g,
+                                                      const std::string& fieldPath) {
+            switch (grid) {
+                case qlpb::FD_GRID_COARSE:
+                    return ext::make_shared<QuantoEngine<Instr, FixedGrid<FdBase, 100, 100>>>(
+                        g.process, g.fxRiskFree, g.fxVol, g.correlation);
+                case qlpb::FD_GRID_STANDARD:
+                    return ext::make_shared<QuantoEngine<Instr, FixedGrid<FdBase, 400, 200>>>(
+                        g.process, g.fxRiskFree, g.fxVol, g.correlation);
+                case qlpb::FD_GRID_FINE:
+                    return ext::make_shared<QuantoEngine<Instr, FixedGrid<FdBase, 2000, 800>>>(
+                        g.process, g.fxRiskFree, g.fxVol, g.correlation);
+                default:
+                    break;
+            }
+            QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+                           "a finite-difference request needs an explicit grid at '"
+                               << fieldPath << "': two grids are two different prices for the "
+                                               "same trade, so there is no safe default");
+        }
+
+        //! Rejects an engine kind this instrument has no engine for.
+        void requireEngineKind(const qlpb::Engine& engine, bool fdSupported,
+                               const std::string& what) {
+            if (engine.kind() == qlpb::Engine::ANALYTIC)
+                return;
+            if (fdSupported && engine.kind() == qlpb::Engine::FINITE_DIFFERENCE)
+                return;
+
+            // An unset kind is its own failure, not a wrong choice: proto3
+            // cannot tell it from a deliberate one, so it must not fall
+            // through to a default (DESIGN §6).
+            QLS_FIELD_FAIL(engine.kind() == qlpb::Engine::KIND_UNSPECIFIED
+                               ? qlpb::Error::UNSPECIFIED_ENUM
+                               : qlpb::Error::INVALID_ARGUMENT,
+                           "engine.kind",
+                           "engine kind " << engine.kind() << " is not wired up for " << what
+                                          << "; it takes "
+                                          << (fdSupported ? "ANALYTIC or FINITE_DIFFERENCE"
+                                                          : "ANALYTIC only"));
+        }
+
         Option::Type optionType(qlpb::VanillaOption::OptionType msg,
                                 const std::string& fieldPath) {
             switch (msg) {
@@ -865,25 +931,30 @@ namespace qlservice {
 
     Session::PriceOutcome Session::priceQuantoOption(const qlpb::PriceRequest& msg) {
         const auto& instrument = msg.instrument();
+        const auto& engineMsg = msg.engine();
 
-        // Only the analytic engines are wired up. Stated once, here, rather
-        // than defaulted silently: an unset engine.kind must not price as
-        // though the client had chosen one (DESIGN §6), and the swap path
-        // getting this wrong is a known defect, not a precedent.
-        QLS_FIELD_REQUIRE(msg.engine().kind() == qlpb::Engine::ANALYTIC,
-                          msg.engine().kind() == qlpb::Engine::KIND_UNSPECIFIED
-                              ? qlpb::Error::UNSPECIFIED_ENUM
-                              : qlpb::Error::INVALID_ARGUMENT,
-                          "engine.kind",
-                          "quanto options are priced by QuantoEngine wrapping an analytic "
-                          "engine; engine.kind "
-                              << msg.engine().kind() << " is not wired up for them");
-
+        // Which engines exist is a property of the instrument, so the check
+        // lives in each branch below rather than here — but always ahead of
+        // quantoGraph(), so a frame that is wrong in both ways is reported
+        // against engine.kind rather than against whichever quote happened to
+        // fail first. The cheaper, more structural rejection is the more
+        // useful one. What is uniform is that
+        // an unset engine.kind never falls through to a default (DESIGN §6);
+        // Session::priceSwap ignoring the field is a known defect, not a
+        // precedent.
+        //
+        // Finite difference is available for the two shapes QuantLib has a
+        // Black-Scholes FD engine for. There is no FD forward-start engine,
+        // and the only FD double-barrier engine is Heston
+        // (ql/pricingengines/barrier/fdhestondoublebarrierengine.hpp), which
+        // takes a calibrated model rather than a process and so cannot be
+        // wrapped by QuantoEngine at all.
         switch (instrument.kind_case()) {
 
             case qlpb::Instrument::kQuantoVanillaOption: {
                 const std::string path = "instrument.quanto_vanilla_option";
                 const auto& opt = instrument.quanto_vanilla_option();
+                requireEngineKind(engineMsg, true, "quanto vanilla options");
                 const auto graph = quantoGraph(opt.market(), path + ".market");
 
                 const auto payoff = ext::make_shared<PlainVanillaPayoff>(
@@ -894,7 +965,16 @@ namespace qlservice {
                 const auto exercise =
                     ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
 
-                return runQuanto(ext::make_shared<QuantoVanillaOption>(payoff, exercise),
+
+                auto option = ext::make_shared<QuantoVanillaOption>(payoff, exercise);
+
+                if (engineMsg.kind() == qlpb::Engine::FINITE_DIFFERENCE)
+                    return runQuanto(option,
+                                     fdQuantoEngine<VanillaOption, FdBlackScholesVanillaEngine>(
+                                         engineMsg.fd_grid(), graph, "engine.fd_grid"),
+                                     msg);
+
+                return runQuanto(option,
                                  ext::make_shared<QuantoEngine<VanillaOption,
                                                                AnalyticEuropeanEngine>>(
                                      graph.process, graph.fxRiskFree, graph.fxVol,
@@ -905,6 +985,7 @@ namespace qlservice {
             case qlpb::Instrument::kQuantoForwardVanillaOption: {
                 const std::string path = "instrument.quanto_forward_vanilla_option";
                 const auto& opt = instrument.quanto_forward_vanilla_option();
+                requireEngineKind(engineMsg, false, "quanto forward-start options");
                 const auto graph = quantoGraph(opt.market(), path + ".market");
 
                 QLS_FIELD_REQUIRE(opt.moneyness() > 0.0, qlpb::Error::INVALID_ARGUMENT,
@@ -931,6 +1012,7 @@ namespace qlservice {
                 auto option = ext::make_shared<QuantoForwardVanillaOption>(opt.moneyness(), reset,
                                                                           payoff, exercise);
 
+
                 // The one place the inner engine is chosen by a field rather
                 // than by the instrument: the performance variant pays the
                 // return instead of the amount, which is a different price for
@@ -956,6 +1038,7 @@ namespace qlservice {
             case qlpb::Instrument::kQuantoBarrierOption: {
                 const std::string path = "instrument.quanto_barrier_option";
                 const auto& opt = instrument.quanto_barrier_option();
+                requireEngineKind(engineMsg, true, "quanto barrier options");
                 const auto graph = quantoGraph(opt.market(), path + ".market");
 
                 QLS_FIELD_REQUIRE(opt.strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
@@ -968,10 +1051,19 @@ namespace qlservice {
                 const auto exercise =
                     ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
 
+
+                auto option = ext::make_shared<QuantoBarrierOption>(
+                    barrierType(opt.barrier_type(), path + ".barrier_type"), opt.barrier(),
+                    opt.rebate(), payoff, exercise);
+
+                if (engineMsg.kind() == qlpb::Engine::FINITE_DIFFERENCE)
+                    return runQuanto(option,
+                                     fdQuantoEngine<BarrierOption, FdBlackScholesBarrierEngine>(
+                                         engineMsg.fd_grid(), graph, "engine.fd_grid"),
+                                     msg);
+
                 return runQuanto(
-                    ext::make_shared<QuantoBarrierOption>(
-                        barrierType(opt.barrier_type(), path + ".barrier_type"), opt.barrier(),
-                        opt.rebate(), payoff, exercise),
+                    option,
                     ext::make_shared<QuantoEngine<BarrierOption, AnalyticBarrierEngine>>(
                         graph.process, graph.fxRiskFree, graph.fxVol, graph.correlation),
                     msg);
@@ -980,6 +1072,7 @@ namespace qlservice {
             case qlpb::Instrument::kQuantoDoubleBarrierOption: {
                 const std::string path = "instrument.quanto_double_barrier_option";
                 const auto& opt = instrument.quanto_double_barrier_option();
+                requireEngineKind(engineMsg, false, "quanto double-barrier options");
                 const auto graph = quantoGraph(opt.market(), path + ".market");
 
                 QLS_FIELD_REQUIRE(opt.strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
@@ -994,6 +1087,7 @@ namespace qlservice {
                     optionType(opt.type(), path + ".type"), opt.strike());
                 const auto exercise =
                     ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
+
 
                 return runQuanto(
                     ext::make_shared<QuantoDoubleBarrierOption>(

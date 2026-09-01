@@ -170,6 +170,12 @@ namespace qlservice {
                         result->set_seed(frame.price().engine().seed());
                         result->set_samples(frame.price().engine().samples());
                         result->set_progress_every_paths(frame.price().progress_every_paths());
+
+                        // Same contract on the finite-difference side: the
+                        // grid is part of the answer, not a tuning knob, so a
+                        // client comparing two FD prices can see which grid
+                        // each came from. Unspecified for every other engine.
+                        result->set_fd_grid(frame.price().engine().fd_grid());
                         for (const auto& [name, v] : outcome.results)
                             (*result->mutable_results())[name] = wire(v);
                     });

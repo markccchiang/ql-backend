@@ -14,7 +14,10 @@ Monte Carlo reports progress, and a cancel comes back as `CANCELLED` with the
 session still alive. `test/` drives all of that end to end, and
 `test/smoke_quanto.py` reproduces all eighteen reference values from QuantLib's
 own `test-suite/quantooption.cpp` over the wire, each within the tolerance that
-test uses. Builds warning-free against QuantLib 1.44 with AppleClang 21 at
+test uses, then cross-checks the analytic prices against a PDE — which answers
+the `TODO: bench against an existing prop calculator` that test leaves open,
+and finds one of its three recorded barrier values not reproducible
+([`test/README.md`](test/README.md)). Builds warning-free against QuantLib 1.44 with AppleClang 21 at
 C++17, schema clean under `protoc 34.0`.
 
 What is missing is the process boundary. Workers are threads in the gateway
