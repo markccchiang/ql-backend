@@ -30,6 +30,15 @@ sessions disagreeing by one day of theta. That last one is the check that
 catches the wrong QuantLib being linked: without `QL_ENABLE_SESSIONS` the two
 share one `Settings::evaluationDate()` and agree exactly (DESIGN §2).
 
+Two of the behaviour checks are replays in disguise. A sweep that keeps its
+final value is followed by a finite-difference request, which moves the
+session to a sacrificial worker and rebuilds it from the session log; the
+kept spot has to survive that, which is only true if the supervisor folded it
+into the log. And a swap section builds an index that forward-references the
+curve bootstrapped off it, then bumps a swap pillar and checks the trade moves
+— through the rebootstrapped curve *and* the relinked index, which a copy
+would not.
+
 It also benchmarks, which is the part worth reading: it cross-checks the
 analytic quanto barrier prices against a PDE, because `testBarrierValues` in
 `quantooption.cpp` asks for exactly that benchmark and never got one. The

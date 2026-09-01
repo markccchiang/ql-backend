@@ -248,7 +248,9 @@ namespace qlservice {
         /*! Owned, not borrowed, and bound to this session's own curve map:
             the registry resolves forwarding curves while the graph is still
             being built, so it has to see `curves_` as it fills. Market
-            definitions therefore arrive in dependency order.
+            definitions therefore arrive in dependency order — with the one
+            exception of an index's forwarding curve, which `indexHandles_`
+            and `pendingLinks_` below let arrive later.
         */
         ConventionRegistry registry_;
 

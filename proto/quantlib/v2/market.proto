@@ -65,6 +65,14 @@ enum Flag {
 // is the client's responsibility and a forward reference is an error rather
 // than an empty handle. An empty handle would price happily until the first
 // forecast and then fail a long way from its cause.
+//
+// The one exception is Index.forwarding_curve_id, which may name a curve
+// defined later. It has to: a bootstrapped curve's pillars name an index for
+// their conventions, and that index names the curve to forecast off, so one of
+// the two is always a forward reference. The index is built on a relinkable
+// handle and linked the moment its curve appears; a curve that never appears
+// is still an error, reported against the index's field at the end of the
+// market.
 message MarketObject {
     // Unique within the session. Instruments and other objects name it.
     string id = 1;
