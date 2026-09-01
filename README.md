@@ -34,8 +34,20 @@ which is what makes `Singleton<T>::instance()` thread-local. Anything else
 compiles and prices a single session correctly, then silently shares one
 `Settings::evaluationDate()` across two (DESIGN §2).
 
-What is not written is the process boundary: workers run as threads in the
-gateway process today, so a cancel that has to kill cannot (DESIGN §3).
+Nothing in the build can check that, which is what the second option is for:
+
+```bash
+git submodule update --init --checkout third_party/QuantLib
+cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
+```
+
+QuantLib is then built from the submodule pinned at v1.43, with
+`QL_ENABLE_SESSIONS=ON` and `QL_ENABLE_OPENMP=OFF` (DESIGN §2.2) set by this
+project's `CMakeLists.txt` rather than assumed of someone's install tree. It
+costs a QuantLib build — nearly a thousand translation units — and Boost is
+still an external dependency either way, so the installed-prefix path stays the
+default. The QuantLib submodule is marked `update = none` and is not fetched by
+the plain `--init --recursive` above.
 
 Compiling it was worth doing. Four things in this code were wrong in ways no
 amount of re-reading would have shown: `namespace pb` collides with protobuf's
@@ -63,3 +75,4 @@ has priced anything — but it is no longer unproven *and* unbuildable.
 | [`test/`](test/README.md) | End-to-end smoke scripts, and how to run them |
 | [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |
+| `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON` |

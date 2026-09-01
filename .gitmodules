@@ -1,3 +1,10 @@
 [submodule "third_party/uWebSockets"]
 	path = third_party/uWebSockets
 	url = https://github.com/uNetworking/uWebSockets.git
+# Opt-in: update = none keeps `git submodule update --init --recursive` from
+# cloning 800 MB of QuantLib for the common build, which uses an installed one.
+# Vendoring it is `git submodule update --init --checkout third_party/QuantLib`.
+[submodule "third_party/QuantLib"]
+	path = third_party/QuantLib
+	url = https://github.com/lballabio/QuantLib.git
+	update = none

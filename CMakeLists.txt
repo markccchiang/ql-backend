@@ -24,9 +24,65 @@ endif()
 # link paths come from the install tree rather than being guessed here. Point
 # CMAKE_PREFIX_PATH at a non-standard prefix, e.g.
 #
-#     cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local
+#     cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions
 #
-find_package(QuantLib REQUIRED)
+# That prefix has to be a QuantLib built with QL_ENABLE_SESSIONS (DESIGN §2) and
+# without OpenMP (DESIGN §2.2), which nothing in this build can check: the wrong
+# one links and prices, and only test/smoke_sessions.py notices. Vendoring turns
+# both of those from environmental facts into build settings.
+
+option(QLSERVICE_VENDOR_QUANTLIB
+    "Build QuantLib from third_party/QuantLib instead of finding an installed one" OFF)
+
+set(QLSERVICE_QUANTLIB "${CMAKE_CURRENT_SOURCE_DIR}/third_party/QuantLib")
+
+if (QLSERVICE_VENDOR_QUANTLIB)
+
+    if (NOT EXISTS "${QLSERVICE_QUANTLIB}/ql/quantlib.hpp")
+        message(FATAL_ERROR
+            "QLSERVICE_VENDOR_QUANTLIB is ON but third_party/QuantLib is empty. "
+            "Run: git submodule update --init --checkout third_party/QuantLib")
+    endif()
+
+    # The two settings this repo cannot be built correctly without. FORCE
+    # because QuantLib declares them with option(), which would otherwise keep
+    # whatever is already in the cache.
+    set(QL_ENABLE_SESSIONS ON CACHE BOOL "" FORCE)   # DESIGN §2
+    set(QL_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)    # DESIGN §2.2
+
+    # Both default ON, and the test suite pulls in Boost.Test. With them off
+    # the only target QuantLib adds is the library itself.
+    set(QL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(QL_BUILD_TEST_SUITE OFF CACHE BOOL "" FORCE)
+    set(QL_INSTALL_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(QL_INSTALL_TEST_SUITE OFF CACHE BOOL "" FORCE)
+    set(QL_INSTALL_BENCHMARK OFF CACHE BOOL "" FORCE)
+
+    # QuantLib's CMakeLists has no top-level guard, so its install() rules
+    # become part of this project's install as well. Harmless here — nothing
+    # installs qlservice — and preferable to EXCLUDE_FROM_ALL, which leaves
+    # install rules on an excluded directory.
+    add_subdirectory("${QLSERVICE_QUANTLIB}")
+
+    # In-tree the target is ql_library; the QuantLib:: namespace is applied by
+    # install(EXPORT ...) and so exists only for an installed QuantLib. The
+    # alias lets the rest of this file name the dependency one way.
+    add_library(QuantLib::QuantLib ALIAS ql_library)
+
+    # An imported QuantLib arrives with system includes, an in-tree one does
+    # not, and QuantLib's headers do not compile clean under this project's
+    # -Wall -Wextra -Wpedantic. Without this the vendored build is 15 warnings
+    # louder than the installed one and QLSERVICE_WERROR fails on someone
+    # else's code. (add_subdirectory(SYSTEM) would do the same but needs 3.25.)
+    set_target_properties(ql_library PROPERTIES
+        INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+            "$<TARGET_PROPERTY:ql_library,INTERFACE_INCLUDE_DIRECTORIES>")
+
+else()
+
+    find_package(QuantLib REQUIRED)
+
+endif()
 
 # CONFIG mode: protobuf's own package config carries the abseil dependencies
 # that libprotobuf now needs, which the deprecated FindProtobuf module does not.
