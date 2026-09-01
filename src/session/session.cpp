@@ -548,6 +548,28 @@ namespace qlservice {
                                        << path << "' is in the schema but not implemented");
             }
             marketIds_.push_back(obj.id());
+
+            // A curve that just appeared may be the one an earlier index was
+            // waiting for.
+            if (obj.has_yield_curve()) {
+                auto waiting = pendingLinks_.find(obj.id());
+                if (waiting != pendingLinks_.end()) {
+                    for (const auto& [indexId, refPath] : waiting->second)
+                        indexHandles_.at(indexId).linkTo(curves_.at(obj.id()).currentLink());
+                    pendingLinks_.erase(waiting);
+                }
+            }
+        }
+
+        // Anything still waiting named a curve that never appeared. Rejected
+        // here rather than left as an empty handle: an index built on one
+        // prices happily until the first forecast and then fails a long way
+        // from the cause, with no field to blame.
+        if (!pendingLinks_.empty()) {
+            const auto& [curveId, refs] = *pendingLinks_.begin();
+            QLS_FIELD_FAIL(qlpb::Error::UNKNOWN_ID, refs.front().second,
+                           "index '" << refs.front().first << "' forecasts off curve '" << curveId
+                                     << "', which is not defined anywhere in this market");
         }
     }
 
@@ -677,8 +699,16 @@ namespace qlservice {
         switch (pillar.kind()) {
 
             case qlpb::Pillar_Kind_KIND_DEPOSIT:
-                // The index carries the deposit's own tenor and conventions.
-                return ext::make_shared<DepositRateHelper>(rate, index);
+                // Tenor from the pillar, conventions from the index. The
+                // two-argument DepositRateHelper(rate, index) takes both from
+                // the index, which makes every deposit on a curve the same
+                // tenor as the one index its pillars share -- four pillars all
+                // at 6M, and a bootstrap that fails on duplicate dates at
+                // price time with no field to blame.
+                return ext::make_shared<DepositRateHelper>(
+                    rate, registry_.period(pillar.tenor(), fieldPath + ".tenor"),
+                    index->fixingDays(), index->fixingCalendar(), index->businessDayConvention(),
+                    index->endOfMonth(), index->dayCounter());
 
             case qlpb::Pillar_Kind_KIND_SWAP:
                 return ext::make_shared<SwapRateHelper>(
@@ -875,9 +905,23 @@ namespace qlservice {
         // Empty is legal and means "past fixings only": an index used by a leg
         // whose periods have all fixed needs no forecast curve, and demanding
         // one would force a client to invent it.
-        Handle<YieldTermStructure> forwarding;
-        if (!def.forwarding_curve_id().empty())
-            forwarding = curve(def.forwarding_curve_id());
+        //
+        // Otherwise the handle is relinkable and may be linked later: the
+        // curve this index forecasts off is usually bootstrapped from pillars
+        // that name this very index for their conventions, so it cannot
+        // exist yet. A forward reference is legal here and resolved when the
+        // curve is built; one that never resolves is rejected at the end of
+        // the market (buildMarket), by field.
+        RelinkableHandle<YieldTermStructure> forwarding;
+        if (!def.forwarding_curve_id().empty()) {
+            auto it = curves_.find(def.forwarding_curve_id());
+            if (it != curves_.end())
+                forwarding.linkTo(it->second.currentLink());
+            else
+                pendingLinks_[def.forwarding_curve_id()].emplace_back(
+                    id, fieldPath + ".forwarding_curve_id");
+        }
+        indexHandles_[id] = forwarding;
 
         QLS_FIELD_REQUIRE(!def.name().empty(), qlpb::Error::INVALID_ARGUMENT, fieldPath + ".name",
                           "an index needs a family name");

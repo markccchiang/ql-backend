@@ -22,6 +22,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace QuantLib {
@@ -258,6 +259,29 @@ namespace qlservice {
         std::map<std::string, QuantLib::Handle<QuantLib::YieldTermStructure>> curves_;
         std::map<std::string, QuantLib::Handle<QuantLib::BlackVolTermStructure>> vols_;
         std::map<std::string, QuantLib::ext::shared_ptr<QuantLib::IborIndex>> indices_;
+
+        //! The forwarding handle each index was built on, by index id.
+        /*! Relinkable, because an index and the curve it forecasts off
+            depend on each other: the curve's pillars name the index for its
+            conventions, and the index names the curve to forecast from. One
+            of them has to be defined first, so the index takes an empty
+            relinkable handle and is linked the moment its curve is built.
+            This is how QuantLib's own bootstrap resolves the same cycle
+            (`ql/termstructures/yield/ratehelpers.cpp`, the cloned index on a
+            helper's own handle), done once at the session level rather than
+            once per helper.
+        */
+        std::map<std::string, QuantLib::RelinkableHandle<QuantLib::YieldTermStructure>>
+            indexHandles_;
+
+        //! Indices waiting on a curve that has not been built yet.
+        /*! curve id -> (index id, field path of the reference). Drained as
+            curves are built; anything left at the end of the market is a
+            forward reference to a curve that never appeared, and is rejected
+            naming the field rather than left as an empty handle that fails
+            at the first forecast.
+        */
+        std::map<std::string, std::vector<std::pair<std::string, std::string>>> pendingLinks_;
 
         //! Every id in the market namespace, in definition order.
         std::vector<std::string> marketIds_;

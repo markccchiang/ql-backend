@@ -746,6 +746,144 @@ async def main():
         check("an unreachable barrier degrades to the vanilla price",
               abs(unreachable - plain) < 1.0e-9)
 
+
+        # -- swaps: an index, a bootstrapped curve, and the cycle between them --
+        #
+        # The curve's pillars name the index for their conventions and the
+        # index names the curve to forecast off, so one of them is always a
+        # forward reference. The session resolves it with a relinkable handle
+        # the way QuantLib's own bootstrap does; this is the check that the
+        # cycle is legal in the order a client would naturally write it.
+        print("\n  -- swaps --")
+
+        def swap_session(forwarding_curve="DISC"):
+            f = E.ClientFrame(request_id=next_id())
+            o = f.open_session
+            o.evaluation_date.iso = TODAY.isoformat()
+            for qid, v in [("D1M", 0.038), ("D3M", 0.039), ("D6M", 0.040),
+                           ("D12M", 0.041), ("S2Y", 0.042), ("S5Y", 0.045), ("S10Y", 0.047),
+                           ("FIX", 0.04)]:
+                m = o.market.add()
+                m.id = qid
+                m.quote.value = v
+            m = o.market.add()
+            m.id = "EUR6M"
+            ix = m.index
+            ix.family = M.Index.FAMILY_IBOR
+            ix.name, ix.tenor, ix.fixing_days = "Euribor", "6M", 2
+            ix.fixing_calendar.name = C.Calendar.TARGET
+            ix.convention = C.MODIFIED_FOLLOWING
+            ix.day_counter.family = C.DayCounter.ACTUAL_360
+            ix.end_of_month = M.FLAG_FALSE
+            ix.forwarding_curve_id = forwarding_curve   # defined below, not above
+            m = o.market.add()
+            m.id = "DISC"
+            yc = m.yield_curve
+            yc.day_counter.family = C.DayCounter.ACTUAL_365_FIXED
+            yc.calendar.name = C.Calendar.TARGET
+            yc.settlement_days = 2
+            yc.bootstrap.traits = M.BootstrappedCurve.TRAITS_DISCOUNT
+            yc.bootstrap.interpolator = M.INTERPOLATOR_LOG_LINEAR
+            for qid, tenor in [("D1M", "1M"), ("D3M", "3M"), ("D6M", "6M"), ("D12M", "12M")]:
+                pl = yc.bootstrap.pillars.add()
+                pl.quote_id, pl.tenor, pl.kind, pl.index_id = qid, tenor, M.Pillar.KIND_DEPOSIT, "EUR6M"
+            # Swap pillars past the deposits, so a 5Y trade is inside the curve
+            # rather than extrapolated off its last deposit.
+            for qid, tenor in [("S2Y", "2Y"), ("S5Y", "5Y"), ("S10Y", "10Y")]:
+                pl = yc.bootstrap.pillars.add()
+                pl.quote_id, pl.tenor, pl.kind, pl.index_id = qid, tenor, M.Pillar.KIND_SWAP, "EUR6M"
+                pl.calendar.name = C.Calendar.TARGET
+                pl.fixed_frequency = C.ANNUAL
+                pl.fixed_convention = C.MODIFIED_FOLLOWING
+                pl.fixed_day_counter.family = C.DayCounter.THIRTY_360
+                pl.fixed_day_counter.thirty_360 = C.DayCounter.BOND_BASIS
+            return f
+
+        def swap_frame(sid, results=(), method=EN.Engine.METHOD_DISCOUNTING):
+            f = E.ClientFrame(request_id=next_id(), session_id=sid)
+            sw = f.price.instrument.swap
+            sw.discount_curve_id = "DISC"
+            for kind, pays, freq in [(I.Leg.KIND_FIXED, M.FLAG_TRUE, C.ANNUAL),
+                                     (I.Leg.KIND_IBOR, M.FLAG_FALSE, C.SEMIANNUAL)]:
+                lg = sw.legs.add()
+                lg.kind, lg.pays = kind, pays
+                lg.notionals.append(1.0e6)
+                lg.day_counter.family = C.DayCounter.ACTUAL_360
+                sc = lg.schedule
+                sc.start.iso = (TODAY + timedelta(days=2)).isoformat()
+                sc.maturity.iso = (TODAY + timedelta(days=2 + 5 * 365)).isoformat()
+                sc.frequency = freq
+                sc.calendar.name = C.Calendar.TARGET
+                sc.convention = C.MODIFIED_FOLLOWING
+                sc.date_generation = I.Schedule.DATE_GENERATION_BACKWARD
+                sc.end_of_month = M.FLAG_FALSE
+                if kind == I.Leg.KIND_FIXED:
+                    lg.rate_quote_id = "FIX"
+                else:
+                    lg.index_id = "EUR6M"
+            f.price.engine.method = method
+            f.price.results.extend(results)
+            return f
+
+        reply = await send(ws, swap_session())
+        ok = reply.HasField("session_opened")
+        check("an index may forward-reference the curve bootstrapped off it", ok,
+              "" if ok else f"{reply.error.field_path!r} {reply.error.message!r}")
+
+        if ok:
+            sid3 = reply.session_id
+            reply = await send(ws, swap_frame(sid3, [R.RESULT_KIND_FAIR_RATE,
+                                                     R.RESULT_KIND_LEG_NPV]))
+            ok = reply.HasField("price_result")
+            check("a fixed-for-Ibor swap prices through the general Swap", ok,
+                  "" if ok else f"{reply.error.field_path!r} {reply.error.message!r}")
+
+            if ok:
+                res = reply.price_result.results
+                npv = reply.price_result.npv
+                legs = res["legNPV.0"].scalar + res["legNPV.1"].scalar
+                check("leg NPVs sum to the swap NPV", abs(legs - npv) < 1e-6,
+                      f"npv={npv:.4f} legs={legs:.4f}")
+
+                # The fair rate is the fixed rate that zeroes the NPV. A fixed
+                # leg is frozen at construction (session.cpp, buildLeg), so the
+                # check is a quote write followed by a *new* request, which is
+                # exactly what the comment there tells a client to do.
+                fair = res["fairRate"].scalar
+                await send(ws, set_market(sid3, FIX=fair))
+                at_par = (await send(ws, swap_frame(sid3))).price_result.npv
+                check("repricing at the fair rate gives zero NPV",
+                      abs(at_par) < 1e-4 * 1.0e6,
+                      f"fairRate={fair:.6f} npv={at_par:.6f}")
+
+                # A pillar bump has to reach the swap through two handles: the
+                # curve rebootstraps, and the index forecasts off the relinked
+                # curve. If the relink had made a copy, this would not move.
+                await send(ws, set_market(sid3, S5Y=0.055))
+                bumped = (await send(ws, swap_frame(sid3))).price_result.npv
+                check("a pillar bump moves the swap through the relinked index",
+                      abs(bumped - at_par) > 1.0,
+                      f"{at_par:.4f} -> {bumped:.4f}")
+
+            f = swap_frame(sid3)
+            f.price.instrument.swap.legs[0].ClearField("pays")
+            await rejected("unset pays Flag on a leg", f, "instrument.swap.legs[0].pays",
+                           E.Error.UNSPECIFIED_ENUM)
+
+            # The v1 defect: a swap priced with an unset engine succeeded.
+            f = swap_frame(sid3, method=EN.Engine.METHOD_UNSPECIFIED)
+            await rejected("a swap with no engine method", f, "engine.method",
+                           E.Error.UNSPECIFIED_ENUM)
+
+            await send(ws, E.ClientFrame(request_id=next_id(), session_id=sid3,
+                                         close_session=E.CloseSession()))
+
+        # A forward reference that never resolves is a named rejection, not an
+        # empty handle that fails at the first forecast.
+        await rejected("an index forwarding off a curve that never appears",
+                       swap_session(forwarding_curve="NOPE"),
+                       "market[8].index.forwarding_curve_id", E.Error.UNKNOWN_ID)
+
         # -- close -----------------------------------------------------------
         print("\n  -- close --")
         reply = await send(ws, E.ClientFrame(request_id=next_id(), session_id=sid,
