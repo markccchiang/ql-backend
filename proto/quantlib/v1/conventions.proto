@@ -1,0 +1,241 @@
+// Convention schema for the interactive QuantLib service.
+//
+// This file is the schema half of the convention-registry layer; the
+// translation half is src/conventions/registry.{hpp,cpp}. QuantLib has no
+// reflection and no string-to-object factory, so every value here is mapped by
+// hand.
+//
+// Two rules hold throughout, and both exist to prevent silent mispricing:
+//
+//   1. Zero is always *_UNSPECIFIED and is always rejected by the registry.
+//      Proto3 cannot distinguish an unset enum from its first value, so a
+//      field the frontend forgot to set must not resolve to a real convention.
+//
+//   2. Values are NOT QuantLib's own enum values. Frequency alone has
+//      NoFrequency = -1 and Once = 0 (ql/time/frequency.hpp:37-38): one is a
+//      negative varint, the other collides with the reserved zero slot. The
+//      registry maps explicitly and never casts.
+
+syntax = "proto3";
+
+package quantlib.v1;
+
+option java_multiple_files = true;
+option go_package = "quantlib/v1;quantlibv1";
+
+// ---------------------------------------------------------------------------
+// Dates and periods
+// ---------------------------------------------------------------------------
+
+// Exactly one field must be set.
+message Date {
+    oneof form {
+        // QuantLib serial number, the cheap form for machine-generated dates.
+        int32 serial_number = 1;
+        // ISO 8601 "YYYY-MM-DD", parsed with DateParser::parseISO
+        // (ql/utilities/dataparsers.hpp:51). The readable form for anything a
+        // human typed.
+        string iso = 2;
+    }
+}
+
+// Periods travel as QuantLib text ("6M", "10Y") and are parsed with
+// PeriodParser::parse (ql/utilities/dataparsers.hpp:38). This is the one place
+// a string beats an enum: the parser already exists and covers the whole
+// space, so a registry entry per tenor would be pure maintenance.
+
+// ---------------------------------------------------------------------------
+// Scalar conventions
+// ---------------------------------------------------------------------------
+
+// Maps to QuantLib's BusinessDayConvention
+// (ql/time/businessdayconvention.hpp:41).
+enum BusinessDayConvention {
+    BUSINESS_DAY_CONVENTION_UNSPECIFIED = 0;
+    FOLLOWING = 1;
+    MODIFIED_FOLLOWING = 2;
+    PRECEDING = 3;
+    MODIFIED_PRECEDING = 4;
+    UNADJUSTED = 5;
+    HALF_MONTH_MODIFIED_FOLLOWING = 6;
+    NEAREST = 7;
+}
+
+// Maps to QuantLib's Frequency (ql/time/frequency.hpp:37). The numeric values
+// deliberately differ: QuantLib's are payments-per-year, which puts Once at 0.
+enum Frequency {
+    FREQUENCY_UNSPECIFIED = 0;
+    NO_FREQUENCY = 1;
+    ONCE = 2;
+    ANNUAL = 3;
+    SEMIANNUAL = 4;
+    EVERY_FOURTH_MONTH = 5;
+    QUARTERLY = 6;
+    BIMONTHLY = 7;
+    MONTHLY = 8;
+    EVERY_FOURTH_WEEK = 9;
+    BIWEEKLY = 10;
+    WEEKLY = 11;
+    DAILY = 12;
+}
+
+// Maps to QuantLib's Compounding (ql/compounding.hpp:32).
+enum Compounding {
+    COMPOUNDING_UNSPECIFIED = 0;
+    SIMPLE = 1;
+    COMPOUNDED = 2;
+    CONTINUOUS = 3;
+    SIMPLE_THEN_COMPOUNDED = 4;
+    COMPOUNDED_THEN_SIMPLE = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Day counters
+// ---------------------------------------------------------------------------
+
+// A message, not an enum: Thirty360 and ActualActual take a sub-convention
+// that materially changes the year fraction
+// (ql/time/daycounters/thirty360.hpp:78, actualactual.hpp:53), and flattening
+// the product into one enum invites picking a plausible-looking wrong variant.
+message DayCounter {
+    enum Family {
+        FAMILY_UNSPECIFIED = 0;
+        ACTUAL_360 = 1;
+        ACTUAL_365_FIXED = 2;
+        ACTUAL_365_NO_LEAP = 3;
+        BUSINESS_252 = 4;
+        ONE_DAY_COUNTER = 5;
+        SIMPLE_DAY_COUNTER = 6;
+        THIRTY_360 = 7;
+        ACTUAL_ACTUAL = 8;
+    }
+
+    enum Thirty360Convention {
+        THIRTY_360_CONVENTION_UNSPECIFIED = 0;
+        USA = 1;
+        BOND_BASIS = 2;
+        EUROPEAN = 3;
+        EUROBOND_BASIS = 4;
+        ITALIAN = 5;
+        GERMAN = 6;
+        ISMA = 7;
+        ISDA = 8;
+        NASD = 9;
+    }
+
+    enum ActualActualConvention {
+        ACTUAL_ACTUAL_CONVENTION_UNSPECIFIED = 0;
+        AA_ISMA = 1;
+        AA_BOND = 2;
+        AA_ISDA = 3;
+        AA_HISTORICAL = 4;
+        AA_ACTUAL_365 = 5;
+        AA_AFB = 6;
+        AA_EURO = 7;
+    }
+
+    Family family = 1;
+
+    // Required when family is THIRTY_360 or ACTUAL_ACTUAL, ignored otherwise.
+    // The registry rejects a missing sub-convention rather than defaulting it.
+    Thirty360Convention thirty_360 = 2;
+    ActualActualConvention actual_actual = 3;
+
+    // Business/252 only: the calendar business days are counted in.
+    Calendar business_252_calendar = 4;
+
+    // Note: ActualActual::ISMA needs a Schedule for irregular periods and is
+    // therefore built by the leg builder, not here — the registry returns the
+    // schedule-free form. See AGENTS.md §5.4.
+}
+
+// ---------------------------------------------------------------------------
+// Calendars
+// ---------------------------------------------------------------------------
+
+// A message, not an enum, for two reasons: several calendars require a market
+// (UnitedStates has no default constructor —
+// ql/time/calendars/unitedstates.hpp:206), and joint calendars nest
+// (ql/time/calendars/jointcalendar.hpp:84).
+message Calendar {
+    enum Name {
+        NAME_UNSPECIFIED = 0;
+        NULL_CALENDAR = 1;
+        TARGET = 2;
+        UNITED_STATES = 3;
+        UNITED_KINGDOM = 4;
+        JAPAN = 5;
+        SWITZERLAND = 6;
+        CANADA = 7;
+        AUSTRALIA = 8;
+        // Combination of `joint`, below. Name itself carries no market.
+        JOINT = 9;
+    }
+
+    enum UnitedStatesMarket {
+        UNITED_STATES_MARKET_UNSPECIFIED = 0;
+        US_SETTLEMENT = 1;
+        US_NYSE = 2;
+        US_GOVERNMENT_BOND = 3;
+        US_NERC = 4;
+        US_LIBOR_IMPACT = 5;
+        US_FEDERAL_RESERVE = 6;
+        US_SOFR = 7;
+    }
+
+    enum UnitedKingdomMarket {
+        UNITED_KINGDOM_MARKET_UNSPECIFIED = 0;
+        UK_SETTLEMENT = 1;
+        UK_EXCHANGE = 2;
+        UK_METALS = 3;
+    }
+
+    Name name = 1;
+
+    // Required when the corresponding name is selected.
+    //
+    // UnitedStates genuinely has no default constructor
+    // (ql/time/calendars/unitedstates.hpp:206). UnitedKingdom does default to
+    // Settlement (unitedkingdom.hpp:114), but the registry demands the market
+    // anyway: a defaulted market is exactly the silent-wrong-answer failure
+    // that rule 1 above exists to prevent, and the frontend always knows which
+    // one it means.
+    UnitedStatesMarket united_states_market = 2;
+    UnitedKingdomMarket united_kingdom_market = 3;
+
+    // Set only when name is JOINT: at least two members, resolved recursively.
+    // Nesting is allowed; the registry caps depth to keep a malformed frame
+    // from exhausting the worker stack.
+    repeated Calendar joint = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Indexes
+// ---------------------------------------------------------------------------
+
+// Index families are constructed classes, not data: Euribor6M, Sofr and Estr
+// are distinct types taking a forwarding curve handle
+// (ql/indexes/ibor/euribor.hpp:83, sofr.hpp:34, estr.hpp:34). The registry
+// switches on family and hands back a shared_ptr<IborIndex>.
+message IborIndex {
+    enum Family {
+        FAMILY_UNSPECIFIED = 0;
+        EURIBOR = 1;
+        USD_LIBOR = 2;
+        GBP_LIBOR = 3;
+        SOFR = 4;
+        ESTR = 5;
+        SONIA = 6;
+    }
+    Family family = 1;
+
+    // Tenor in QuantLib text form ("3M", "6M"). Ignored for the overnight
+    // families (SOFR, ESTR, SONIA), which have no tenor; the registry rejects
+    // a tenor supplied there rather than silently dropping it, because a
+    // client that sent one has misunderstood the instrument.
+    string tenor = 2;
+
+    // curve_id of the forwarding curve. Empty means the index is used for
+    // fixings only and is built with an empty handle.
+    string forwarding_curve_id = 3;
+}

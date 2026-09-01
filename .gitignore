@@ -1,0 +1,9 @@
+# IDE
+.idea/
+
+# Build trees
+build/
+cmake-build-release/
+
+# Agent instructions, kept local
+CLAUDE.md

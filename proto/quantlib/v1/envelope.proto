@@ -1,0 +1,431 @@
+// Transport envelope for the interactive QuantLib service.
+//
+// One serialized ClientFrame or ServerFrame per binary WebSocket message.
+// WebSocket already delimits messages, so no length prefix is added.
+
+syntax = "proto3";
+
+package quantlib.v1;
+
+import "quantlib/v1/conventions.proto";
+
+option java_multiple_files = true;
+option go_package = "quantlib/v1;quantlibv1";
+
+// ---------------------------------------------------------------------------
+// Frames
+// ---------------------------------------------------------------------------
+
+// Client -> server.
+message ClientFrame {
+    // Correlates responses with this request. Unique per connection, chosen by
+    // the client, never reused; the server echoes it on every frame it sends
+    // in reply, including Progress frames and the terminal one.
+    uint64 request_id = 1;
+
+    // The session this frame acts on. Empty only on OpenSession.
+    string session_id = 2;
+
+    oneof payload {
+        OpenSession open_session = 10;
+        CloseSession close_session = 11;
+        UpdateMarket update_market = 12;
+        PriceRequest price = 13;
+        CancelRequest cancel = 14;
+    }
+}
+
+// Server -> client.
+//
+// A request produces zero or more non-terminal frames (Progress) followed by
+// exactly one terminal frame (Ack, SessionOpened, PriceResult, or Error).
+message ServerFrame {
+    uint64 request_id = 1;
+
+    // True on the last frame for this request_id. Clients release per-request
+    // state on this flag, never on the payload type.
+    bool terminal = 2;
+
+    // The session this frame concerns. One connection multiplexes many
+    // sessions (DESIGN §2.1), so request_id alone does not say which graph a
+    // frame belongs to.
+    //
+    // Set on every frame, including errors the server raises on its own
+    // behalf. Some of those are not answers to any request — a session dropped
+    // after a failed replay is reported with request_id 0 — and this is then
+    // the only field that identifies what was lost.
+    string session_id = 3;
+
+    oneof payload {
+        SessionOpened session_opened = 10;
+        Ack ack = 11;
+        Progress progress = 12;
+        PriceResult price_result = 13;
+        Error error = 14;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Session lifecycle
+// ---------------------------------------------------------------------------
+
+// A session owns one live QuantLib object graph, pinned for its whole life to
+// one worker thread in one worker process. See DESIGN §2.
+message OpenSession {
+    // Evaluation date for this session. Applied to the worker thread's
+    // thread_local Settings; it does not affect any other session.
+    Date evaluation_date = 1;
+
+    // Market data the session's curves are built from. Every quote here
+    // becomes a registered SimpleQuote that UpdateMarket can move.
+    repeated QuoteDefinition quotes = 2;
+
+    // Curve definitions bootstrapped at open time, in dependency order.
+    repeated CurveDefinition curves = 3;
+}
+
+message SessionOpened {
+    string session_id = 1;
+
+    // Wall-clock cost of the initial bootstrap, for the frontend to decide
+    // whether reopening a session is cheap.
+    double bootstrap_seconds = 2;
+}
+
+message CloseSession {}
+
+// ---------------------------------------------------------------------------
+// Market data
+// ---------------------------------------------------------------------------
+
+message QuoteDefinition {
+    // Stable identifier chosen by the client, e.g. "EUR.OIS.5Y".
+    string quote_id = 1;
+    double value = 2;
+}
+
+message QuoteUpdate {
+    string quote_id = 1;
+    double value = 2;
+}
+
+// Moves one or more quotes on the live graph.
+//
+// The worker wraps the whole batch in
+// ObservableSettings::instance().disableUpdates() / enableUpdates() so the
+// dependent instruments recalculate once rather than once per quote.
+message UpdateMarket {
+    repeated QuoteUpdate updates = 1;
+
+    // If set, curves are rebootstrapped even when only quote values moved.
+    // Normally false: relinking is unnecessary because the bootstrap helpers
+    // already observe the quotes.
+    bool force_rebootstrap = 2;
+}
+
+message CurveDefinition {
+    string curve_id = 1;
+    DayCounter day_counter = 2;
+    Calendar calendar = 3;
+
+    // The instruments the curve is bootstrapped from, in increasing maturity.
+    repeated CurvePillar pillars = 4;
+
+    // Bootstrap traits and interpolation. PiecewiseYieldCurve is a template,
+    // so this pair is resolved by an explicit instantiation table in the
+    // session rather than by a registry lookup — see DESIGN §6.1.
+    CurveBootstrap bootstrap = 5;
+
+    uint32 settlement_days = 6;
+
+    // Curves are built in the order given, and a pillar's index may forward
+    // off a curve defined earlier in the list. A forward reference is an
+    // error, not a lazily resolved link.
+}
+
+message CurveBootstrap {
+    enum Traits {
+        TRAITS_UNSPECIFIED = 0;
+        DISCOUNT = 1;
+        ZERO_YIELD = 2;
+        FORWARD_RATE = 3;
+    }
+    enum Interpolator {
+        INTERPOLATOR_UNSPECIFIED = 0;
+        LINEAR = 1;
+        LOG_LINEAR = 2;
+        CUBIC = 3;
+    }
+    Traits traits = 1;
+    Interpolator interpolator = 2;
+}
+
+message CurvePillar {
+    string quote_id = 1;
+
+    // Period in QuantLib text form, e.g. "6M", "10Y".
+    string tenor = 2;
+
+    // For DEPOSIT and SWAP, the forecasting index. For OIS, the overnight
+    // index.
+    //
+    // Leave `forwarding_curve_id` empty when the index forecasts off the curve
+    // being bootstrapped, which is the single-curve case: the helper is handed
+    // the term structure by the bootstrap itself. Set it only for a genuinely
+    // exogenous forecast curve, which must already be defined.
+    IborIndex index = 3;
+
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        DEPOSIT = 1;
+        SWAP = 2;
+        OIS = 3;
+    }
+    Kind kind = 4;
+
+    // Required for SWAP and OIS, ignored for DEPOSIT.
+    FixedLegConventions fixed_leg = 5;
+}
+
+// The fixed side of a par swap or OIS quote.
+message FixedLegConventions {
+    Calendar calendar = 1;
+    Frequency frequency = 2;
+    BusinessDayConvention convention = 3;
+    DayCounter day_counter = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Pricing
+// ---------------------------------------------------------------------------
+
+message PriceRequest {
+    Instrument instrument = 1;
+    Engine engine = 2;
+
+    // Results the client wants back. NPV is always returned.
+    repeated ResultKind results = 3;
+
+    // Emit a Progress frame every N paths. Zero disables progress: the engine
+    // is then called once and only the terminal frame is sent.
+    //
+    // QuantLib has no progress hook of its own (DESIGN §3); a non-zero value
+    // makes the worker run Monte Carlo in batches and accumulate itself, which
+    // costs a few percent in throughput.
+    uint64 progress_every_paths = 4;
+}
+
+message Engine {
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        ANALYTIC = 1;
+        BINOMIAL = 2;
+        FINITE_DIFFERENCE = 3;
+        MONTE_CARLO = 4;
+    }
+    Kind kind = 1;
+
+    // Monte Carlo only.
+    uint64 samples = 2;
+
+    // Monte Carlo only, and required there.
+    //
+    // QuantLib's default seeding is clock-based
+    // (ql/math/randomnumbers/seedgenerator.cpp:36), so an unseeded request
+    // returns a different price every time it is sent. The worker rejects a
+    // MONTE_CARLO request with seed == 0.
+    uint64 seed = 3;
+
+    uint64 time_steps = 4;
+}
+
+enum ResultKind {
+    RESULT_KIND_UNSPECIFIED = 0;
+    RESULT_KIND_NPV = 1;
+    RESULT_KIND_DELTA = 2;
+    RESULT_KIND_GAMMA = 3;
+    RESULT_KIND_VEGA = 4;
+    RESULT_KIND_THETA = 5;
+    RESULT_KIND_ERROR_ESTIMATE = 6;
+    // Swaps.
+    RESULT_KIND_FAIR_RATE = 7;
+    RESULT_KIND_FAIR_SPREAD = 8;
+    RESULT_KIND_FIXED_LEG_BPS = 9;
+    RESULT_KIND_FLOATING_LEG_BPS = 10;
+}
+
+message PriceResult {
+    double npv = 1;
+
+    // Present only for the kinds asked for, and only where the engine supplies
+    // them: QuantLib throws when a result was not calculated, and the worker
+    // reports that as a missing entry rather than as an error.
+    map<string, double> results = 2;
+
+    // Echoed from the request so the frontend can prove two prices are
+    // comparable. Zero for non-Monte-Carlo engines.
+    uint64 seed = 3;
+
+    // Also echoed. A price is reproducible only against the same
+    // (seed, samples, progress_every_paths); comparing two results without
+    // all three is how a user concludes the market moved when the request
+    // did. See DESIGN §4.
+    uint64 samples = 6;
+
+    // Also echoed, and also part of reproducibility: asking for progress makes
+    // the worker run independent batches with derived seeds and average them,
+    // which partitions the RNG stream differently from one run of the same
+    // total. Two requests that differ only in this field return different
+    // numbers, both valid. See DESIGN §4.
+    uint64 progress_every_paths = 5;
+
+    double calculation_seconds = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Control
+// ---------------------------------------------------------------------------
+
+// Cancels an in-flight request.
+//
+// Served in two steps. A Monte Carlo running with progress_every_paths set
+// checks between batches and stops there, which costs nothing; anything else
+// cannot be interrupted, so once a short grace expires with the request still
+// running the worker process is killed. Either way the request terminates
+// with Error{code: CANCELLED}, exactly once.
+//
+// A request that completes on its own inside the grace terminates normally
+// with its result: a cancel asks, it does not promise that no answer arrives.
+//
+// The session survives: the gateway replays its definition (OpenSession plus
+// the UpdateMarket frames that followed) into a fresh worker, so session_id
+// stays valid and the client pays one bootstrap of latency rather than
+// reopening. See DESIGN §2.1.
+//
+// Requests other than target_request_id that were in flight on the same
+// session are killed with it and terminate with Error{code: CANCELLED} too;
+// they are not replayed, because the client may no longer want them.
+message CancelRequest {
+    uint64 target_request_id = 1;
+}
+
+message Progress {
+    uint64 completed = 1;
+    uint64 total = 2;
+
+    // Running estimate, Monte Carlo only. Meaningless during a calibration,
+    // and omitted there.
+    optional double running_npv = 3;
+}
+
+message Ack {}
+
+message Error {
+    enum Code {
+        CODE_UNSPECIFIED = 0;
+        // A convention field was left at its *_UNSPECIFIED zero value.
+        UNSPECIFIED_ENUM = 1;
+        // Well-formed frame, unusable values (negative vol, inverted dates).
+        INVALID_ARGUMENT = 2;
+        SESSION_NOT_FOUND = 3;
+        // QuantLib threw. message carries Error::what() verbatim.
+        CALCULATION_FAILED = 4;
+        // Worker killed to serve a CancelRequest.
+        CANCELLED = 5;
+        // Worker died on its own (crash, OOM). Replayed like a cancel
+        // (DESIGN §2.1) unless replay fails twice, which is reported as a
+        // terminal WORKER_DIED and the session is then genuinely lost.
+        WORKER_DIED = 6;
+    }
+    Code code = 1;
+
+    // Human-readable. For CALCULATION_FAILED this is QuantLib's own message,
+    // which names the failing quantity and is worth showing to the user.
+    string message = 2;
+
+    // Proto field path that caused the failure, e.g.
+    // "instrument.swap.fixed_leg.day_counter". Empty when not attributable.
+    string field_path = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Instruments
+// ---------------------------------------------------------------------------
+//
+// Deliberately thin: two shapes, enough to show how convention messages plug
+// into a trade. Growing this is ordinary schema work; growing the registry
+// behind it is not (DESIGN §6).
+
+message Instrument {
+    oneof kind {
+        VanillaOption vanilla_option = 1;
+        VanillaSwap vanilla_swap = 2;
+    }
+}
+
+message VanillaOption {
+    enum OptionType {
+        OPTION_TYPE_UNSPECIFIED = 0;
+        CALL = 1;
+        PUT = 2;
+    }
+    OptionType type = 1;
+    double strike = 2;
+    Date expiry = 3;
+
+    // quote_id of the spot, so the frontend can move it with UpdateMarket and
+    // get a recalculation out of the live graph rather than a rebuild.
+    string spot_quote_id = 4;
+    string vol_quote_id = 5;
+    string discount_curve_id = 6;
+}
+
+message VanillaSwap {
+    enum SwapType {
+        SWAP_TYPE_UNSPECIFIED = 0;
+        PAYER = 1;
+        RECEIVER = 2;
+    }
+
+    double notional = 1;
+    double fixed_rate = 2;
+    Date start = 3;
+    Date maturity = 4;
+
+    SwapLeg fixed_leg = 5;
+    SwapLeg floating_leg = 6;
+
+    string discount_curve_id = 7;
+
+    // Which side of the fixed leg the client is on. QuantLib's Swap::Type is
+    // Receiver = -1 / Payer = 1 (ql/instruments/swap.hpp:50), so the sign of
+    // every result depends on this field; it has no defensible default.
+    SwapType type = 8;
+
+    // Spread over the floating index, in absolute terms (0.0010 = 10bp).
+    double floating_spread = 9;
+}
+
+message SwapLeg {
+    Calendar calendar = 1;
+    DayCounter day_counter = 2;
+    BusinessDayConvention business_day_convention = 3;
+    Frequency frequency = 4;
+
+    // Floating leg only.
+    IborIndex index = 5;
+
+    enum DateGeneration {
+        DATE_GENERATION_UNSPECIFIED = 0;
+        BACKWARD = 1;
+        FORWARD = 2;
+        ZERO = 3;
+        THIRD_WEDNESDAY = 4;
+    }
+    DateGeneration date_generation = 6;
+
+    // Business-day-aware month end, not raw month end
+    // (Calendar::isEndOfMonth); false is the ordinary convention and is a real
+    // value here rather than an unset one.
+    bool end_of_month = 7;
+}
