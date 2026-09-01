@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qlservice CXX)
+# C is enabled for uSockets, the C library under uWebSockets, which is built
+# from the submodule rather than linked as a prebuilt archive.
+project(qlservice C CXX)
 
 # C++17 is QuantLib's baseline (QuantLib AGENTS.md §1); staying on it keeps a
 # worker binary compilable against the same library the rest of the stack uses.
@@ -86,4 +88,87 @@ target_compile_options(qlservice PRIVATE
 option(QLSERVICE_WERROR "Treat warnings as errors" OFF)
 if (QLSERVICE_WERROR)
     target_compile_options(qlservice PRIVATE -Werror)
+endif()
+
+# ---------------------------------------------------------------------------
+# uWebSockets and uSockets
+# ---------------------------------------------------------------------------
+#
+# Vendored as a submodule at third_party/uWebSockets, with uSockets nested
+# inside it, so a clone plus
+#
+#     git submodule update --init --recursive
+#
+# is everything the gateway needs. uWebSockets installs nothing and has no
+# package config: the C++ layer is headers only and the C library underneath it
+# is built from source here.
+
+set(QLSERVICE_UWS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/uWebSockets")
+
+if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
+
+    # What uSockets' own Makefile compiles, minus the translation units that
+    # are empty in this configuration. Globbed rather than listed so a version
+    # bump does not silently drop a new file.
+    file(GLOB QLSERVICE_USOCKETS_SOURCES CONFIGURE_DEPENDS
+        "${QLSERVICE_UWS}/uSockets/src/*.c"
+        "${QLSERVICE_UWS}/uSockets/src/eventing/*.c"
+        "${QLSERVICE_UWS}/uSockets/src/crypto/*.c"
+    )
+
+    # Each of these compiles to nothing here and ranlib warns about the empty
+    # archive members: openssl.c is behind LIBUS_NO_SSL, quic.c needs
+    # LIBUS_USE_QUIC, and gcd.c and libuv.c are the eventing backends this
+    # build does not select — epoll_kqueue.c is the one that has content on
+    # both macOS and Linux. src/crypto/sni_tree.cpp (SSL) and src/io_uring
+    # (Linux) are outside the globs above for the same reason.
+    list(REMOVE_ITEM QLSERVICE_USOCKETS_SOURCES
+        "${QLSERVICE_UWS}/uSockets/src/crypto/openssl.c"
+        "${QLSERVICE_UWS}/uSockets/src/quic.c"
+        "${QLSERVICE_UWS}/uSockets/src/eventing/gcd.c"
+        "${QLSERVICE_UWS}/uSockets/src/eventing/libuv.c"
+    )
+
+    add_library(usockets STATIC ${QLSERVICE_USOCKETS_SOURCES})
+
+    set_target_properties(usockets PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+
+    # PUBLIC, and it matters: LIBUS_NO_SSL changes the layout of structs that
+    # uWebSockets' headers also see, so the library and everything including
+    # libusockets.h have to agree on it.
+    target_compile_definitions(usockets PUBLIC LIBUS_NO_SSL)
+
+    target_include_directories(usockets SYSTEM PUBLIC "${QLSERVICE_UWS}/uSockets/src")
+
+    # Third-party code, not ours to lint.
+    target_compile_options(usockets PRIVATE -w)
+
+    # -----------------------------------------------------------------------
+    # The gateway executable
+    # -----------------------------------------------------------------------
+
+    add_executable(qlserviced
+        src/app/main.cpp
+        src/gateway/gateway.cpp
+        src/gateway/threadhost.cpp
+    )
+
+    target_include_directories(qlserviced SYSTEM PRIVATE "${QLSERVICE_UWS}/src")
+
+    # No permessage-deflate: the frames are already compact protobuf, and it
+    # drops the zlib dependency.
+    target_compile_definitions(qlserviced PRIVATE UWS_NO_ZLIB)
+
+    target_link_libraries(qlserviced PRIVATE qlservice usockets)
+
+    # -Wpedantic is left off here alone: uWebSockets' templates are
+    # instantiated in this target and are not written to it.
+    target_compile_options(qlserviced PRIVATE -Wall -Wextra -Wno-switch)
+
+else()
+
+    message(STATUS
+        "third_party/uWebSockets is empty, so the qlserviced target is skipped. "
+        "Run: git submodule update --init --recursive")
+
 endif()

@@ -15,7 +15,8 @@ namespace qlservice {
     // SessionLog
     // -----------------------------------------------------------------------
 
-    SessionLog::SessionLog(qlpb::OpenSession open) : open_(std::move(open)) {}
+    SessionLog::SessionLog(std::string sessionId, qlpb::OpenSession open)
+    : sessionId_(std::move(sessionId)), open_(std::move(open)) {}
 
 
     void SessionLog::record(const qlpb::UpdateMarket& msg) {
@@ -38,6 +39,7 @@ namespace qlservice {
 
     std::vector<qlpb::ClientFrame> SessionLog::replayFrames() const {
         qlpb::ClientFrame frame;
+        frame.set_session_id(sessionId_);
         *frame.mutable_open_session() = open_;
         return {frame};
     }
@@ -184,7 +186,7 @@ namespace qlservice {
                    "session '" << sessionId << "' already exists");
 
         SessionState state(acquireSeat(Placement::Shared), Placement::Shared,
-                           SessionLog(frame.open_session()));
+                           SessionLog(sessionId, frame.open_session()));
         host_.send(state.workerId, frame);
         sessions_.emplace(sessionId, std::move(state));
     }

@@ -36,7 +36,7 @@ namespace qlservice {
     */
     class SessionLog {
       public:
-        explicit SessionLog(quantlib::v1::OpenSession open);
+        SessionLog(std::string sessionId, quantlib::v1::OpenSession open);
 
         //! Folds an applied UpdateMarket into the compacted state.
         /*! Called only after the worker acked it, so the log never contains a
@@ -48,12 +48,17 @@ namespace qlservice {
         /*! One OpenSession carrying the current quote values, and nothing
             else: replaying the update history frame by frame would reach the
             same graph but pay for every intermediate state.
+
+            Each frame carries the session_id, because that is what a process
+            host routes on: a replay frame without it reaches the worker
+            process but no thread inside it.
         */
         std::vector<quantlib::v1::ClientFrame> replayFrames() const;
 
         std::size_t quoteCount() const { return open_.quotes_size(); }
 
       private:
+        std::string sessionId_;
         quantlib::v1::OpenSession open_;
     };
 

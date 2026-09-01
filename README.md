@@ -8,19 +8,34 @@ only the instruments that depend on it.
 The design, and the QuantLib constraints that force it, are in
 [`DESIGN.md`](DESIGN.md).
 
-**Status.** Design sketch, and it compiles. The two `.proto` files are clean
-under `protoc 34.0`, and `src/` builds warning-free against QuantLib 1.44 with
-AppleClang 21 at C++17.
+**Status.** It runs. `qlserviced` serves the protocol over a WebSocket and
+prices: a session opens, a quote bump reprices off the live graph, Monte Carlo
+reports progress, and a cancel comes back as `CANCELLED` with the session still
+alive. `test/` drives all of that end to end. Builds warning-free against
+QuantLib 1.44 with AppleClang 21 at C++17, schema clean under `protoc 34.0`.
+
+What is missing is the process boundary. Workers are threads in the gateway
+process for now, so a cancel that has to kill cannot (DESIGN §3), and
+replay-after-death is never exercised.
 
 ```bash
-cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local
+git submodule update --init --recursive
+cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions
 cmake --build build -j
+./build/qlserviced --port 9111
 ```
 
-`CMAKE_PREFIX_PATH` points at wherever QuantLib is installed; drop it if that
-is a default prefix. The target is a library rather than a program: the
-gateway, the process host and the worker `main()` are described in `DESIGN.md`
-but not yet written (DESIGN §1.1).
+uWebSockets is vendored at `third_party/uWebSockets` (with uSockets nested
+inside it) and built from source, so the submodule init is the only external
+step. Without it the library still builds and only `qlserviced` is skipped.
+
+`CMAKE_PREFIX_PATH` points at a QuantLib built with `QL_ENABLE_SESSIONS=ON`,
+which is what makes `Singleton<T>::instance()` thread-local. Anything else
+compiles and prices a single session correctly, then silently shares one
+`Settings::evaluationDate()` across two (DESIGN §2).
+
+What is not written is the process boundary: workers run as threads in the
+gateway process today, so a cancel that has to kill cannot (DESIGN §3).
 
 Compiling it was worth doing. Four things in this code were wrong in ways no
 amount of re-reading would have shown: `namespace pb` collides with protobuf's
@@ -42,4 +57,9 @@ has priced anything — but it is no longer unproven *and* unbuildable.
 | [`src/session/worker.hpp`](src/session/worker.hpp) / [`.cpp`](src/session/worker.cpp) | The thread owning a session; serializes its requests |
 | [`src/session/supervisor.hpp`](src/session/supervisor.hpp) / [`.cpp`](src/session/supervisor.cpp) | Session log, worker pool and placement, cancel-by-kill with replay |
 | [`src/errors/fielderror.hpp`](src/errors/fielderror.hpp) | The exception that carries a wire code and the proto field to blame |
-| [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation and the library target |
+| [`src/gateway/gateway.hpp`](src/gateway/gateway.hpp) / [`.cpp`](src/gateway/gateway.cpp) | The WebSocket front end: loop, session ids, backpressure, deadlines |
+| [`src/gateway/threadhost.hpp`](src/gateway/threadhost.hpp) / [`.cpp`](src/gateway/threadhost.cpp) | The staging `ProcessHost`: workers as threads, so a kill only disowns |
+| [`src/app/main.cpp`](src/app/main.cpp) | `qlserviced` entry point |
+| [`test/`](test/README.md) | End-to-end smoke scripts, and how to run them |
+| [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
+| `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |

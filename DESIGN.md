@@ -25,6 +25,7 @@ Build instructions, current status and the file map are in
 | [6.1 Where the registry pattern stops working](#61-where-the-registry-pattern-stops-working) | Templates: the explicit instantiation table |
 | [7. Prior art](#7-prior-art) | ORE |
 | [8. Open decisions](#8-open-decisions) | What is still undecided |
+| [9. The gateway](#9-the-gateway) | The loop, the worker channel, backpressure, disconnects |
 
 ## 1. Shape
 
@@ -70,7 +71,7 @@ gateway, not a service of its own.
 
 | Process | Owns | What its death costs |
 | --- | --- | --- |
-| **Gateway** (one) | Sockets, correlation ids, backpressure, the event loop, the `Supervisor` object and every `SessionLog` | Everything. Logs are in memory and are not persisted |
+| **Gateway** (one) | Sockets, correlation ids, backpressure, the event loop, and the `Supervisor` — which holds every `SessionLog` in this process, on the gateway's behalf | Everything. Logs are in memory and are not persisted |
 | **Worker** (N) | QuantLib: sessions, graphs, engines. Shared or sacrificial per §2.1 | Its sessions replay elsewhere; their in-flight requests are lost |
 
 Three things in the code make the supervisor a component rather than a service,
@@ -466,3 +467,175 @@ convention registry — is worth reading before extending `conventions.proto`.
   a real request before it earns its place.
 - Whether `Progress` also carries a running NPV estimate, which is cheap for
   Monte Carlo and meaningless for calibration.
+- Whether a reconnecting client may resume its sessions rather than reopen
+  them (§9.4). It needs a client identity the protocol does not have, and it
+  holds worker seats for absent clients — the same trade as the warm-spare
+  question above, and worth settling with the same measurement.
+- Whether the gateway persists session logs. Today it does not, which is what
+  makes it the single point of failure §1.1 admits to.
+
+## 9. The gateway
+
+Every section above imposes obligations on the gateway and none of them
+designs it. This one settles the four choices that block writing it — the
+loop, the worker channel, backpressure, and what a dropped connection means —
+and states what the gateway has to track that nothing else does.
+
+Authentication, TLS termination, multi-tenancy and persistence are out of
+scope. The single point of failure in §1.1 stands: this section does not
+mitigate it.
+
+Claims about uWebSockets below are cited against `third_party/uWebSockets`,
+the submodule this repository pins at v20.66.0, so every line number holds for
+the version that is actually built.
+
+### 9.1 One loop, and everything on it
+
+**Decision: a single-threaded event loop, uWebSockets over uSockets.** This is
+not a preference. `Supervisor` mutates `sessions_` and `workers_` from six
+entry points with no mutex, and that is sound only while all six run on one
+thread (§1.1). The loop is therefore part of the supervisor's correctness
+argument, not a transport detail underneath it.
+
+Three consequences, each of which is a rule for the code that has yet to be
+written:
+
+- **Nothing calls into the supervisor from another thread.** `Loop::defer`
+  (`src/Loop.h:169`) queues onto the loop thread and wakes it, and it is the
+  only sanctioned way in. A worker-side callback that reaches the supervisor
+  directly is a data race that will not reproduce under test.
+- **`DeadlineTimer` is one repeating tick, not a timer per deadline.** The
+  obvious implementation is a one-shot `us_timer_t`
+  (`uSockets/src/libusockets.h:110,120`) closed from its own callback, and it
+  is wrong: `us_timer_close` frees the timer immediately rather than deferring
+  it the way a socket close is deferred, so the dispatch loop is left holding
+  freed memory. A single `us_timer_t` firing every 25 ms against a sorted queue
+  of deadlines has no such edge. Resolution costs nothing here — the only
+  deadline is the 250 ms stop grace, and the supervisor already assumes a timer
+  it cannot disarm, which is why cancel rounds carry a generation.
+- **The loop must not block.** Every long calculation is in another process by
+  construction (§3), so the only way to violate this is to do work in a frame
+  handler — parsing a large `OpenSession`, say — that belongs on the worker.
+
+### 9.2 The worker channel
+
+Data plane and control plane leave by different routes (§1.1), and the split
+decides the mechanism for each.
+
+**Decision: frames to workers are length-prefixed.** §1 settles the wire
+format only for WebSocket, which delimits messages for us; a pipe does not.
+Each direction carries a 4-byte little-endian length followed by one
+serialized `ClientFrame` or `ServerFrame` — the same types, so nothing is
+re-encoded at the boundary and a frame can be forwarded from socket to pipe
+without being understood.
+
+**Decision: worker pipes join the same loop as raw polls.**
+`us_create_poll` / `us_poll_init` / `us_poll_start`
+(`uSockets/src/libusockets.h:254,260,263`) put a worker's read end directly
+into the event loop. The alternative — a reader thread per worker calling
+`Loop::defer` — adds a thread per process, a queue hop per frame, and an
+ordering question at every hand-off, in exchange for nothing.
+
+**Decision: control travels out of band, and process death comes back in
+band.** `spawn` is fork/exec, `requestStop` is a signal or a flag in shared
+memory, and `kill` is `SIGKILL`; none may ride the frame pipe, because a
+worker inside a Monte Carlo is not reading it and that is exactly the case a
+cancel exists to interrupt (§3). Child exits must arrive as
+`onWorkerDied()` **on the loop** — through a self-pipe, `signalfd`, or the
+loop's own child watcher — never from a `SIGCHLD` handler, which shares the
+supervisor's lack of a mutex with none of its guarantees.
+
+### 9.3 Backpressure: shed `Progress`, never a terminal frame
+
+This is the one place where the transport can break the protocol, and the
+default configuration does.
+
+`WebSocket::send` skips the message and returns `DROPPED` when buffered data
+exceeds `maxBackpressure` (`src/WebSocket.h:92-110`), which defaults to 64 KB
+(`src/App.h:242`), and `closeOnBackpressureLimit` defaults to `false`
+(`src/App.h:243`). A slow client therefore loses frames while its connection
+stays open and healthy-looking. Lose a `Progress` frame and a bar stutters.
+Lose the terminal frame and the client waits forever for a result that was
+computed, paid for, and discarded — which silently breaks the exactly-once
+terminal guarantee that §3 spends a process kill to provide.
+
+**Decision: the gateway sheds `Progress` itself, before uWebSockets can.** At
+most one `Progress` frame per request is outstanding on a connection; if the
+previous one has not drained (`getBufferedAmount()`, with the `drain` handler
+to resume), the next is dropped by us. Progress is a hint and every frame
+supersedes the last, so shedding it costs nothing. This keeps the buffer clear
+for the frames that matter.
+
+**Decision: `closeOnBackpressureLimit = true`.** A client that still cannot
+keep up after `Progress` has been shed is not one whose results can be
+delivered, and a loud disconnect — handled by 9.4 — is better than a request
+that never terminates.
+
+**Decision: every `send` return value is checked.** `DROPPED` on a terminal
+frame is a bug in this policy, not a condition to handle: it means the two
+decisions above failed and a client has been left hanging. It must be logged
+as such.
+
+One inbound default needs raising too: `maxPayloadLength` is 16 KB
+(`src/App.h:238`), and an `OpenSession` carrying a few hundred pillars and
+their conventions will exceed it. The limit belongs where it can be reported
+against a field — a session too large should come back as `INVALID_ARGUMENT`
+naming what was too big, not as a transport-level close with no frame to
+attribute it to.
+
+### 9.4 A disconnect closes the session
+
+§2.1 establishes that session state is cheap and derivable, but only the
+*gateway* holds the definition; clients hold results. So a reconnecting client
+cannot rebuild its session, and any resume story means the gateway keeping
+logs, and worker seats, for a client that may never come back.
+
+**Decision: closing a socket closes every session on it.** Each gets a
+`CloseSession` to its worker and its seat is released (§2.1), which retires the
+process once it holds nothing. A session is a bootstrap, not a document, and
+§2.1 already prices a rebuild at exactly one — `SessionOpened.bootstrap_seconds`
+is the measurement. Holding seats warm for absent clients is the same trade as
+the warm-spare question in §8 and should not be settled by accident here.
+
+**Consequence for the frontend: `session_id` is connection-scoped.** A client
+that reconnects reopens its sessions and gets new ids. This is worth saying in
+the protocol rather than leaving clients to discover it.
+
+A related default: uWebSockets closes an idle connection after 120 seconds
+(`src/App.h:240`) but sends pings first (`sendPingsAutomatically`,
+`src/App.h:247`), so a socket survives a long silent calculation as long as the
+client's WebSocket stack answers them. Browsers do this automatically; a
+hand-rolled client that does not will lose its connection — and by the rule
+above, its sessions — in the middle of the Monte Carlo it was waiting for.
+
+### 9.5 What the gateway tracks that nothing else does
+
+- **Outstanding `request_id`s, per session.** `DisruptionSink` reports a
+  killed session and nothing more, because the supervisor deliberately does not
+  know request ids (`supervisor.hpp`). Failing what was in flight with
+  `WORKER_DIED`, or `CANCELLED` for a cancel target, is only possible from the
+  gateway's own book.
+- **`session_id` assignment.** Server-minted and opaque; a client-chosen id
+  would let two connections collide on one graph.
+- **A route for frames that have no session.** Delivery is keyed on
+  session -> connection, so a rejection naming a session that was never opened,
+  or one belonging to somebody else's connection, has no route and would never
+  be sent — leaving the client waiting forever for the terminal frame every
+  request is promised. The gateway therefore falls back to the socket the
+  request arrived on, which the single-threaded loop makes unambiguous.
+- **The terminal frame for a `CancelRequest` itself.** Nothing downstream
+  produces one: the supervisor acts on the target request and never forwards
+  the cancel frame to a worker, so the cancel's own `request_id` is
+  acknowledged here or not at all.
+- **Which terminal frames to report back.** `onRequestTerminated()` must see
+  every terminal frame that came *from a worker* — it is how the `SessionLog`
+  advances past `OpenSession` and how a polite cancel is told from one that
+  needs a kill (§2.1). It must **not** see the frames the supervisor emitted
+  itself, through `FrameSink`, on the kill and replay-failure paths: those are
+  outcomes it already knows, and feeding them back is a re-entrant call into a
+  class with no re-entrancy.
+
+The `SessionLog`s themselves are not gateway members: they live in
+`Supervisor::SessionState`, in the gateway's process and on its behalf. The
+failure domain in §1.1 is drawn around the process, so the argument there is
+unaffected either way.
