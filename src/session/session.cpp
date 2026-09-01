@@ -62,6 +62,7 @@
 #include <ql/time/calendars/nullcalendar.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
 #include <algorithm>
+#include <any>
 #include <chrono>
 #include <cmath>
 #include <type_traits>
@@ -358,6 +359,17 @@ namespace qlservice {
             } catch (const Error&) {
             }
 
+            if (msg.include_additional_results()) {
+                // What the engine published on its own account, scalars only:
+                // everything this layer reports is a Real, and the vector and
+                // matrix results some engines add are a Value the worker does
+                // not map yet. Same key namespace as the named greeks on
+                // purpose -- QuantLib's engines already use "delta" for delta.
+                for (const auto& entry : option->additionalResults())
+                    if (const auto* x = std::any_cast<Real>(&entry.second))
+                        out.results[entry.first] = *x;
+            }
+
             for (const auto kind : msg.results()) {
                 // Results are fetched by name and QuantLib throws when the
                 // engine did not produce one (ql/instrument.hpp:193). A
@@ -448,6 +460,15 @@ namespace qlservice {
     Handle<YieldTermStructure> Session::curve(const std::string& curveId) const {
         auto it = curves_.find(curveId);
         QL_REQUIRE(it != curves_.end(), "unknown curve '" << curveId << "'");
+        return it->second;
+    }
+
+
+    Handle<YieldTermStructure> Session::curveHandle(const std::string& curveId,
+                                                    const std::string& fieldPath) const {
+        auto it = curves_.find(curveId);
+        QLS_FIELD_REQUIRE(it != curves_.end(), qlpb::Error::UNKNOWN_ID, fieldPath,
+                          "unknown curve '" << curveId << "' at '" << fieldPath << "'");
         return it->second;
     }
 
@@ -595,6 +616,8 @@ namespace qlservice {
 
         auto nodeDates = [&](const qlpb::InterpolatedCurve& ic, const std::string& path) {
             std::vector<Date> dates;
+            QLS_FIELD_REQUIRE(ic.nodes_size() > 0, qlpb::Error::INVALID_ARGUMENT, path + ".nodes",
+                              "an interpolated curve needs nodes");
             for (int i = 0; i < ic.nodes_size(); ++i) {
                 const auto& n = ic.nodes(i);
                 const std::string p = path + ".nodes[" + std::to_string(i) + "]";
@@ -610,6 +633,16 @@ namespace qlservice {
                                        "node at '" << p << "' has neither a date nor a tenor");
                 }
             }
+            // The first node is the curve's reference date: QuantLib takes it
+            // from dates[0], so a curve whose first pillar is 6M out starts
+            // six months from now and discounts nothing before then. It has
+            // to be today, said explicitly, rather than inferred.
+            QLS_FIELD_REQUIRE(dates.front() == evaluationDate_, qlpb::Error::INVALID_ARGUMENT,
+                              path + ".nodes[0]",
+                              "the first node of an interpolated curve must sit on the "
+                              "evaluation date " << evaluationDate_ << " (tenor \"0D\"), got "
+                                                 << dates.front()
+                                                 << "; the curve's reference date is taken from it");
             return dates;
         };
 
@@ -1027,7 +1060,15 @@ namespace qlservice {
                           "unknown quote '" << quoteId << "' at '" << fieldPath << "'");
         UpdateGuard guard;
         it->second->setValue(value);
-        guard.commit();
+        try {
+            guard.commit();
+        } catch (...) {
+            // Same contract as apply(): a commit that raised has invalidated
+            // part of the graph and not the rest, and nothing cached can be
+            // trusted. The worker drops a dirty session for replay.
+            dirty_ = true;
+            throw;
+        }
     }
 
 
@@ -1038,6 +1079,15 @@ namespace qlservice {
     Session::PriceOutcome Session::price(const qlpb::PriceRequest& msg,
                                          const ProgressSink& progress) {
         QL_REQUIRE(!dirty_, "session is dirty and must be replayed before pricing");
+
+        // Request options the schema offers and this build does not serve.
+        // Rejected, not dropped: a client that asked for a cash-flow table
+        // and got a price without one cannot tell that from an instrument
+        // with no cash flows.
+        QLS_FIELD_REQUIRE(!msg.include_cashflows(), qlpb::Error::UNSUPPORTED, "include_cashflows",
+                          "cash-flow tables are in the schema but not implemented");
+        QLS_FIELD_REQUIRE(msg.curve_samples_size() == 0, qlpb::Error::UNSUPPORTED, "curve_samples",
+                          "curve sampling is in the schema but not implemented");
 
         switch (msg.instrument().kind_case()) {
             case qlpb::Instrument::kOption:
@@ -1060,7 +1110,7 @@ namespace qlservice {
                                               const std::string& fieldPath) const {
         EquityGraph g;
         g.spot = quoteHandle(msg.spot_quote_id(), fieldPath + ".spot_quote_id");
-        g.riskFree = curve(msg.discount_curve_id());
+        g.riskFree = curveHandle(msg.discount_curve_id(), fieldPath + ".discount_curve_id");
         // An omitted dividend curve is a zero yield, not the risk-free one.
         // Defaulting to risk-free would silently make the cost of carry zero
         // — a futures-like asset — and price a plain stock option wrong by
@@ -1069,7 +1119,7 @@ namespace qlservice {
         g.dividend = msg.dividend_curve_id().empty()
                          ? Handle<YieldTermStructure>(ext::make_shared<FlatForward>(
                                evaluationDate_, 0.0, Actual365Fixed()))
-                         : curve(msg.dividend_curve_id());
+                         : curveHandle(msg.dividend_curve_id(), fieldPath + ".dividend_curve_id");
         g.volatility = volatility(msg.volatility_id(), fieldPath + ".volatility_id");
 
         switch (msg.process()) {
@@ -1107,7 +1157,7 @@ namespace qlservice {
         const std::string path = "instrument.option.quanto";
         const auto& q = option.quanto();
         g.quanto = true;
-        g.fxRiskFree = curve(q.fx_risk_free_curve_id());
+        g.fxRiskFree = curveHandle(q.fx_risk_free_curve_id(), path + ".fx_risk_free_curve_id");
         g.fxVol = volatility(q.fx_volatility_id(), path + ".fx_volatility_id");
         g.correlation = quoteHandle(q.correlation_id(), path + ".correlation_id");
 
@@ -1816,10 +1866,23 @@ namespace qlservice {
                                   qlpb::Error::INVALID_ARGUMENT, fieldPath + ".index_id",
                                   "the floating leg index needs a forwarding curve: pricing off "
                                   "an index with an empty handle fails at the first forecast");
+                // A capped or floored coupon needs an optionlet volatility
+                // and a coupon pricer, neither of which the market carries
+                // yet; a per-leg discount curve or currency needs the
+                // cross-currency engine. All four rejected rather than dropped.
+                QLS_FIELD_REQUIRE(msg.caps_size() == 0 && msg.floors_size() == 0,
+                                  qlpb::Error::UNSUPPORTED, fieldPath + ".caps",
+                                  "capped and floored coupons are in the schema but not "
+                                  "implemented: they need an optionlet volatility surface");
+                QLS_FIELD_REQUIRE(msg.discount_curve_id().empty() && msg.currency().empty(),
+                                  qlpb::Error::UNSUPPORTED, fieldPath + ".discount_curve_id",
+                                  "per-leg discounting and currencies are in the schema but not "
+                                  "implemented");
                 auto leg = IborLeg(sched, index)
                                .withNotionals(notionals)
                                .withPaymentDayCounter(dc)
-                               .withFixingDays(msg.fixing_days());
+                               .withFixingDays(msg.fixing_days())
+                               .inArrears(flag(msg.in_arrears(), fieldPath + ".in_arrears"));
                 if (msg.spreads_size() > 0)
                     leg = leg.withSpreads(
                         std::vector<Real>(msg.spreads().begin(), msg.spreads().end()));
@@ -1868,9 +1931,23 @@ namespace qlservice {
                           "every leg of this swap has the same direction; that is a portfolio, "
                           "not a swap");
 
+        // Checked here and not inside the results loop below, whose catch
+        // swallows QuantLib::Error -- and FieldError is one.
+        const bool wantsFairRate = std::find(msg.results().begin(), msg.results().end(),
+                                             qlpb::RESULT_KIND_FAIR_RATE) != msg.results().end();
+        QLS_FIELD_REQUIRE(!wantsFairRate ||
+                              (legs.size() == 2 &&
+                               swapMsg.legs(0).kind() == qlpb::Leg_Kind_KIND_FIXED &&
+                               swapMsg.legs(1).kind() == qlpb::Leg_Kind_KIND_IBOR),
+                          qlpb::Error::UNSUPPORTED, base + ".legs",
+                          "a fair rate is computed for a two-leg swap with the fixed leg first "
+                          "and the floating leg second; the formula assumes that order and would "
+                          "return a wrong number silently for any other");
+
         auto swap = ext::make_shared<Swap>(legs, payers);
         swap->setPricingEngine(
-            ext::make_shared<DiscountingSwapEngine>(curve(swapMsg.discount_curve_id())));
+            ext::make_shared<DiscountingSwapEngine>(
+                curveHandle(swapMsg.discount_curve_id(), base + ".discount_curve_id")));
 
         const auto t0 = std::chrono::steady_clock::now();
 
@@ -1893,10 +1970,10 @@ namespace qlservice {
                         // NPV over the fixed leg's annuity. Computed here
                         // rather than taken from VanillaSwap, because this
                         // path builds the general n-leg Swap and VanillaSwap's
-                        // own accessor is not available on it.
-                        QLS_FIELD_REQUIRE(legs.size() == 2, qlpb::Error::UNSUPPORTED,
-                                          base + ".legs",
-                                          "a fair rate is defined for a two-leg swap");
+                        // own accessor is not available on it. The leg order
+                        // it assumes was checked above, outside this try:
+                        // a FieldError thrown in here would be swallowed as
+                        // "not provided by this engine".
                         const Real annuity = swap->legBPS(0) / 1.0e-4;
                         QL_REQUIRE(std::fabs(annuity) > 0.0, "the fixed leg has no annuity");
                         out.results["fairRate"] = -swap->legNPV(1) / annuity;

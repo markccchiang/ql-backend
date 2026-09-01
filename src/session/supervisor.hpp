@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -43,6 +44,13 @@ namespace qlservice {
             write the graph rejected.
         */
         void record(const quantlib::v2::UpdateMarket& msg);
+
+        //! The value the log currently holds for a quote, if it defines one.
+        /*! Needed to fold a relative sweep: `Scenario.Relative` multiplies
+            the quote's current value, which the supervisor never sees except
+            through the log it keeps.
+        */
+        std::optional<double> quoteValue(const std::string& quoteId) const;
 
         //! The frames that rebuild this session, in order.
         /*! One OpenSession carrying the current quote values, and nothing

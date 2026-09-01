@@ -52,17 +52,37 @@ namespace qlservice {
                     return "delta";
                 case qlpb::RESULT_KIND_GAMMA:
                     return "gamma";
-                case qlpb::RESULT_KIND_VEGA:
-                    return "vega";
                 case qlpb::RESULT_KIND_THETA:
                     return "theta";
+                case qlpb::RESULT_KIND_VEGA:
+                    return "vega";
                 case qlpb::RESULT_KIND_RHO:
                     return "rho";
                 case qlpb::RESULT_KIND_DIVIDEND_RHO:
                     return "dividendRho";
+                case qlpb::RESULT_KIND_THETA_PER_DAY:
+                    return "thetaPerDay";
+                case qlpb::RESULT_KIND_DELTA_FORWARD:
+                    return "deltaForward";
+                case qlpb::RESULT_KIND_ELASTICITY:
+                    return "elasticity";
+                case qlpb::RESULT_KIND_STRIKE_SENSITIVITY:
+                    return "strikeSensitivity";
+                case qlpb::RESULT_KIND_ITM_CASH_PROBABILITY:
+                    return "itmCashProbability";
+                case qlpb::RESULT_KIND_QRHO:
+                    return "qrho";
+                case qlpb::RESULT_KIND_QVEGA:
+                    return "qvega";
+                case qlpb::RESULT_KIND_QLAMBDA:
+                    return "qlambda";
+                case qlpb::RESULT_KIND_FAIR_RATE:
+                    return "fairRate";
                 default:
                     break;
             }
+            // Per-leg results (legNPV.0, legNPV.1 ...) and the kinds no path
+            // computes have no single key to plot; the caller rejects them.
             return "";
         }
 
@@ -175,7 +195,7 @@ namespace qlservice {
     void Worker::serveScenario(const qlpb::ClientFrame& frame,
                                const Session::ProgressSink& progress) {
         const auto& scenario = frame.price().scenario();
-        const std::string path = "price.scenario";
+        const std::string path = "scenario";
 
         QLS_FIELD_REQUIRE(!scenario.quote_id().empty(), qlpb::Error::INVALID_ARGUMENT,
                           path + ".quote_id", "a scenario sweeps one named quote");
@@ -245,8 +265,15 @@ namespace qlservice {
         if (!scenario.keep_final_value())
             session_->writeQuote(scenario.quote_id(), original, path + ".quote_id");
 
-        if (scenario.plot() != qlpb::RESULT_KIND_UNSPECIFIED)
+        if (scenario.plot() != qlpb::RESULT_KIND_UNSPECIFIED) {
+            // Checked after the sweep rather than before, so the quote has
+            // already been restored; the prices are still returned, only the
+            // series is refused.
+            QLS_FIELD_REQUIRE(!resultName(scenario.plot()).empty(), qlpb::Error::UNSUPPORTED,
+                              path + ".plot",
+                              "this result kind has no single value to plot per point");
             fillSeries(*out.mutable_series(), out, scenario.plot());
+        }
 
         emit(frame.request_id(), true,
              [&](qlpb::ServerFrame& o) { *o.mutable_scenario_result() = out; });

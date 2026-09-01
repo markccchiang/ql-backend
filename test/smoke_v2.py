@@ -468,6 +468,28 @@ async def main():
               abs(reply.price_result.npv - analytic) < 1.0e-12,
               f"before={analytic:.10f} after={reply.price_result.npv:.10f}")
 
+        # Unless the client asked to keep it -- and then the supervisor has to
+        # fold the kept value into the session log, or the live graph and the
+        # log disagree and a replay silently reverts the price. A
+        # finite-difference request forces exactly that replay: it moves the
+        # session to a sacrificial worker and rebuilds it from the log
+        # (DESIGN §2.1), so the price that comes back afterwards is the log's
+        # opinion of the spot, not the worker's.
+        f = vanilla_frame(sid, row)
+        f.price.scenario.quote_id = "S"
+        f.price.scenario.explicit.values.extend([90.0, 110.0])
+        f.price.scenario.keep_final_value = True
+        reply = await send(ws, f)
+        check("a kept sweep returns", reply.HasField("scenario_result"))
+        kept = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        await send(ws, vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE,
+                                     preset=EN.FdParameters.PRESET_COARSE))
+        after_replay = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        check("a kept sweep's final value survives a replay",
+              abs(after_replay - kept) < 1.0e-12 and abs(kept - analytic) > 1.0,
+              f"kept={kept:.6f} after replay={after_replay:.6f} (unswept={analytic:.6f})")
+        await send(ws, set_market(sid, S=row["s"]))
+
         # -- the live graph --------------------------------------------------
         print("\n  -- the live graph --")
         await send(ws, set_market(sid, S=110.0))
@@ -536,6 +558,40 @@ async def main():
         await rejected("two underlyings on a one-asset option", f,
                        "instrument.option.underlyings")
 
+        f = vanilla_frame(sid, row)
+        f.price.instrument.option.underlyings[0].discount_curve_id = "NOPE"
+        await rejected("unknown curve id", f,
+                       "instrument.option.underlyings[0].discount_curve_id", E.Error.UNKNOWN_ID)
+
+        # Request options the schema offers and this build does not serve are
+        # refused, not dropped: a client that asked for a cash-flow table and
+        # got a price without one cannot tell that from an instrument with no
+        # cash flows.
+        f = vanilla_frame(sid, row)
+        f.price.include_cashflows = True
+        await rejected("include_cashflows on a build without it", f, "include_cashflows",
+                       E.Error.UNSUPPORTED)
+        f = vanilla_frame(sid, row)
+        f.price.curve_samples.add().market_id = "RC"
+        await rejected("curve_samples on a build without it", f, "curve_samples",
+                       E.Error.UNSUPPORTED)
+
+        f = vanilla_frame(sid, row)
+        f.price.scenario.quote_id = "S"
+        f.price.scenario.explicit.values.append(100.0)
+        f.price.scenario.plot = R.RESULT_KIND_LEG_NPV
+        await rejected("a sweep plotting a result with no single value", f, "scenario.plot",
+                       E.Error.UNSUPPORTED)
+
+        # And one the build does serve: the engine's own additional results.
+        f = vanilla_frame(sid, row)
+        f.price.include_additional_results = True
+        reply = await send(ws, f)
+        keys = set(reply.price_result.results)
+        check("include_additional_results returns the engine's own map",
+              reply.HasField("price_result") and keys,
+              " ".join(sorted(keys)))
+
         # A quote id on an interpolated curve node would look live and never
         # move: InterpolatedZeroCurve copies its rates at construction.
         f = E.ClientFrame(request_id=next_id())
@@ -546,13 +602,30 @@ async def main():
         m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
         m.yield_curve.zero.compounding = C.CONTINUOUS
         m.yield_curve.zero.frequency = C.ANNUAL
-        for tenor, v in [("1Y", 0.03), ("5Y", 0.04)]:
+        for tenor, v in [("0D", 0.03), ("5Y", 0.04)]:
             n = m.yield_curve.zero.nodes.add()
             n.tenor = tenor
             n.value.quote_id = "R"
         await rejected("a quote id on an interpolated curve node", f,
                        "market[0].yield_curve.zero.nodes[0].value.quote_id",
                        E.Error.UNSUPPORTED)
+
+        # A curve whose first node is 6M out starts six months from now and
+        # discounts nothing before then; the reference date is taken from it.
+        f = E.ClientFrame(request_id=next_id())
+        f.open_session.evaluation_date.iso = TODAY.isoformat()
+        m = f.open_session.market.add()
+        m.id = "Z"
+        act360(m.yield_curve.day_counter)
+        m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
+        m.yield_curve.zero.compounding = C.CONTINUOUS
+        m.yield_curve.zero.frequency = C.ANNUAL
+        for tenor, v in [("6M", 0.03), ("5Y", 0.04)]:
+            n = m.yield_curve.zero.nodes.add()
+            n.tenor = tenor
+            n.value.fixed = v
+        await rejected("an interpolated curve not anchored on the evaluation date", f,
+                       "market[0].yield_curve.zero.nodes[0]", E.Error.INVALID_ARGUMENT)
 
         # -- an interpolated curve that is spelled correctly ------------------
         print("\n  -- a second session, built a different way --")
@@ -821,6 +894,7 @@ async def main():
                     lg.rate_quote_id = "FIX"
                 else:
                     lg.index_id = "EUR6M"
+                    lg.in_arrears = M.FLAG_FALSE
             f.price.engine.method = method
             f.price.results.extend(results)
             return f
@@ -864,6 +938,17 @@ async def main():
                 check("a pillar bump moves the swap through the relinked index",
                       abs(bumped - at_par) > 1.0,
                       f"{at_par:.4f} -> {bumped:.4f}")
+
+            # The fair-rate formula assumes fixed first, floating second; any
+            # other order would return a wrong number silently.
+            f = swap_frame(sid3, [R.RESULT_KIND_FAIR_RATE])
+            legs = f.price.instrument.swap.legs
+            first, second = I.Leg(), I.Leg()
+            first.CopyFrom(legs[1]); second.CopyFrom(legs[0])
+            del legs[:]
+            legs.add().CopyFrom(first); legs.add().CopyFrom(second)
+            await rejected("fair rate with the legs in the other order", f,
+                           "instrument.swap.legs", E.Error.UNSUPPORTED)
 
             f = swap_frame(sid3)
             f.price.instrument.swap.legs[0].ClearField("pays")

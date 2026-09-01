@@ -47,6 +47,14 @@ namespace qlservice {
     }
 
 
+    std::optional<double> SessionLog::quoteValue(const std::string& quoteId) const {
+        for (const auto& obj : open_.market())
+            if (obj.id() == quoteId && obj.has_quote())
+                return obj.quote().value();
+        return std::nullopt;
+    }
+
+
     std::vector<qlpb::ClientFrame> SessionLog::replayFrames() const {
         qlpb::ClientFrame frame;
         frame.set_session_id(sessionId_);
@@ -251,6 +259,42 @@ namespace qlservice {
             state.pendingUpdates[frame.request_id()] = frame.update_market();
         }
 
+        if (frame.has_price() && frame.price().has_scenario() &&
+            frame.price().scenario().keep_final_value()) {
+            // A sweep that keeps its last value is an UpdateMarket the client
+            // did not spell as one. Without this the live graph and the log
+            // diverge: the worker holds the swept value, a replay after its
+            // death rebuilds the old one, and the client's price silently
+            // reverts. Parked like an UpdateMarket and folded in the same
+            // place, on the sweep's own terminal frame.
+            const auto& sc = frame.price().scenario();
+            std::optional<double> last;
+            switch (sc.points_case()) {
+                case qlpb::Scenario::kExplicit:
+                    if (sc.explicit_().values_size() > 0)
+                        last = sc.explicit_().values(sc.explicit_().values_size() - 1);
+                    break;
+                case qlpb::Scenario::kLinear:
+                    last = sc.linear().end();
+                    break;
+                case qlpb::Scenario::kRelative:
+                    if (sc.relative().factors_size() > 0)
+                        if (auto base = state.log.quoteValue(sc.quote_id()))
+                            last = *base * sc.relative().factors(sc.relative().factors_size() - 1);
+                    break;
+                default:
+                    break;
+            }
+            // A malformed sweep is left for the worker to reject; nothing is
+            // parked, so nothing can be recorded.
+            if (last) {
+                qlpb::UpdateMarket update;
+                update.add_quotes()->set_quote_id(sc.quote_id());
+                update.mutable_quotes(0)->set_value(*last);
+                state.pendingUpdates[frame.request_id()] = update;
+            }
+        }
+
         host_.send(state.workerId, frame);
     }
 
@@ -306,7 +350,9 @@ namespace qlservice {
         // write and leaves the log describing what the worker actually holds.
         auto update = state.pendingUpdates.find(requestId);
         if (update != state.pendingUpdates.end()) {
-            if (frame.has_ack())
+            // A kept sweep terminates as a ScenarioResult rather than an Ack,
+            // and that is its success frame.
+            if (frame.has_ack() || frame.has_scenario_result())
                 state.log.record(update->second);
             state.pendingUpdates.erase(update);
         }

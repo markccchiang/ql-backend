@@ -175,6 +175,13 @@ namespace qlservice {
 
         // --- resolution ---------------------------------------------------
 
+        //! One curve by id, rejecting an unknown one against the field.
+        /*! `curve()` above throws a plain QL_REQUIRE because the registry's
+            resolver has no field to name; every caller in this class does.
+        */
+        QuantLib::Handle<QuantLib::YieldTermStructure>
+        curveHandle(const std::string& curveId, const std::string& fieldPath) const;
+
         //! One live quote by id; throws naming the field when unknown.
         QuantLib::Handle<QuantLib::Quote> quoteHandle(const std::string& quoteId,
                                                       const std::string& fieldPath) const;
