@@ -439,6 +439,56 @@ Related: `DayCounter` and `Calendar` are messages rather than enums, because
 constructor and requires a `Market` (`ql/time/calendars/unitedstates.hpp:206`),
 and joint calendars nest (`ql/time/calendars/jointcalendar.hpp:84`).
 
+### 6.2 Why the schema lives under `v1`
+
+The version is not decoration on a directory name. It appears in four places
+that have to agree, and only one of them is a free choice:
+
+| Where | Form |
+| --- | --- |
+| On disk | `proto/quantlib/v1/` |
+| Proto package | `package quantlib.v1;` (`conventions.proto:21`, `envelope.proto:8`) |
+| Generated C++ namespace | `quantlib::v1`, aliased to `qlpb` (`session.cpp:43`) |
+| Generated headers | `${CMAKE_BINARY_DIR}/generated/quantlib/v1/`, included as `"quantlib/v1/envelope.pb.h"` |
+
+The directory has to mirror the package because `protoc` resolves imports by
+path relative to `-I proto`: `import "quantlib/v1/conventions.proto"`
+(`envelope.proto:10`) is a filesystem path, not a package reference. The free
+choice is whether there is a version segment at all, and the layout
+`<package-path>/<version>/<file>.proto` is the Protobuf community convention.
+
+**What it is for.** Protobuf's own compatibility rules cover only additive
+change: a new field, a new enum value, a removed field whose number is
+reserved. A change outside that set cannot be expressed by editing this package
+at all — renumbering a field, changing its type, or deleting a message a
+deployed client still sends. The convention is then to add `quantlib/v2/`
+*beside* `v1` and serve both through a transition, and that works precisely
+because the version is in the package: the two generate into `quantlib::v1` and
+`quantlib::v2`, register in the descriptor pool under distinct full names, and
+land in distinct header paths, so one binary can link and serve both. Without
+the segment, an incompatible change forces every client to cut over in the same
+release.
+
+**The dangerous class is not the one the wire format catches.** Renumbering a
+field breaks loudly. Reusing a field number for a different meaning, or
+redefining what an existing value denotes while leaving its type alone, is
+wire-compatible and silently wrong — the same failure mode the `*_UNSPECIFIED`
+rule in §6 exists to prevent, one level up. A change of that kind needs `v2`
+even though nothing in the encoding would object.
+
+**The rule.** Stay on `v1` while every change is additive; open `v2` the first
+time one is not. The quanto family is the worked example so far: it added
+messages, oneof arms, enum values, and the fields `CurveDefinition.flat`,
+`Engine.fd_grid` and `PriceResult.fd_grid`, all additive, so a `PriceRequest`
+serialized before it still parses after it.
+
+**Honestly, it is not earning its keep yet.** There is one client, nothing is
+deployed, and the schema is not published, so no `v2` is in prospect. It is
+carried because the cost is a directory level now against a rename of the
+package line, every import, every generated include path and the `qlpb` alias
+later — and because a schema that ships without a version tends to acquire one
+only after the incompatible change that needed it.
+
 ## 7. Prior art
 
 ORE (Open Source Risk Engine) is QuantLib plus exactly the configuration and
