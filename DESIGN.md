@@ -482,12 +482,111 @@ messages, oneof arms, enum values, and the fields `CurveDefinition.flat`,
 `Engine.fd_grid` and `PriceResult.fd_grid`, all additive, so a `PriceRequest`
 serialized before it still parses after it.
 
-**Honestly, it is not earning its keep yet.** There is one client, nothing is
-deployed, and the schema is not published, so no `v2` is in prospect. It is
-carried because the cost is a directory level now against a rename of the
-package line, every import, every generated include path and the `qlpb` alias
-later — and because a schema that ships without a version tends to acquire one
-only after the incompatible change that needed it.
+**It earned its keep sooner than expected.** The reasoning above was written
+against a hypothetical `v2`; §6.3 is one, and it arrived from a survey rather
+than from a deployment. The cost of having the segment already there was a
+directory level; the cost of not having it would have been renaming the package
+line, every import, every generated include path and the `qlpb` alias, in a
+tree where `v1` still has to keep working.
+
+### 6.3 The general schema
+
+`proto/quantlib/v2/` is `v1` re-derived from QuantLib's own decomposition
+instead of from the two instruments that happened to be needed first. Nothing
+serves it yet — it is built so protoc and the compiler check it, which is the
+only verification this repository has — and `v1` remains the schema `qlserviced`
+speaks.
+
+**Where it comes from.** QuantLib's `test-suite/` is 188 `.cpp` files, and its
+test-data structs are an inventory of what a pricing request has to carry.
+They rhyme. `EuropeanOptionData`, `AmericanOptionData`, `DigitalOptionData`,
+`ForwardOptionData` and `BasketOptionOneData` are the same seven fields —
+`{type, strike, s, q, r, t, v}` — and every exotic is those seven plus a small
+block: `NewBarrierOptionData` adds a barrier, a rebate and an exercise type,
+`DiscreteAverageData` adds fixings and a running average, `LookbackOptionData`
+adds an extremum and a window. The recurring part is the underlying and its
+market; the varying part is small, named, and per shape.
+
+**What `v1` costs.** It writes one message per product, so the fields common to
+all of them are re-declared per product and the message count grows as
+shape × quanto × exercise. It is already visible: `VanillaOption`,
+`QuantoVanillaOption`, `QuantoForwardVanillaOption`, `QuantoBarrierOption` and
+`QuantoDoubleBarrierOption` each declare `type`, `strike` and `expiry`; the
+barrier fields appear twice; a plain barrier option would be a sixth message
+duplicating all of it; an American vanilla would be a seventh. None of those
+duplications is a distinction QuantLib makes.
+
+**The decomposition.** `Option::arguments` is a payoff and an exercise
+(`ql/option.hpp:64-65`), and that is the whole of it:
+
+| Axis | `v2` | Menu from |
+| --- | --- | --- |
+| Payoff | `Payoff`, a oneof | `ql/instruments/payoffs.hpp` |
+| Exercise | `Exercise`, type + dates | `ql/exercise.hpp:35-97` |
+| Underlying | `Underlying`, market ids + process | the `{s, q, r, v}` of every test row |
+| Shape | `Option.style`, a oneof | the instrument classes that exist |
+| Currency | `Option.quanto`, optional | `QuantoEngine`, which wraps an engine |
+| Method | `Engine.method` × `Engine.model` | `ql/pricingengines/` |
+
+The four quanto messages collapse into zero: quanto stops being a product and
+becomes what it is in QuantLib, an adjustment to the engine, so it composes
+with any style instead of needing a message per pairing.
+
+**`style` is a oneof, not a repeated feature list.** The composable form is the
+obvious generalization and it is wrong. QuantLib has a fixed menu of instrument
+classes; there is no quanto-barrier-lookback, and a repeated feature list would
+have the schema promise a product space perhaps a tenth of which can be built,
+with the other nine tenths failing at runtime with no way for a client to know
+in advance. A oneof says what exists. Quanto sits outside it because it is the
+one axis that genuinely is orthogonal — and it is orthogonal precisely because
+it wraps the engine rather than the instrument.
+
+**The market becomes a namespace.** In `v1` each instrument named the market
+objects it needed in its own fields, which made the market a property of the
+trade and meant a new instrument added market fields. In `v2` the session owns
+an ordered list of `MarketObject`, each with an id, and instruments refer to
+ids. That is what makes it possible to add a volatility surface at all: the
+test suite builds `BlackVarianceSurface`, `BlackVarianceCurve` and three kinds
+of local volatility, and `v1` has no object to put any of them in — volatility
+enters as a single quote and every instrument gets a `BlackConstantVol`. Same
+for interpolated zero curves, which the test suite uses more often than
+bootstrapped ones (`zerocurve.hpp` in 28 files against `piecewiseyieldcurve.hpp`
+in 13), and for `IndexManager` fixings, which nothing in `v1` populates at all.
+
+**The output half was the more wrong one.** `v1`'s `PriceResult.results` is
+`map<string, double>`. QuantLib's `additionalResults` is `map<string, any>`,
+and the engines put vectors and matrices in it — `forwards`, `probabilities`,
+`spotVols`, `TimeGrid`, per-leg `legNPV` — which are exactly the results worth
+plotting rather than printing. A double-valued map drops every one of them, and
+drops them silently. `v2` carries a `Value` variant that mirrors the `any`, and
+adds the two things a panel needs that no engine publishes: a `CashFlow` table
+(the working behind a swap price) and a `Series` (a line, with its axes named,
+for a curve or a ladder or a convergence trace).
+
+**`Flag` closes the hole `*_UNSPECIFIED` left open.** §6 rejects zero for
+every convention enum because proto3 cannot tell unset from the first value.
+The same hole is open for every `bool`, and `v1` has several: `end_of_month` on
+a swap leg, `performance` on a quanto forward. A forgotten one prices as
+`false` with no complaint. `v2` uses a three-valued `Flag` wherever the bit
+moves a price or its sign — end-of-month, in-arrears, pay-or-receive,
+long-or-short, payoff-at-expiry, knock-in — and keeps plain `bool` for request
+options, where `false` is a smaller answer rather than a wrong one. The rule:
+a flag that changes the number is a `Flag`, a flag that changes the reply is a
+`bool`.
+
+**`Scenario` is the session model's payoff, made explicit.** A spot ladder is
+one frame, one graph, and N lazy recomputes of only what the bumped quote
+invalidated — against N round trips that each rebuild everything. That is the
+entire argument for a stateful backend (§5), and until now nothing in the
+schema let a client ask for it in one request.
+
+**What it does not do.** It is a schema, not an implementation: there is no
+handler, no registry entry and no `Session` method behind any of it, and
+several arms name QuantLib classes this service has never constructed. Bringing
+a shape up is the same work the quanto family was — a registry mapping, an
+explicit instantiation table where a template is involved (§6.1), and a test
+row with a reference value — and the schema is now the part that does not have
+to be redesigned each time.
 
 ## 7. Prior art
 

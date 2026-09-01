@@ -101,6 +101,15 @@ file(MAKE_DIRECTORY "${QLSERVICE_PROTO_OUT}")
 add_library(qlservice_proto OBJECT
     proto/quantlib/v1/conventions.proto
     proto/quantlib/v1/envelope.proto
+
+    # v2 is the generalized schema (DESIGN 6.3). No handler serves it yet;
+    # it is built so that protoc and the C++ compiler check it, which is the
+    # only verification this repository has.
+    proto/quantlib/v2/market.proto
+    proto/quantlib/v2/instrument.proto
+    proto/quantlib/v2/engine.proto
+    proto/quantlib/v2/results.proto
+    proto/quantlib/v2/envelope.proto
 )
 
 protobuf_generate(

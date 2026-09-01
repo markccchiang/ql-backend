@@ -1,0 +1,291 @@
+// Transport envelope for the interactive QuantLib service, schema v2.
+//
+// One serialized ClientFrame or ServerFrame per binary WebSocket message.
+// WebSocket already delimits messages, so no length prefix is added.
+//
+// The frame layer is v1's unchanged, and deliberately so: the lifecycle, the
+// request_id correlation, the one-terminal-frame-per-request rule and the
+// cancel path are the parts of v1 that were right. What v2 changes is
+// everything below the frame — the market, the instruments, the engine and
+// the results — and none of that is wire-compatible, which is why it is a new
+// package rather than new fields (DESIGN §6.2).
+
+syntax = "proto3";
+
+package quantlib.v2;
+
+import "quantlib/v1/conventions.proto";
+import "quantlib/v2/engine.proto";
+import "quantlib/v2/instrument.proto";
+import "quantlib/v2/market.proto";
+import "quantlib/v2/results.proto";
+
+option java_multiple_files = true;
+option go_package = "quantlib/v2;quantlibv2";
+
+// ---------------------------------------------------------------------------
+// Frames
+// ---------------------------------------------------------------------------
+
+// Client -> server.
+message ClientFrame {
+    // Correlates responses with this request. Unique per connection, chosen by
+    // the client, never reused; the server echoes it on every frame it sends
+    // in reply, including Progress frames and the terminal one.
+    uint64 request_id = 1;
+
+    // The session this frame acts on. Empty only on OpenSession.
+    string session_id = 2;
+
+    oneof payload {
+        OpenSession open_session = 10;
+        CloseSession close_session = 11;
+        UpdateMarket update_market = 12;
+        PriceRequest price = 13;
+        CancelRequest cancel = 14;
+    }
+}
+
+// Server -> client.
+message ServerFrame {
+    uint64 request_id = 1;
+
+    // Set on the last frame for this request_id, whether it succeeded or
+    // failed. Every request gets exactly one, including a cancel and
+    // including a rejection: a client that never sees one waits forever
+    // (DESIGN §9.5).
+    bool terminal = 2;
+
+    // Every frame names its session. A terminal error can arrive when the
+    // client has several sessions in flight on one socket, and request_id
+    // alone does not say which graph it concerns.
+    string session_id = 3;
+
+    oneof payload {
+        SessionOpened session_opened = 10;
+        Ack ack = 11;
+        Progress progress = 12;
+        PriceResult price_result = 13;
+        Error error = 14;
+        ScenarioResult scenario_result = 15;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
+
+message OpenSession {
+    // The date everything in this session prices against. Written to the
+    // worker thread's own Settings::evaluationDate() by the Session
+    // constructor, on that thread, and never read from a clock anywhere else
+    // — replay has to reproduce the graph exactly (DESIGN §2, §2.1).
+    quantlib.v1.Date evaluation_date = 1;
+
+    // The whole market, in dependency order. v1 had separate quote and curve
+    // lists; one ordered list of MarketObject replaces both, because a curve
+    // may depend on a quote, a spreaded curve on a curve, a local-vol surface
+    // on a Black one, and an index on all of them.
+    repeated MarketObject market = 2;
+
+    // Free-text, echoed in logs. Never interpreted.
+    string client_label = 3;
+}
+
+message SessionOpened {
+    string session_id = 1;
+    double bootstrap_seconds = 2;
+    // What was actually built, in the order it was built. A client that
+    // posted forty objects and got thirty-nine can see which one is missing
+    // without diffing its own request.
+    repeated string market_ids = 3;
+}
+
+message CloseSession {}
+
+// ---------------------------------------------------------------------------
+// Market updates
+// ---------------------------------------------------------------------------
+
+// Writes quotes, and only quotes.
+//
+// The whole batch runs under one UpdateGuard so dependent instruments
+// recalculate once rather than once per quote — and the guard must call
+// disableUpdates(true), because the default drops notifications instead of
+// deferring them and leaves the next price stale with no error (DESIGN §5).
+//
+// Anything that is not a quote write — a new curve shape, a new index — is a
+// new session. That is not a limitation of the schema: a session is pinned to
+// one thread for life and its graph is what replay reproduces, so rebuilding
+// the graph is a CloseSession plus a replay (DESIGN §2.1).
+message UpdateMarket {
+    message QuoteWrite {
+        string quote_id = 1;
+        double value = 2;
+    }
+    repeated QuoteWrite quotes = 1;
+
+    // Past fixings can be added to a live session; they are graph input but
+    // not graph structure, and a leg that could not price without one should
+    // not need a new session to get it.
+    repeated FixingSeries fixings = 2;
+
+    // Forces a bootstrap even when nothing a curve depends on moved.
+    bool force_rebootstrap = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Pricing
+// ---------------------------------------------------------------------------
+
+message PriceRequest {
+    Instrument instrument = 1;
+    Engine engine = 2;
+
+    // What to compute besides the NPV. An engine that cannot supply one is a
+    // named rejection, not a missing key: a frontend that asked for vega and
+    // got a map without it cannot tell that from a vega of zero.
+    repeated ResultKind results = 3;
+
+    // Also return everything the engine published in its own
+    // additionalResults map. Off by default because the contents vary by
+    // engine and a client cannot rely on them; on, it is how a panel shows
+    // the working behind a price.
+    bool include_additional_results = 4;
+
+    // Return the cash-flow table. Cash-flow instruments only.
+    bool include_cashflows = 5;
+
+    // Curves and surfaces sampled for plotting, alongside the price.
+    repeated CurveSample curve_samples = 6;
+
+    // Price once per scenario point instead of once. The reply is a
+    // ScenarioResult rather than a PriceResult.
+    Scenario scenario = 7;
+
+    // v1 carried progress_every_paths here. It lives on McParameters in v2:
+    // it changes the answer, so it belongs with the seed and the sample count
+    // that the result echoes, not with the reporting options.
+}
+
+// A curve or surface sampled onto a grid, for the frontend to draw.
+//
+// The alternative is shipping the term structure itself and re-implementing
+// its interpolation in TypeScript, which is how a frontend ends up drawing a
+// curve the backend did not price with.
+message CurveSample {
+    // The MarketObject to sample.
+    string market_id = 1;
+
+    enum Quantity {
+        QUANTITY_UNSPECIFIED = 0;
+        QUANTITY_ZERO_RATE = 1;
+        QUANTITY_DISCOUNT_FACTOR = 2;
+        QUANTITY_FORWARD_RATE = 3;
+        QUANTITY_SURVIVAL_PROBABILITY = 4;
+        QUANTITY_HAZARD_RATE = 5;
+        QUANTITY_BLACK_VOLATILITY = 6;
+        QUANTITY_LOCAL_VOLATILITY = 7;
+        QUANTITY_VARIANCE = 8;
+    }
+    Quantity quantity = 2;
+
+    // Exactly one. Dates are the honest form for a yield curve; times suit a
+    // volatility slice.
+    repeated quantlib.v1.Date dates = 3;
+    repeated double times = 4 [packed = true];
+
+    // Volatility surfaces only: the strikes to sample at. More than one
+    // strike makes the result a DoubleMatrix rather than a Series.
+    repeated double strikes = 5 [packed = true];
+
+    // Rate quantities only.
+    quantlib.v1.Compounding compounding = 6;
+    quantlib.v1.Frequency frequency = 7;
+    quantlib.v1.DayCounter day_counter = 8;
+}
+
+// A sweep of one quote.
+//
+// One request, one graph, N lazy recomputes of only what the quote
+// invalidated. The point of keeping a session alive is that this costs far
+// less than N requests, and the frontend's spot ladder is the case that makes
+// it obvious.
+message Scenario {
+    string quote_id = 1;
+
+    // Exactly one form.
+    oneof points {
+        Explicit explicit = 2;
+        Linear linear = 3;
+        Relative relative = 4;
+    }
+    message Explicit { repeated double values = 1 [packed = true]; }
+    message Linear { double from = 1; double to = 2; uint32 steps = 3; }
+    // Multipliers of the quote's current value: 0.8, 0.9, 1.0 ...
+    message Relative { repeated double factors = 1 [packed = true]; }
+
+    // Which single result to shape into ScenarioResult.series. Leave unset to
+    // get the full PriceResult per point and no series.
+    ResultKind plot = 5;
+
+    // Leave the quote at the last swept value instead of restoring it.
+    //
+    // Phrased this way round because proto3 defaults it to false, and the
+    // default has to be the safe one: a sweep is a question, not an edit, and
+    // a client that has to remember to ask for the undo will forget.
+    bool keep_final_value = 6;
+}
+
+message CancelRequest {
+    // The request_id to cancel. The cancel itself gets its own terminal Ack,
+    // because nothing downstream answers it.
+    uint64 target_request_id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Non-terminal and terminal replies
+// ---------------------------------------------------------------------------
+
+message Progress {
+    uint64 completed = 1;
+    uint64 total = 2;
+    double running_npv = 3;
+    // Present once the estimate is meaningful, so a client can stop early on
+    // its own terms.
+    double running_standard_error = 4;
+    // Scenario sweeps report which point they are on instead.
+    uint32 scenario_point = 5;
+}
+
+message Ack {}
+
+message Error {
+    enum Code {
+        CODE_UNSPECIFIED = 0;
+        INVALID_ARGUMENT = 1;
+        SESSION_NOT_FOUND = 2;
+        UNKNOWN_ID = 3;            // a quote, curve or index id that is not there
+        UNSUPPORTED = 4;           // a shape the service knows of and cannot build
+        BOOTSTRAP_FAILED = 5;
+        CALCULATION_FAILED = 6;
+        CANCELLED = 7;
+        WORKER_DIED = 8;
+        OVERLOADED = 9;
+        INTERNAL = 10;
+    }
+    Code code = 1;
+
+    string message = 2;
+
+    // Dotted proto path of the field at fault:
+    // "instrument.option.barrier.level", "engine.fd.custom". The frontend
+    // highlights it. Empty when the failure came from the maths rather than
+    // from a field, which is the honest answer for a bootstrap that did not
+    // converge.
+    string field_path = 3;
+
+    // Set when the id in field_path was not found, so the frontend can offer
+    // the ids that were.
+    repeated string known_ids = 4;
+}

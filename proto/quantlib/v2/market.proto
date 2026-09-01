@@ -1,0 +1,468 @@
+// Market data for the interactive QuantLib service, schema v2.
+//
+// v1 let each instrument name the market objects it needed, in its own fields:
+// VanillaOption carried spot_quote_id/vol_quote_id/discount_curve_id, and
+// QuantoMarket carried seven more. That does not scale past a handful of
+// shapes, and it made the market a property of the trade rather than of the
+// session.
+//
+// Here the session owns a *namespace* of market objects, each with an id, and
+// instruments refer to ids. Adding an instrument no longer adds market fields.
+//
+// Two rules carry over from v1 and are the reason the shapes look like this:
+//
+//   1. Anything the frontend can vary is a quote id, never a literal. A value
+//      copied into an instrument at construction never invalidates it, which
+//      is the failure mode where the slider moves and the price does not
+//      (DESIGN §5). Where a literal really is constant for the life of the
+//      session, `fixed` says so out loud.
+//
+//   2. Zero is *_UNSPECIFIED everywhere and is rejected. Proto3 cannot tell
+//      unset from the first enum value (conventions.proto).
+
+syntax = "proto3";
+
+package quantlib.v2;
+
+import "quantlib/v1/conventions.proto";
+
+option java_multiple_files = true;
+option go_package = "quantlib/v2;quantlibv2";
+
+// The convention vocabulary is imported from v1 rather than copied. Day
+// counters, calendars, business-day rules and frequencies are ISDA facts, not
+// decisions this schema makes: they have no reason to change when the pricing
+// shapes do, and two copies would have to be kept in step by hand. The version
+// segment on the pricing schema buys nothing if the conventions fork with it.
+
+// A convention that is on or off.
+//
+// Not `bool`. Proto3 cannot tell an unset bool from a false one, which is the
+// same hole the *_UNSPECIFIED rule closes for enums (conventions.proto) — and
+// it is open in exactly the places that matter, because a convention the
+// client forgot silently prices as the false one. End-of-month, in-arrears,
+// pay-or-receive and long-or-short are all one bit that moves a price or its
+// sign.
+//
+// Request options are still plain bools: `include_cashflows` defaulting to
+// false is a smaller answer, not a wrong one. The rule is that a flag which
+// changes the number is a Flag, and a flag which changes the reply is a bool.
+enum Flag {
+    FLAG_UNSPECIFIED = 0;
+    FLAG_FALSE = 1;
+    FLAG_TRUE = 2;
+}
+
+// ---------------------------------------------------------------------------
+// The market namespace
+// ---------------------------------------------------------------------------
+
+// One named object in a session's market.
+//
+// Definitions are applied in order and may refer to earlier ids — a curve to
+// its quotes, a spreaded curve to its base, a local-vol surface to the Black
+// surface it differentiates. The service resolves ids as it fills, so ordering
+// is the client's responsibility and a forward reference is an error rather
+// than an empty handle. An empty handle would price happily until the first
+// forecast and then fail a long way from its cause.
+message MarketObject {
+    // Unique within the session. Instruments and other objects name it.
+    string id = 1;
+
+    // Free-text label for the frontend. Never interpreted.
+    string display_name = 2;
+
+    oneof kind {
+        Quote quote = 10;
+        YieldCurve yield_curve = 11;
+        VolatilitySurface volatility = 12;
+        DefaultCurve default_curve = 13;
+        InflationCurve inflation_curve = 14;
+        CorrelationMatrix correlation = 15;
+        FixingSeries fixings = 16;
+        Index index = 17;
+    }
+}
+
+// A single number the client can write later.
+//
+// Backed by a SimpleQuote, so every term structure and instrument built on it
+// observes it. This is the only object type UpdateMarket can write.
+message Quote {
+    double value = 1;
+
+    // What the number means. Not used in pricing — the service never converts
+    // — but the frontend needs it to label an axis, and a bump of a RATE quote
+    // means something different from a bump of a SPOT quote.
+    enum Unit {
+        UNIT_UNSPECIFIED = 0;
+        UNIT_ABSOLUTE = 1;     // a price, a spot, a notional
+        UNIT_RATE = 2;         // decimal, 0.05 = 5%
+        UNIT_BASIS_POINT = 3;  // decimal, 0.0001 = 1bp
+        UNIT_VOLATILITY = 4;   // decimal annualised
+        UNIT_CORRELATION = 5;  // [-1, 1]
+    }
+    Unit unit = 2;
+}
+
+// A number that is either a live quote or a constant.
+//
+// The distinction is real and not cosmetic: `quote_id` is bumpable and makes
+// the curve rebuild when written, `fixed` is baked in at construction and can
+// never move. A sixty-pillar historical curve nobody will bump is honest as
+// `fixed`; the two pillars the frontend has sliders on are not.
+message Number {
+    oneof source {
+        string quote_id = 1;
+        double fixed = 2;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Yield term structures
+// ---------------------------------------------------------------------------
+
+// A discount/forwarding curve.
+//
+// v1 offered two shapes: piecewise-bootstrapped and flat. The QuantLib test
+// suite builds most of its curves a third way — ZeroCurve appears in 28 files
+// against PiecewiseYieldCurve's 13 — because a client that already has a
+// stripped curve should be able to post it rather than re-bootstrap it.
+message YieldCurve {
+    quantlib.v1.DayCounter day_counter = 1;
+    quantlib.v1.Calendar calendar = 2;
+
+    // Defaults to the session's evaluation date. Settlement days move the
+    // reference date forward on the calendar; both zero is the common case.
+    quantlib.v1.Date reference_date = 3;
+    uint32 settlement_days = 4;
+
+    oneof shape {
+        FlatCurve flat = 10;
+        InterpolatedCurve zero = 11;      // nodes are zero rates
+        InterpolatedCurve discount = 12;  // nodes are discount factors
+        InterpolatedCurve forward = 13;   // nodes are instantaneous forwards
+        BootstrappedCurve bootstrap = 14;
+        SpreadedCurve spread = 15;
+    }
+}
+
+// FlatForward on one number.
+message FlatCurve {
+    Number rate = 1;
+    // Both required, including the frequency QuantLib ignores under SIMPLE and
+    // CONTINUOUS. A frequency that is silently unused today is a frequency
+    // that is silently wrong when the compounding changes.
+    quantlib.v1.Compounding compounding = 2;
+    quantlib.v1.Frequency frequency = 3;
+}
+
+// Nodes plus an interpolation. The node meaning is the enclosing oneof arm.
+message InterpolatedCurve {
+    message Node {
+        // Exactly one. A tenor is resolved against the curve's calendar and
+        // is the form that survives a change of evaluation date.
+        oneof when {
+            quantlib.v1.Date date = 1;
+            string tenor = 2;  // "3M", "10Y"
+        }
+        Number value = 3;
+    }
+    repeated Node nodes = 1;
+    Interpolator interpolator = 2;
+
+    // Zero curves only; ignored by the discount and forward arms, which are
+    // rejected if it is set rather than dropping it silently.
+    quantlib.v1.Compounding compounding = 3;
+    quantlib.v1.Frequency frequency = 4;
+}
+
+// Bootstrapped from instrument quotes.
+//
+// The traits/interpolator pair is a menu rather than an open choice because
+// PiecewiseYieldCurve<Traits, Interpolator> is a template: each pair is a
+// distinct C++ type and has to be named in source (DESIGN §6.1). Growing the
+// menu is a line of code and a recompile, not a schema change alone.
+message BootstrappedCurve {
+    enum Traits {
+        TRAITS_UNSPECIFIED = 0;
+        TRAITS_DISCOUNT = 1;
+        TRAITS_ZERO_YIELD = 2;
+        TRAITS_FORWARD_RATE = 3;
+    }
+    Traits traits = 1;
+    Interpolator interpolator = 2;
+    repeated Pillar pillars = 3;
+}
+
+// One bootstrap instrument.
+message Pillar {
+    string quote_id = 1;  // always live: pillars are what a client bumps
+    string tenor = 2;
+
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_DEPOSIT = 1;
+        KIND_FRA = 2;
+        KIND_FUTURE = 3;
+        KIND_SWAP = 4;
+        KIND_OIS = 5;
+        KIND_BASIS_SWAP = 6;
+    }
+    Kind kind = 3;
+
+    // Which index the helper forecasts with. Names an Index object.
+    string index_id = 4;
+
+    // Swap and OIS helpers only.
+    quantlib.v1.Calendar calendar = 5;
+    quantlib.v1.Frequency fixed_frequency = 6;
+    quantlib.v1.BusinessDayConvention fixed_convention = 7;
+    quantlib.v1.DayCounter fixed_day_counter = 8;
+
+    // Optional: bootstrap against a separate discount curve (dual-curve).
+    string discount_curve_id = 9;
+}
+
+// A base curve plus a spread.
+message SpreadedCurve {
+    string base_curve_id = 1;
+
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_ZERO_SPREAD = 1;      // flat spread on the zero rate
+        KIND_FORWARD_SPREAD = 2;   // flat spread on the instantaneous forward
+        KIND_PIECEWISE_ZERO = 3;   // term structure of zero spreads
+    }
+    Kind kind = 2;
+
+    // One entry for the flat kinds, N for the piecewise one.
+    repeated InterpolatedCurve.Node spreads = 3;
+    Interpolator interpolator = 4;
+}
+
+// Interpolators, shared by every interpolated object here.
+enum Interpolator {
+    INTERPOLATOR_UNSPECIFIED = 0;
+    INTERPOLATOR_LINEAR = 1;
+    INTERPOLATOR_LOG_LINEAR = 2;
+    INTERPOLATOR_CUBIC = 3;
+    INTERPOLATOR_LOG_CUBIC = 4;
+    INTERPOLATOR_BACKWARD_FLAT = 5;
+    INTERPOLATOR_FORWARD_FLAT = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Volatility
+// ---------------------------------------------------------------------------
+
+// A Black or local volatility term structure.
+//
+// v1 had no such object at all: volatility entered as a single quote id and
+// every instrument got a BlackConstantVol built on the spot. That is right for
+// the test-suite rows and wrong for anything with a smile, which is most of
+// what a frontend wants to show.
+message VolatilitySurface {
+    quantlib.v1.DayCounter day_counter = 1;
+    quantlib.v1.Calendar calendar = 2;
+
+    oneof shape {
+        ConstantVol constant = 10;
+        VarianceCurve variance_curve = 11;      // term structure, no smile
+        VarianceSurface variance_surface = 12;  // expiry x strike
+        LocalVol local = 13;
+    }
+}
+
+// BlackConstantVol on one number.
+message ConstantVol {
+    Number volatility = 1;
+}
+
+// BlackVarianceCurve: an ATM term structure.
+message VarianceCurve {
+    message Node {
+        quantlib.v1.Date expiry = 1;
+        Number volatility = 2;
+    }
+    repeated Node nodes = 1;
+    Interpolator interpolator = 2;
+
+    // BlackVarianceCurve extrapolates in variance beyond the last expiry only
+    // when told to; the default refuses, which is usually what a client wants
+    // to hear about.
+    bool extrapolate = 3;
+}
+
+// BlackVarianceSurface: a full expiry x strike grid.
+//
+// Row-major over (expiry, strike): values[i * strikes.size() + j] is the
+// volatility at expiries[i], strikes[j]. A ragged smile has to be squared off
+// by the client, which is what BlackVarianceSurface requires as well.
+message VarianceSurface {
+    repeated quantlib.v1.Date expiries = 1;
+    repeated double strikes = 2;
+    repeated Number volatilities = 3;
+
+    Interpolator interpolator = 4;
+
+    enum Extrapolation {
+        EXTRAPOLATION_UNSPECIFIED = 0;
+        EXTRAPOLATION_CONSTANT = 1;
+        EXTRAPOLATION_INTERPOLATOR = 2;
+    }
+    Extrapolation strike_extrapolation = 5;
+    Extrapolation time_extrapolation = 6;
+}
+
+// Local volatility, either constant or derived from a Black surface.
+message LocalVol {
+    oneof shape {
+        Number constant = 1;
+        // LocalVolSurface: differentiates a Black surface against the same
+        // spot and curves the process uses. Naming them separately here would
+        // let the two disagree, so they are taken from the underlying that
+        // references this object.
+        string black_surface_id = 2;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Credit and inflation
+// ---------------------------------------------------------------------------
+
+// A default-probability term structure.
+message DefaultCurve {
+    quantlib.v1.DayCounter day_counter = 1;
+    quantlib.v1.Calendar calendar = 2;
+
+    oneof shape {
+        // Flat hazard rate.
+        Number flat_hazard_rate = 10;
+        // Interpolated hazard rates or survival probabilities.
+        InterpolatedCurve hazard_rate = 11;
+        InterpolatedCurve survival_probability = 12;
+        // Bootstrapped from CDS spreads.
+        CdsBootstrap bootstrap = 13;
+    }
+
+    // Used by the bootstrap and echoed to the frontend; the recovery a trade
+    // prices with is on the trade, not here.
+    double recovery_rate = 3;
+}
+
+message CdsBootstrap {
+    message Spread {
+        string quote_id = 1;
+        string tenor = 2;
+    }
+    repeated Spread spreads = 1;
+    string discount_curve_id = 2;
+    quantlib.v1.Frequency frequency = 3;
+    quantlib.v1.Calendar calendar = 4;
+    quantlib.v1.BusinessDayConvention convention = 5;
+    quantlib.v1.DayCounter day_counter = 6;
+    Interpolator interpolator = 7;
+}
+
+// A zero-coupon or year-on-year inflation term structure.
+message InflationCurve {
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_ZERO = 1;
+        KIND_YEAR_ON_YEAR = 2;
+    }
+    Kind kind = 1;
+
+    quantlib.v1.DayCounter day_counter = 2;
+    quantlib.v1.Calendar calendar = 3;
+    quantlib.v1.Frequency frequency = 4;
+
+    // The publication lag, e.g. "3M". Inflation curves are quoted against a
+    // lagged fixing and getting this wrong shifts every cash flow.
+    string observation_lag = 5;
+
+    string nominal_curve_id = 6;
+    InterpolatedCurve rates = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Correlation and fixings
+// ---------------------------------------------------------------------------
+
+// A symmetric correlation matrix over named underlyings.
+//
+// The quanto 2x2 case (equity against FX) and the basket NxN case are the same
+// object; v1 had a single correlation_quote_id inside QuantoMarket and no way
+// to express the second at all.
+message CorrelationMatrix {
+    // Row and column order. Entries name underlying ids, or the reserved id
+    // "fx" for the quanto FX leg.
+    repeated string labels = 1;
+    // Row-major, labels.size() ^ 2 entries. The diagonal must be 1 and the
+    // matrix must be symmetric; both are checked, because QuantoTermStructure
+    // and the basket engines do not check and return a plausible-looking
+    // number for an impossible market.
+    repeated Number values = 2;
+}
+
+// Past fixings for one index.
+//
+// Nothing in v1 populated IndexManager, so a floating leg whose current period
+// had already started could not price at all. Fixings are session state and
+// part of the replay log: a worker must never read them from anywhere else.
+message FixingSeries {
+    string index_id = 1;
+    message Fixing {
+        quantlib.v1.Date date = 1;
+        double value = 2;
+    }
+    repeated Fixing fixings = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Indices
+// ---------------------------------------------------------------------------
+
+// An interest-rate or inflation index.
+//
+// v1 spelled this as an enum of named indices inside the swap leg. That works
+// until a client needs Euribor3M forecasting off a curve the session built,
+// which is the normal case rather than the exotic one.
+message Index {
+    enum Family {
+        FAMILY_UNSPECIFIED = 0;
+        FAMILY_IBOR = 1;
+        FAMILY_OVERNIGHT = 2;
+        FAMILY_SWAP = 3;
+        FAMILY_INFLATION_ZERO = 4;
+        FAMILY_INFLATION_YOY = 5;
+    }
+    Family family = 1;
+
+    // The QuantLib index name where one exists ("Euribor", "SOFR", "EURi").
+    // With a tenor and conventions below it is enough to rebuild the index;
+    // the service does not look it up in a registry of hardcoded indices,
+    // because that registry is exactly what goes stale.
+    string name = 2;
+    string tenor = 3;
+
+    uint32 fixing_days = 4;
+    quantlib.v1.Calendar fixing_calendar = 5;
+    quantlib.v1.BusinessDayConvention convention = 6;
+    quantlib.v1.DayCounter day_counter = 7;
+    Flag end_of_month = 8;
+
+    // The curve the index forecasts off. Empty for an index used only with
+    // past fixings.
+    string forwarding_curve_id = 9;
+
+    // Swap indices only.
+    quantlib.v1.Frequency fixed_frequency = 10;
+    quantlib.v1.DayCounter fixed_day_counter = 11;
+    string discount_curve_id = 12;
+
+    // Inflation indices only.
+    Flag interpolated = 13;
+    string inflation_curve_id = 14;
+}

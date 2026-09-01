@@ -1,0 +1,560 @@
+// Instrument schema for the interactive QuantLib service, schema v2.
+//
+// The shape of this file is taken from QuantLib's own decomposition, which the
+// test suite makes visible: every one-asset option test row is
+// {option type, strike, spot, q, r, t, vol} plus a small feature block, and
+// Option::arguments is exactly a payoff and an exercise (ql/option.hpp:64-65).
+//
+// v1 wrote one message per product and paid for it immediately. VanillaOption,
+// QuantoVanillaOption, QuantoForwardVanillaOption, QuantoBarrierOption and
+// QuantoDoubleBarrierOption each re-declared type/strike/expiry, the barrier
+// fields appeared twice, and a plain (non-quanto) barrier option would have
+// been a sixth message duplicating all of it again. The count grows as
+// shape x quanto x exercise; only the shape is a real distinction.
+//
+// Here an option is a payoff, an exercise, an underlying, one style block, and
+// an optional quanto adjustment. Four of v1's six option messages collapse
+// into zero new ones: quanto stops being a product and becomes what it is in
+// QuantLib, an adjustment applied to the engine.
+
+syntax = "proto3";
+
+package quantlib.v2;
+
+import "quantlib/v1/conventions.proto";
+import "quantlib/v2/market.proto";
+
+option java_multiple_files = true;
+option go_package = "quantlib/v2;quantlibv2";
+
+// ---------------------------------------------------------------------------
+// Instrument
+// ---------------------------------------------------------------------------
+
+message Instrument {
+    oneof kind {
+        Option option = 1;
+        Swap swap = 2;
+        Swaption swaption = 3;
+        CapFloor cap_floor = 4;
+        Bond bond = 5;
+        CreditDefaultSwap credit_default_swap = 6;
+        ForwardRateAgreement fra = 7;
+        FxForward fx_forward = 8;
+        VarianceSwap variance_swap = 9;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Options
+// ---------------------------------------------------------------------------
+
+// Any equity/FX/commodity option.
+//
+// `style` is a oneof rather than a repeated feature list on purpose. Features
+// look composable and are not: QuantLib has a fixed menu of instrument
+// classes, there is no quanto-barrier-lookback, and a repeated list would make
+// the schema promise a product space perhaps a tenth of which can be built.
+// The oneof says what is buildable; anything outside it is a compile-time
+// absence rather than a runtime surprise.
+//
+// Quanto is the one genuinely orthogonal axis, because QuantoEngine<Instr,
+// Engine> wraps another engine rather than another instrument
+// (ql/pricingengines/quanto/quantoengine.hpp), so it sits outside the oneof.
+message Option {
+    Payoff payoff = 1;
+    Exercise exercise = 2;
+
+    // One for most styles, several for a basket or a two-asset option. The
+    // style block says how many it needs and the service rejects the wrong
+    // count naming this field.
+    repeated Underlying underlyings = 3;
+
+    oneof style {
+        Vanilla vanilla = 10;
+        Barrier barrier = 11;
+        DoubleBarrier double_barrier = 12;
+        Asian asian = 13;
+        Lookback lookback = 14;
+        ForwardStart forward_start = 15;
+        Cliquet cliquet = 16;
+        Digital digital = 17;
+        Compound compound = 18;
+        Chooser chooser = 19;
+        Basket basket = 20;
+        Spread spread = 21;
+    }
+
+    // Optional. When set, the payoff is in a currency other than the
+    // underlying's and the engine is wrapped in a QuantoEngine.
+    Quanto quanto = 30;
+
+    // Discrete dividends, if any. QuantLib takes these as escrowed cash flows
+    // rather than a yield, and an option with them prices through a different
+    // engine set — which the service resolves, not the client.
+    repeated Dividend dividends = 31;
+}
+
+// The underlying and the market objects it is priced against.
+//
+// One block, referenced by id, replacing the per-instrument market fields of
+// v1. Every id names a MarketObject in the session.
+message Underlying {
+    // Free-text, used by correlation matrices and by the frontend. Required
+    // when there is more than one underlying.
+    string label = 1;
+
+    string spot_quote_id = 2;
+    string discount_curve_id = 3;   // the risk-free/funding curve
+    string dividend_curve_id = 4;   // the yield the spot drifts against
+    string volatility_id = 5;       // a VolatilitySurface
+
+    // Optional: the process to build. Defaults to Black-Scholes-Merton on the
+    // four ids above. Anything else needs its own parameters, which live on
+    // the engine because they are model parameters rather than market data.
+    enum Process {
+        PROCESS_UNSPECIFIED = 0;
+        PROCESS_BLACK_SCHOLES_MERTON = 1;
+        PROCESS_BLACK_SCHOLES = 2;      // no dividend yield
+        PROCESS_BLACK = 3;              // forward-driven, no spot drift
+        PROCESS_GARMAN_KOHLHAGEN = 4;   // FX; dividend curve is the foreign one
+        PROCESS_HESTON = 5;
+        PROCESS_BATES = 6;
+        PROCESS_LOCAL_VOL = 7;
+    }
+    Process process = 6;
+}
+
+// A payoff. QuantLib's are in ql/instruments/payoffs.hpp; this is that file.
+message Payoff {
+    enum OptionType {
+        OPTION_TYPE_UNSPECIFIED = 0;
+        OPTION_TYPE_CALL = 1;
+        OPTION_TYPE_PUT = 2;
+    }
+    // Required by every arm except `floating`, which has no type of its own.
+    OptionType type = 1;
+
+    oneof kind {
+        PlainVanillaPayoff plain = 10;
+        PercentageStrikePayoff percentage_strike = 11;
+        AssetOrNothingPayoff asset_or_nothing = 12;
+        CashOrNothingPayoff cash_or_nothing = 13;
+        GapPayoff gap = 14;
+        SuperFundPayoff super_fund = 15;
+        SuperSharePayoff super_share = 16;
+        FloatingTypePayoff floating = 17;
+    }
+}
+
+message PlainVanillaPayoff { double strike = 1; }
+// Strike as a fraction of the spot at reset; the forward-start form.
+message PercentageStrikePayoff { double moneyness = 1; }
+message AssetOrNothingPayoff { double strike = 1; }
+message CashOrNothingPayoff { double strike = 1; double cash_payoff = 2; }
+// Pays (spot - second_strike) when in the money past `strike`.
+message GapPayoff { double strike = 1; double second_strike = 2; }
+// second_strike must exceed strike; both must be positive.
+message SuperFundPayoff { double strike = 1; double second_strike = 2; }
+message SuperSharePayoff {
+    double strike = 1;
+    double second_strike = 2;
+    double cash_payoff = 3;
+}
+// Struck at the extremum realised over the option's life: the payoff of a
+// floating-strike lookback. Carries no strike by construction.
+message FloatingTypePayoff {}
+
+// An exercise. QuantLib's are in ql/exercise.hpp:35-97.
+message Exercise {
+    enum Type {
+        TYPE_UNSPECIFIED = 0;
+        TYPE_EUROPEAN = 1;
+        TYPE_AMERICAN = 2;
+        TYPE_BERMUDAN = 3;
+    }
+    Type type = 1;
+
+    // European and American: the expiry, one date. Bermudan: every exercise
+    // date, in order, the last of which is the expiry.
+    repeated quantlib.v1.Date dates = 2;
+
+    // American only: the first date exercise is allowed. Defaults to the
+    // evaluation date.
+    quantlib.v1.Date earliest_date = 3;
+
+    // American only, and it changes the price rather than the convention: with
+    // it set the payoff is settled at expiry rather than on exercise
+    // (ql/exercise.hpp:72-83).
+    Flag payoff_at_expiry = 4;
+}
+
+// A discrete cash dividend.
+message Dividend {
+    quantlib.v1.Date date = 1;
+    // Live, because the frontend will want to bump it.
+    string amount_quote_id = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Option styles
+// ---------------------------------------------------------------------------
+
+// Nothing beyond payoff and exercise: a plain option, European or American.
+message Vanilla {}
+
+message Barrier {
+    // Deliberately not QuantLib's own values: Barrier::Type has DownIn = 0,
+    // which collides with the reserved unspecified slot.
+    enum Type {
+        TYPE_UNSPECIFIED = 0;
+        TYPE_DOWN_IN = 1;
+        TYPE_UP_IN = 2;
+        TYPE_DOWN_OUT = 3;
+        TYPE_UP_OUT = 4;
+    }
+    Type type = 1;
+    double level = 2;
+    double rebate = 3;
+
+    // Continuous monitoring is the closed-form assumption; a discrete schedule
+    // forces a lattice or Monte Carlo engine and prices measurably higher.
+    // Empty means continuous.
+    repeated quantlib.v1.Date monitoring_dates = 4;
+
+    // Partial-time barrier: the window the barrier is live in. Empty means the
+    // whole life of the option.
+    quantlib.v1.Date window_start = 5;
+    quantlib.v1.Date window_end = 6;
+}
+
+message DoubleBarrier {
+    // DoubleBarrier::Type has KnockIn = 0; same reason as above.
+    enum Type {
+        TYPE_UNSPECIFIED = 0;
+        TYPE_KNOCK_IN = 1;
+        TYPE_KNOCK_OUT = 2;
+        TYPE_KIKO = 3;
+        TYPE_KOKI = 4;
+    }
+    Type type = 1;
+    double lower = 2;
+    double upper = 3;
+    double rebate = 4;
+}
+
+message Asian {
+    enum Averaging {
+        AVERAGING_UNSPECIFIED = 0;
+        AVERAGING_ARITHMETIC = 1;
+        AVERAGING_GEOMETRIC = 2;
+    }
+    Averaging averaging = 1;
+
+    // Empty for a continuously averaged option; otherwise every fixing date,
+    // including past ones.
+    repeated quantlib.v1.Date fixing_dates = 2;
+
+    // The average accrued so far, and how many fixings it covers. Required
+    // once the first fixing date has passed: an option mid-life whose running
+    // average is dropped prices as if it had just started.
+    double running_average = 3;
+    uint32 past_fixings = 4;
+}
+
+message Lookback {
+    // The extremum realised so far. Required once the option is running, for
+    // the same reason Asian.running_average is.
+    double running_extremum = 1;
+
+    // Partial-time lookback: when the lookback window opens, and the level
+    // above or below the extremum it is struck at.
+    quantlib.v1.Date window_start = 2;
+    double level = 3;
+}
+
+// The strike is set at `reset` as a fraction of the spot then.
+message ForwardStart {
+    quantlib.v1.Date reset = 1;
+
+    // Divides the payoff by the spot at reset, which is the performance form:
+    // a different engine, not a scaling of the same number.
+    Flag performance = 2;
+}
+
+message Cliquet {
+    repeated quantlib.v1.Date reset_dates = 1;
+    double local_cap = 2;
+    double local_floor = 3;
+    double global_cap = 4;
+    double global_floor = 5;
+}
+
+// A digital that also knocks. The plain digital payoffs are on Payoff; this
+// style exists for the barrier-style knock-in/knock-out variants.
+message Digital {
+    Flag knock_in = 1;
+    double barrier = 2;
+    double cash_payoff = 3;
+}
+
+// An option on an option.
+message Compound {
+    Payoff mother_payoff = 1;
+    Exercise mother_exercise = 2;
+    Payoff daughter_payoff = 3;
+    Exercise daughter_exercise = 4;
+}
+
+// Simple chooser: one choice date, one strike. Complex chooser: separate call
+// and put strikes and expiries.
+message Chooser {
+    quantlib.v1.Date choice_date = 1;
+    double call_strike = 2;
+    double put_strike = 3;
+    quantlib.v1.Date call_expiry = 4;
+    quantlib.v1.Date put_expiry = 5;
+}
+
+// An option on several underlyings.
+message Basket {
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_MIN = 1;
+        KIND_MAX = 2;
+        KIND_SPREAD = 3;
+        KIND_AVERAGE = 4;
+    }
+    Kind kind = 1;
+    // Names a CorrelationMatrix whose labels are the underlying labels.
+    string correlation_id = 2;
+    // One weight per underlying; empty means equal weights.
+    repeated double weights = 3;
+}
+
+// A two-asset spread option, kept separate from Basket because QuantLib prices
+// it with Kirk rather than through the basket engines.
+message Spread {}
+
+// The quanto adjustment.
+//
+// Not a product. QuantoEngine adjusts the dividend yield through a
+// QuantoTermStructure and wraps whatever engine the style would otherwise get,
+// so this block names the FX leg and nothing else.
+message Quanto {
+    // The foreign risk-free curve — the currency the payoff settles in.
+    string fx_risk_free_curve_id = 1;
+    // Volatility of the exchange rate.
+    string fx_volatility_id = 2;
+    // Correlation between the underlying and the exchange rate. Either a
+    // single quote, or a CorrelationMatrix entry against the reserved label
+    // "fx" when the trade is already multi-asset.
+    string correlation_id = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Legs and swaps
+// ---------------------------------------------------------------------------
+
+// One leg of anything with cash flows.
+//
+// v1 had SwapLeg with a frequency and an optional index, and VanillaSwap
+// hardcoded exactly two of them. The test suite builds vanilla, OIS, basis,
+// float-float, cross-currency and amortising swaps out of the same Leg, so
+// this is one message and Swap holds a repeated field of it.
+message Leg {
+    enum Kind {
+        KIND_UNSPECIFIED = 0;
+        KIND_FIXED = 1;
+        KIND_IBOR = 2;
+        KIND_OVERNIGHT = 3;
+        KIND_CMS = 4;
+        KIND_ZERO_COUPON = 5;
+        KIND_INFLATION_ZERO = 6;
+        KIND_INFLATION_YOY = 7;
+    }
+    Kind kind = 1;
+
+    Schedule schedule = 2;
+    quantlib.v1.DayCounter day_counter = 3;
+
+    // One entry for a constant notional, one per period for an amortising or
+    // accreting one.
+    repeated double notionals = 4;
+
+    // Fixed legs. Live, because a par-rate solve writes it.
+    string rate_quote_id = 5;
+
+    // Floating legs.
+    string index_id = 6;
+    uint32 fixing_days = 7;
+    Flag in_arrears = 8;
+    repeated double gearings = 9;
+    repeated double spreads = 10;
+    repeated double caps = 11;
+    repeated double floors = 12;
+
+    // Pays or receives. A two-leg swap with both legs paying is a client
+    // error, not a portfolio.
+    Flag pays = 13;
+
+    // Optional per-leg discount curve; defaults to the request's.
+    string discount_curve_id = 14;
+
+    // Optional: the currency this leg pays, for cross-currency swaps. Empty
+    // means the request's currency.
+    string currency = 15;
+}
+
+message Schedule {
+    quantlib.v1.Date start = 1;
+    quantlib.v1.Date maturity = 2;
+    quantlib.v1.Frequency frequency = 3;
+    quantlib.v1.Calendar calendar = 4;
+    quantlib.v1.BusinessDayConvention convention = 5;
+    quantlib.v1.BusinessDayConvention termination_convention = 6;
+
+    enum DateGeneration {
+        DATE_GENERATION_UNSPECIFIED = 0;
+        DATE_GENERATION_BACKWARD = 1;
+        DATE_GENERATION_FORWARD = 2;
+        DATE_GENERATION_ZERO = 3;
+        DATE_GENERATION_THIRD_WEDNESDAY = 4;
+        DATE_GENERATION_TWENTIETH = 5;
+        DATE_GENERATION_TWENTIETH_IMM = 6;
+        DATE_GENERATION_CDS2015 = 7;
+    }
+    DateGeneration date_generation = 7;
+    Flag end_of_month = 8;
+
+    // Optional stub dates. A schedule with an odd first or last period that
+    // the generator cannot infer needs these, and inferring silently is how a
+    // leg ends up with a phantom coupon.
+    quantlib.v1.Date first_date = 9;
+    quantlib.v1.Date next_to_last_date = 10;
+}
+
+// Any number of legs. Two of them with kinds FIXED and IBOR is a vanilla
+// swap; the schema does not need to know that.
+message Swap {
+    repeated Leg legs = 1;
+    string discount_curve_id = 2;
+}
+
+message Swaption {
+    Swap underlying = 1;
+    Exercise exercise = 2;
+
+    enum SettlementType {
+        SETTLEMENT_TYPE_UNSPECIFIED = 0;
+        SETTLEMENT_TYPE_PHYSICAL = 1;
+        SETTLEMENT_TYPE_CASH = 2;
+    }
+    SettlementType settlement_type = 3;
+
+    enum SettlementMethod {
+        SETTLEMENT_METHOD_UNSPECIFIED = 0;
+        SETTLEMENT_METHOD_PHYSICAL_OTC = 1;
+        SETTLEMENT_METHOD_PHYSICAL_CLEARED = 2;
+        SETTLEMENT_METHOD_COLLATERALIZED_CASH_PRICE = 3;
+        SETTLEMENT_METHOD_PAR_YIELD_CURVE = 4;
+    }
+    // Not free: QuantLib checks the pair for consistency
+    // (ql/instruments/swaption.hpp, Settlement::checkTypeAndMethodConsistency).
+    SettlementMethod settlement_method = 4;
+
+    // A swaption vol quote or surface, for the Black and Bachelier engines.
+    string volatility_id = 5;
+}
+
+message CapFloor {
+    enum Type {
+        TYPE_UNSPECIFIED = 0;
+        TYPE_CAP = 1;
+        TYPE_FLOOR = 2;
+        TYPE_COLLAR = 3;
+    }
+    Type type = 1;
+    Leg leg = 2;
+    // One per period, or one for all of them.
+    repeated double cap_rates = 3;
+    repeated double floor_rates = 4;
+    string volatility_id = 5;
+    string discount_curve_id = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Bonds and credit
+// ---------------------------------------------------------------------------
+
+message Bond {
+    uint32 settlement_days = 1;
+    double face_amount = 2;
+    quantlib.v1.Date issue_date = 3;
+
+    // A bond is a leg plus a redemption. Fixed, floating, zero-coupon,
+    // amortising and CMS bonds differ only in the leg.
+    Leg leg = 4;
+    double redemption = 5;
+
+    string discount_curve_id = 6;
+
+    // Optional: price from a flat yield instead of a curve, which is how a
+    // frontend shows price/yield together.
+    message Yield {
+        double value = 1;
+        quantlib.v1.Compounding compounding = 2;
+        quantlib.v1.Frequency frequency = 3;
+        quantlib.v1.DayCounter day_counter = 4;
+    }
+    Yield yield = 7;
+}
+
+message CreditDefaultSwap {
+    Flag buy_protection = 1;
+    double notional = 2;
+    double spread = 3;
+    Schedule schedule = 4;
+    quantlib.v1.DayCounter day_counter = 5;
+
+    string default_curve_id = 6;
+    string discount_curve_id = 7;
+    double recovery_rate = 8;
+
+    // Upfront quoted trades.
+    double upfront = 9;
+    quantlib.v1.Date upfront_date = 10;
+
+    Flag settles_accrual = 11;
+    Flag pays_at_default = 12;
+}
+
+message ForwardRateAgreement {
+    quantlib.v1.Date value_date = 1;
+    quantlib.v1.Date maturity_date = 2;
+    Flag long_position = 3;
+    double strike_rate = 4;
+    double notional = 5;
+    string index_id = 6;
+    string discount_curve_id = 7;
+}
+
+message FxForward {
+    double nominal = 1;
+    string currency = 2;
+    double delivery_rate = 3;
+    quantlib.v1.Date delivery_date = 4;
+    Flag buy_base = 5;
+    string spot_quote_id = 6;
+    string base_discount_curve_id = 7;
+    string quote_discount_curve_id = 8;
+}
+
+message VarianceSwap {
+    Flag long_position = 1;
+    double strike = 2;
+    double notional = 3;
+    quantlib.v1.Date start = 4;
+    quantlib.v1.Date maturity = 5;
+    Underlying underlying = 6;
+}

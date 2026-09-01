@@ -1,0 +1,158 @@
+// Pricing-engine selection for the interactive QuantLib service, schema v2.
+//
+// v1 had Engine.Kind with four values and a flat set of parameters beside it:
+// seed and samples for Monte Carlo, an fd_grid menu for finite differences,
+// nothing for the rest. Every parameter was visible on every request, so a
+// swap could carry a Monte Carlo seed and an analytic option could carry a
+// grid, and the swap path did in fact ignore the whole message
+// (Session::priceSwap).
+//
+// Here the method selects a parameter block. A field that does not apply
+// cannot be set, rather than being set and dropped.
+
+syntax = "proto3";
+
+package quantlib.v2;
+
+option java_multiple_files = true;
+option go_package = "quantlib/v2;quantlibv2";
+
+message Engine {
+    // How the price is computed.
+    enum Method {
+        METHOD_UNSPECIFIED = 0;
+        METHOD_ANALYTIC = 1;
+        METHOD_LATTICE = 2;            // binomial and trinomial trees
+        METHOD_FINITE_DIFFERENCE = 3;
+        METHOD_MONTE_CARLO = 4;
+        METHOD_INTEGRAL = 5;
+        METHOD_FOURIER = 6;            // Carr-Madan and friends
+        METHOD_DISCOUNTING = 7;        // the cash-flow instruments
+    }
+    Method method = 1;
+
+    // The model the method is applied to. Separating the two is what lets a
+    // Heston price come from a Fourier transform, a PDE or a Monte Carlo
+    // without three method values; v1 collapsed them and had no room for a
+    // model at all.
+    enum Model {
+        MODEL_UNSPECIFIED = 0;
+        MODEL_BLACK_SCHOLES = 1;
+        MODEL_BLACK = 2;               // lognormal forward: caps, swaptions
+        MODEL_BACHELIER = 3;           // normal forward
+        MODEL_HESTON = 4;
+        MODEL_BATES = 5;
+        MODEL_LOCAL_VOL = 6;
+        MODEL_HULL_WHITE = 7;
+        MODEL_G2 = 8;
+        MODEL_ISDA = 9;                // the CDS standard model
+    }
+    Model model = 2;
+
+    oneof parameters {
+        LatticeParameters lattice = 10;
+        FdParameters fd = 11;
+        McParameters mc = 12;
+        FourierParameters fourier = 13;
+    }
+
+    // Model parameters, when the model has any that are not market data.
+    // Heston's five and Hull-White's two are calibration output, not
+    // conventions, so they are quote ids like everything else a client can
+    // move.
+    map<string, string> model_quote_ids = 20;
+}
+
+message LatticeParameters {
+    enum Tree {
+        TREE_UNSPECIFIED = 0;
+        TREE_COX_ROSS_RUBINSTEIN = 1;
+        TREE_JARROW_RUDD = 2;
+        TREE_ADDITIVE_EQUIPROBABILITIES = 3;
+        TREE_TRIGEORGIS = 4;
+        TREE_TIAN = 5;
+        TREE_LEISEN_REIMER = 6;
+        TREE_JOSHI4 = 7;
+    }
+    Tree tree = 1;
+    // Required and non-zero. A tree with no steps is not a fast tree.
+    uint32 steps = 2;
+}
+
+message FdParameters {
+    // The preset menu v1 exposed, kept because it is the only form some
+    // engines can accept. QuantoEngine builds its inner engine as
+    // make_shared<Engine>(process) and leaves no seam to pass grid sizes
+    // through, so on the quanto paths the grid has to be baked into the C++
+    // type and only these three exist.
+    enum Preset {
+        PRESET_UNSPECIFIED = 0;
+        PRESET_COARSE = 1;     // 100 x 100, QuantLib's own defaults
+        PRESET_STANDARD = 2;   // 400 x 200
+        PRESET_FINE = 3;       // 2000 x 800
+    }
+
+    message Explicit {
+        uint32 time_steps = 1;
+        uint32 asset_steps = 2;
+        uint32 damping_steps = 3;
+        enum Scheme {
+            SCHEME_UNSPECIFIED = 0;
+            SCHEME_CRANK_NICOLSON = 1;
+            SCHEME_DOUGLAS = 2;
+            SCHEME_IMPLICIT_EULER = 3;
+            SCHEME_EXPLICIT_EULER = 4;
+            SCHEME_HUNDSDORFER = 5;
+            SCHEME_CRAIG_SNEYD = 6;
+        }
+        Scheme scheme = 4;
+    }
+
+    // A request that sets `custom` on a path that can only take a preset is
+    // rejected naming this field. Accepting it and quietly using a preset
+    // would be the swap-engine defect again: a parameter the client can see
+    // us take and cannot see us ignore.
+    oneof grid {
+        Preset preset = 1;
+        Explicit custom = 2;
+    }
+}
+
+message McParameters {
+    // Required and non-zero: QuantLib seeds from the clock when given zero,
+    // and an unseeded price cannot be reproduced or compared against the next
+    // one (DESIGN §4).
+    uint64 seed = 1;
+
+    // Exactly one. `samples` is a fixed budget; `absolute_tolerance` runs
+    // until the error estimate is under it, which can take arbitrarily long
+    // and is why the batching below matters.
+    oneof stopping {
+        uint64 samples = 2;
+        double absolute_tolerance = 3;
+    }
+
+    enum Rng {
+        RNG_UNSPECIFIED = 0;
+        RNG_PSEUDO_RANDOM = 1;      // Mersenne twister
+        RNG_LOW_DISCREPANCY = 2;    // Sobol
+    }
+    Rng rng = 4;
+
+    uint32 time_steps_per_year = 5;
+    bool antithetic_variate = 6;
+    bool control_variate = 7;
+    bool brownian_bridge = 8;
+
+    // Batch size for progress reporting, and the only point at which a
+    // running calculation can be stopped (DESIGN §3). It changes the answer:
+    // batches draw from the RNG stream differently from one run of the same
+    // total, so it is echoed with the seed and the sample count.
+    uint64 progress_every_paths = 9;
+}
+
+message FourierParameters {
+    // Carr-Madan integration controls; the defaults are QuantLib's.
+    double alpha = 1;
+    uint32 integration_order = 2;
+}
