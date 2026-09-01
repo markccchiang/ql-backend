@@ -4,13 +4,22 @@
 #include "errors/fielderror.hpp"
 #include "updateguard.hpp"
 #include <ql/exercise.hpp>
+#include <ql/experimental/barrieroption/quantodoublebarrieroption.hpp>
 #include <ql/indexes/iborindex.hpp>
+#include <ql/instruments/quantobarrieroption.hpp>
+#include <ql/instruments/quantoforwardvanillaoption.hpp>
+#include <ql/instruments/quantovanillaoption.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/instruments/vanillaswap.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/loginterpolation.hpp>
 #include <ql/patterns/lazyobject.hpp>
+#include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
+#include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
+#include <ql/pricingengines/forward/forwardengine.hpp>
+#include <ql/pricingengines/forward/forwardperformanceengine.hpp>
+#include <ql/pricingengines/quanto/quantoengine.hpp>
 #include <ql/pricingengines/swap/discountingswapengine.hpp>
 #include <ql/pricingengines/vanilla/analyticeuropeanengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
@@ -18,6 +27,7 @@
 #include <ql/settings.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/yield/bootstraptraits.hpp>
+#include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/termstructures/yield/oisratehelper.hpp>
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
@@ -97,6 +107,26 @@ namespace qlservice {
     }
 
 
+    Handle<Quote> Session::quoteHandle(const std::string& quoteId,
+                                       const std::string& fieldPath) const {
+        auto it = quotes_.find(quoteId);
+        QLS_FIELD_REQUIRE(it != quotes_.end(), qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                          "unknown quote '" << quoteId << "' at '" << fieldPath << "'");
+        // The handle, never the value: an instrument built on the number
+        // would price once and then ignore every UpdateMarket (DESIGN §5).
+        return Handle<Quote>(it->second);
+    }
+
+
+    Date Session::expiryDate(const qlpb::Date& msg, const std::string& fieldPath) const {
+        const Date expiry = registry_.date(msg, fieldPath);
+        QLS_FIELD_REQUIRE(expiry > evaluationDate_, qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                          "expiry " << expiry << " is not after the evaluation date "
+                                    << evaluationDate_);
+        return expiry;
+    }
+
+
     // -----------------------------------------------------------------------
     // Bootstrapping
     // -----------------------------------------------------------------------
@@ -111,6 +141,21 @@ namespace qlservice {
             QLS_FIELD_REQUIRE(curves_.find(def.curve_id()) == curves_.end(),
                               qlpb::Error::INVALID_ARGUMENT, path + ".curve_id",
                               "duplicate curve id '" << def.curve_id() << "'");
+
+            // The flat shape short-circuits the whole bootstrap: there are no
+            // helpers, no traits and no interpolator, so none of what follows
+            // applies. Accepting both would leave it ambiguous which one
+            // produced the curve.
+            if (def.has_flat()) {
+                QLS_FIELD_REQUIRE(def.pillars_size() == 0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".pillars",
+                                  "curve '" << def.curve_id()
+                                            << "' sets both 'flat' and 'pillars'; a flat curve is "
+                                               "not bootstrapped from anything");
+                curves_[def.curve_id()] = makeFlatCurve(def, path);
+                continue;
+            }
+
             QLS_FIELD_REQUIRE(def.pillars_size() > 0, qlpb::Error::INVALID_ARGUMENT,
                               path + ".pillars", "curve '" << def.curve_id() << "' has no pillars");
 
@@ -193,6 +238,23 @@ namespace qlservice {
         }
         QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath + ".kind",
                        "unspecified pillar kind at '" << fieldPath << ".kind'");
+    }
+
+
+    Handle<YieldTermStructure> Session::makeFlatCurve(const qlpb::CurveDefinition& def,
+                                                      const std::string& fieldPath) {
+        const std::string path = fieldPath + ".flat";
+        const auto& flat = def.flat();
+
+        const Handle<Quote> rate = quoteHandle(flat.quote_id(), path + ".quote_id");
+
+        // Reference date, not settlement days: this curve has no calendar to
+        // roll on, and the whole point of the shape is that the client gave a
+        // rate rather than a market instrument to imply one from.
+        return Handle<YieldTermStructure>(ext::make_shared<FlatForward>(
+            evaluationDate_, rate, registry_.dayCounter(def.day_counter(), fieldPath + ".day_counter"),
+            registry_.compounding(flat.compounding(), path + ".compounding"),
+            registry_.frequency(flat.frequency(), path + ".frequency")));
     }
 
 
@@ -331,6 +393,11 @@ namespace qlservice {
                 return priceOption(msg, progress);
             case qlpb::Instrument::kVanillaSwap:
                 return priceSwap(msg);
+            case qlpb::Instrument::kQuantoVanillaOption:
+            case qlpb::Instrument::kQuantoForwardVanillaOption:
+            case qlpb::Instrument::kQuantoBarrierOption:
+            case qlpb::Instrument::kQuantoDoubleBarrierOption:
+                return priceQuantoOption(msg);
             case qlpb::Instrument::KIND_NOT_SET:
                 QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, "instrument",
                                "no instrument set at 'instrument'");
@@ -621,6 +688,328 @@ namespace qlservice {
         }
         out.calculationSeconds = seconds(start);
         return out;
+    }
+
+
+    // -----------------------------------------------------------------------
+    // Quanto options
+    // -----------------------------------------------------------------------
+
+    Session::QuantoGraph Session::quantoGraph(const qlpb::QuantoMarket& msg,
+                                              const std::string& fieldPath) const {
+        const Handle<Quote> spot = quoteHandle(msg.spot_quote_id(), fieldPath + ".spot_quote_id");
+        const Handle<Quote> vol = quoteHandle(msg.vol_quote_id(), fieldPath + ".vol_quote_id");
+        const Handle<Quote> fxVol = quoteHandle(msg.fx_vol_quote_id(),
+                                                fieldPath + ".fx_vol_quote_id");
+        const Handle<Quote> correlation =
+            quoteHandle(msg.correlation_quote_id(), fieldPath + ".correlation_quote_id");
+
+        // Checked here rather than left to QuantLib. The correlation reaches
+        // QuantoTermStructure as a coefficient on a cross-variance term
+        // (ql/termstructures/yield/quantotermstructure.hpp), where a value
+        // outside [-1, 1] is not rejected: it produces a plausible-looking
+        // number for an impossible market.
+        QLS_FIELD_REQUIRE(correlation->value() >= -1.0 && correlation->value() <= 1.0,
+                          qlpb::Error::INVALID_ARGUMENT, fieldPath + ".correlation_quote_id",
+                          "correlation " << correlation->value() << " from quote '"
+                                         << msg.correlation_quote_id()
+                                         << "' is outside [-1, 1]");
+
+        const auto volDayCounter =
+            registry_.dayCounter(msg.vol_day_counter(), fieldPath + ".vol_day_counter");
+
+        // Both surfaces are anchored at the session's evaluation date and
+        // driven by their quote, which is what makes them move under
+        // UpdateMarket. NullCalendar because a flat vol has no schedule to
+        // roll on; the day counter is the client's, since Actual/360 and
+        // Actual/365 disagree by 1.4% on every variance.
+        const Handle<BlackVolTermStructure> volTS(ext::make_shared<BlackConstantVol>(
+            evaluationDate_, NullCalendar(), vol, volDayCounter));
+        const Handle<BlackVolTermStructure> fxVolTS(ext::make_shared<BlackConstantVol>(
+            evaluationDate_, NullCalendar(), fxVol, volDayCounter));
+
+        // BlackScholesMertonProcess, so the dividend yield is a curve of its
+        // own rather than folded into the risk-free rate. QuantoEngine reads
+        // process_->dividendYield() back out and offsets it, so collapsing the
+        // two would change the price rather than just the bookkeeping.
+        QuantoGraph graph;
+        graph.process = ext::make_shared<BlackScholesMertonProcess>(
+            spot, curve(msg.dividend_curve_id()), curve(msg.risk_free_curve_id()), volTS);
+        graph.fxRiskFree = curve(msg.fx_risk_free_curve_id());
+        graph.fxVol = fxVolTS;
+        graph.correlation = correlation;
+        return graph;
+    }
+
+
+    namespace {
+
+        Barrier::Type barrierType(qlpb::BarrierType msg, const std::string& fieldPath) {
+            switch (msg) {
+                case qlpb::DOWN_IN:
+                    return Barrier::DownIn;
+                case qlpb::UP_IN:
+                    return Barrier::UpIn;
+                case qlpb::DOWN_OUT:
+                    return Barrier::DownOut;
+                case qlpb::UP_OUT:
+                    return Barrier::UpOut;
+                default:
+                    break;
+            }
+            QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+                           "unspecified barrier type at '" << fieldPath << "'");
+        }
+
+        DoubleBarrier::Type doubleBarrierType(qlpb::DoubleBarrierType msg,
+                                              const std::string& fieldPath) {
+            switch (msg) {
+                case qlpb::KNOCK_IN:
+                    return DoubleBarrier::KnockIn;
+                case qlpb::KNOCK_OUT:
+                    return DoubleBarrier::KnockOut;
+                case qlpb::KIKO:
+                    return DoubleBarrier::KIKO;
+                case qlpb::KOKI:
+                    return DoubleBarrier::KOKI;
+                default:
+                    break;
+            }
+            QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+                           "unspecified double barrier type at '" << fieldPath << "'");
+        }
+
+        Option::Type optionType(qlpb::VanillaOption::OptionType msg,
+                                const std::string& fieldPath) {
+            switch (msg) {
+                case qlpb::VanillaOption::CALL:
+                    return Option::Call;
+                case qlpb::VanillaOption::PUT:
+                    return Option::Put;
+                default:
+                    break;
+            }
+            QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+                           "unspecified option type at '" << fieldPath << "'");
+        }
+
+        //! Prices one quanto instrument and collects the results asked for.
+        /*! A template because the four instruments share no base class that
+            declares the quanto greeks: `QuantoOptionResults` is mixed in per
+            instrument (ql/instruments/quantovanillaoption.hpp:34), so
+            `qrho()` is found by name on each of the four and by inheritance
+            on none.
+        */
+        template <class Option>
+        Session::PriceOutcome runQuanto(const ext::shared_ptr<Option>& option,
+                                        const ext::shared_ptr<PricingEngine>& engine,
+                                        const qlpb::PriceRequest& msg) {
+            option->setPricingEngine(engine);
+
+            const auto start = std::chrono::steady_clock::now();
+
+            Session::PriceOutcome out;
+            out.npv = option->NPV();
+
+            for (const auto kind : msg.results()) {
+                // Same contract as the vanilla path: QuantLib throws when the
+                // engine did not produce a result (ql/instrument.hpp:193) and
+                // that is reported as an absent map entry, not as a failed
+                // request. It matters more here — AnalyticBarrierEngine
+                // supplies far fewer greeks than AnalyticEuropeanEngine, and
+                // the frontend asks both the same question.
+                try {
+                    switch (kind) {
+                        case qlpb::RESULT_KIND_DELTA:
+                            out.results["delta"] = option->delta();
+                            break;
+                        case qlpb::RESULT_KIND_GAMMA:
+                            out.results["gamma"] = option->gamma();
+                            break;
+                        case qlpb::RESULT_KIND_VEGA:
+                            out.results["vega"] = option->vega();
+                            break;
+                        case qlpb::RESULT_KIND_THETA:
+                            out.results["theta"] = option->theta();
+                            break;
+                        case qlpb::RESULT_KIND_RHO:
+                            out.results["rho"] = option->rho();
+                            break;
+                        case qlpb::RESULT_KIND_DIVIDEND_RHO:
+                            out.results["dividendRho"] = option->dividendRho();
+                            break;
+                        case qlpb::RESULT_KIND_QRHO:
+                            out.results["qrho"] = option->qrho();
+                            break;
+                        case qlpb::RESULT_KIND_QVEGA:
+                            out.results["qvega"] = option->qvega();
+                            break;
+                        case qlpb::RESULT_KIND_QLAMBDA:
+                            out.results["qlambda"] = option->qlambda();
+                            break;
+                        default:
+                            // Swap results asked of an option: absent, not an error.
+                            break;
+                    }
+                } catch (const Error&) {
+                    // not provided by this engine
+                }
+            }
+
+            out.calculationSeconds = seconds(start);
+            return out;
+        }
+
+    }
+
+
+    Session::PriceOutcome Session::priceQuantoOption(const qlpb::PriceRequest& msg) {
+        const auto& instrument = msg.instrument();
+
+        // Only the analytic engines are wired up. Stated once, here, rather
+        // than defaulted silently: an unset engine.kind must not price as
+        // though the client had chosen one (DESIGN §6), and the swap path
+        // getting this wrong is a known defect, not a precedent.
+        QLS_FIELD_REQUIRE(msg.engine().kind() == qlpb::Engine::ANALYTIC,
+                          msg.engine().kind() == qlpb::Engine::KIND_UNSPECIFIED
+                              ? qlpb::Error::UNSPECIFIED_ENUM
+                              : qlpb::Error::INVALID_ARGUMENT,
+                          "engine.kind",
+                          "quanto options are priced by QuantoEngine wrapping an analytic "
+                          "engine; engine.kind "
+                              << msg.engine().kind() << " is not wired up for them");
+
+        switch (instrument.kind_case()) {
+
+            case qlpb::Instrument::kQuantoVanillaOption: {
+                const std::string path = "instrument.quanto_vanilla_option";
+                const auto& opt = instrument.quanto_vanilla_option();
+                const auto graph = quantoGraph(opt.market(), path + ".market");
+
+                const auto payoff = ext::make_shared<PlainVanillaPayoff>(
+                    optionType(opt.type(), path + ".type"), opt.strike());
+                QLS_FIELD_REQUIRE(opt.strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".strike", "strike must be positive");
+
+                const auto exercise =
+                    ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
+
+                return runQuanto(ext::make_shared<QuantoVanillaOption>(payoff, exercise),
+                                 ext::make_shared<QuantoEngine<VanillaOption,
+                                                               AnalyticEuropeanEngine>>(
+                                     graph.process, graph.fxRiskFree, graph.fxVol,
+                                     graph.correlation),
+                                 msg);
+            }
+
+            case qlpb::Instrument::kQuantoForwardVanillaOption: {
+                const std::string path = "instrument.quanto_forward_vanilla_option";
+                const auto& opt = instrument.quanto_forward_vanilla_option();
+                const auto graph = quantoGraph(opt.market(), path + ".market");
+
+                QLS_FIELD_REQUIRE(opt.moneyness() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".moneyness",
+                                  "moneyness must be positive; it multiplies the spot at the "
+                                  "reset date to give the strike");
+
+                const Date reset = registry_.date(opt.reset(), path + ".reset");
+                const Date expiry = expiryDate(opt.expiry(), path + ".expiry");
+                QLS_FIELD_REQUIRE(reset >= evaluationDate_, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".reset",
+                                  "reset " << reset << " is before the evaluation date "
+                                           << evaluationDate_);
+                QLS_FIELD_REQUIRE(reset <= expiry, qlpb::Error::INVALID_ARGUMENT, path + ".reset",
+                                  "reset " << reset << " is after the expiry " << expiry);
+
+                // Zero strike, deliberately: the strike is `moneyness` times
+                // the spot at reset and is filled in by the forward engine
+                // (ql/pricingengines/forward/forwardengine.hpp). A struck
+                // payoff here would be silently overwritten.
+                const auto payoff = ext::make_shared<PlainVanillaPayoff>(
+                    optionType(opt.type(), path + ".type"), 0.0);
+                const auto exercise = ext::make_shared<EuropeanExercise>(expiry);
+                auto option = ext::make_shared<QuantoForwardVanillaOption>(opt.moneyness(), reset,
+                                                                          payoff, exercise);
+
+                // The one place the inner engine is chosen by a field rather
+                // than by the instrument: the performance variant pays the
+                // return instead of the amount, which is a different price for
+                // the same trade description.
+                if (opt.performance())
+                    return runQuanto(
+                        option,
+                        ext::make_shared<QuantoEngine<
+                            ForwardVanillaOption,
+                            ForwardPerformanceVanillaEngine<AnalyticEuropeanEngine>>>(
+                            graph.process, graph.fxRiskFree, graph.fxVol, graph.correlation),
+                        msg);
+
+                return runQuanto(
+                    option,
+                    ext::make_shared<
+                        QuantoEngine<ForwardVanillaOption,
+                                     ForwardVanillaEngine<AnalyticEuropeanEngine>>>(
+                        graph.process, graph.fxRiskFree, graph.fxVol, graph.correlation),
+                    msg);
+            }
+
+            case qlpb::Instrument::kQuantoBarrierOption: {
+                const std::string path = "instrument.quanto_barrier_option";
+                const auto& opt = instrument.quanto_barrier_option();
+                const auto graph = quantoGraph(opt.market(), path + ".market");
+
+                QLS_FIELD_REQUIRE(opt.strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".strike", "strike must be positive");
+                QLS_FIELD_REQUIRE(opt.barrier() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".barrier", "barrier must be positive");
+
+                const auto payoff = ext::make_shared<PlainVanillaPayoff>(
+                    optionType(opt.type(), path + ".type"), opt.strike());
+                const auto exercise =
+                    ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
+
+                return runQuanto(
+                    ext::make_shared<QuantoBarrierOption>(
+                        barrierType(opt.barrier_type(), path + ".barrier_type"), opt.barrier(),
+                        opt.rebate(), payoff, exercise),
+                    ext::make_shared<QuantoEngine<BarrierOption, AnalyticBarrierEngine>>(
+                        graph.process, graph.fxRiskFree, graph.fxVol, graph.correlation),
+                    msg);
+            }
+
+            case qlpb::Instrument::kQuantoDoubleBarrierOption: {
+                const std::string path = "instrument.quanto_double_barrier_option";
+                const auto& opt = instrument.quanto_double_barrier_option();
+                const auto graph = quantoGraph(opt.market(), path + ".market");
+
+                QLS_FIELD_REQUIRE(opt.strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".strike", "strike must be positive");
+                QLS_FIELD_REQUIRE(opt.barrier_low() > 0.0 &&
+                                      opt.barrier_high() > opt.barrier_low(),
+                                  qlpb::Error::INVALID_ARGUMENT, path + ".barrier_low",
+                                  "need 0 < barrier_low < barrier_high, got "
+                                      << opt.barrier_low() << " and " << opt.barrier_high());
+
+                const auto payoff = ext::make_shared<PlainVanillaPayoff>(
+                    optionType(opt.type(), path + ".type"), opt.strike());
+                const auto exercise =
+                    ext::make_shared<EuropeanExercise>(expiryDate(opt.expiry(), path + ".expiry"));
+
+                return runQuanto(
+                    ext::make_shared<QuantoDoubleBarrierOption>(
+                        doubleBarrierType(opt.barrier_type(), path + ".barrier_type"),
+                        opt.barrier_low(), opt.barrier_high(), opt.rebate(), payoff, exercise),
+                    ext::make_shared<QuantoEngine<DoubleBarrierOption,
+                                                  AnalyticDoubleBarrierEngine>>(
+                        graph.process, graph.fxRiskFree, graph.fxVol, graph.correlation),
+                    msg);
+            }
+
+            default:
+                break;
+        }
+        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, "instrument",
+                       "not a quanto instrument at 'instrument'");
     }
 
 }

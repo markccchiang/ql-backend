@@ -12,6 +12,7 @@
 #include <ql/handle.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/shared_ptr.hpp>
+#include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
 #include <ql/termstructures/yield/ratehelpers.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
@@ -99,6 +100,10 @@ namespace qlservice {
                     const quantlib::v1::CurveDefinition& def,
                     const std::string& fieldPath);
 
+        //! Builds a FlatForward from one quote, for a curve with no pillars.
+        QuantLib::Handle<QuantLib::YieldTermStructure>
+        makeFlatCurve(const quantlib::v1::CurveDefinition& def, const std::string& fieldPath);
+
         //! Instantiates the piecewise curve for a traits/interpolator pair.
         /*! `PiecewiseYieldCurve` is a template, so the pair cannot be resolved
             by a registry lookup the way a calendar is: each combination is a
@@ -115,6 +120,45 @@ namespace qlservice {
                                  const ProgressSink& progress);
 
         PriceOutcome priceSwap(const quantlib::v1::PriceRequest& msg);
+
+        //! The live handles one quanto engine is assembled from.
+        /*! Nothing in here is a value. `QuantoEngine` registers with all four
+            members (`ql/pricingengines/quanto/quantoengine.hpp`), so a write
+            to any of the seven underlying quotes invalidates the instrument
+            and the next price recomputes — the same contract the vanilla path
+            gets from its two quotes (DESIGN §5).
+        */
+        struct QuantoGraph {
+            QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> process;
+            QuantLib::Handle<QuantLib::YieldTermStructure> fxRiskFree;
+            QuantLib::Handle<QuantLib::BlackVolTermStructure> fxVol;
+            QuantLib::Handle<QuantLib::Quote> correlation;
+        };
+
+        //! Resolves a QuantoMarket message against this session's graph.
+        QuantoGraph quantoGraph(const quantlib::v1::QuantoMarket& msg,
+                                const std::string& fieldPath) const;
+
+        //! Prices any of the four quanto shapes.
+        /*! One method rather than four because they differ only in the
+            instrument and the inner engine, and `QuantoEngine<Instr, Engine>`
+            makes each pair a distinct type. The switch below is therefore an
+            explicit instantiation table like `makeCurve`, for the same reason
+            (DESIGN §6.1).
+        */
+        PriceOutcome priceQuantoOption(const quantlib::v1::PriceRequest& msg);
+
+        //! One live quote by id; throws naming the field when unknown.
+        QuantLib::Handle<QuantLib::Quote> quoteHandle(const std::string& quoteId,
+                                                      const std::string& fieldPath) const;
+
+        //! Parses an expiry and rejects one that is not after the evaluation date.
+        /*! An already-expired option is not a pricing failure in QuantLib — it
+            reports zero through `setupExpired()` — so it has to be refused
+            here or the client gets a confident 0.0 back.
+        */
+        QuantLib::Date expiryDate(const quantlib::v1::Date& msg,
+                                  const std::string& fieldPath) const;
 
         //! Schedule for one swap leg.
         QuantLib::Schedule schedule(const quantlib::v1::SwapLeg& leg,

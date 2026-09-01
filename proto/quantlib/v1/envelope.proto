@@ -129,18 +129,51 @@ message CurveDefinition {
     Calendar calendar = 3;
 
     // The instruments the curve is bootstrapped from, in increasing maturity.
+    // Required unless `flat` is set, which is the one shape with nothing to
+    // bootstrap.
     repeated CurvePillar pillars = 4;
 
     // Bootstrap traits and interpolation. PiecewiseYieldCurve is a template,
     // so this pair is resolved by an explicit instantiation table in the
     // session rather than by a registry lookup — see DESIGN §6.1.
+    //
+    // Ignored when `flat` is set.
     CurveBootstrap bootstrap = 5;
 
     uint32 settlement_days = 6;
 
+    // The alternative shape: a flat curve driven by one quote, with no
+    // pillars and no bootstrap. Set this or `pillars`, never both.
+    FlatForwardCurve flat = 7;
+
     // Curves are built in the order given, and a pillar's index may forward
     // off a curve defined earlier in the list. A forward reference is an
     // error, not a lazily resolved link.
+}
+
+// A flat forward curve built on a single quote.
+//
+// QuantLib's FlatForward (ql/termstructures/yield/flatforward.hpp) takes the
+// rate as a Handle<Quote>, so this is as live as a bootstrapped curve: an
+// UpdateMarket write on `quote_id` moves the whole term structure and
+// invalidates everything discounting off it.
+//
+// It exists because the market a quanto option is quoted against is four flat
+// term structures — dividend yield, domestic and foreign risk-free rates —
+// that genuinely have no pillars. Expressing one as a single-pillar piecewise
+// bootstrap would misreport where the number came from, and would drag in a
+// helper and an index the client does not have.
+message FlatForwardCurve {
+    // The rate, as a Handle<Quote>. Continuously compounded unless
+    // `compounding` says otherwise.
+    string quote_id = 1;
+
+    // Both are required, including the frequency QuantLib ignores under
+    // SIMPLE and CONTINUOUS: the zero value is *_UNSPECIFIED and the registry
+    // rejects it either way, and a rate quoted without a convention is not a
+    // rate. Pass ANNUAL when the compounding makes it irrelevant.
+    Compounding compounding = 2;
+    Frequency frequency = 3;
 }
 
 message CurveBootstrap {
@@ -252,6 +285,19 @@ enum ResultKind {
     RESULT_KIND_FAIR_SPREAD = 8;
     RESULT_KIND_FIXED_LEG_BPS = 9;
     RESULT_KIND_FLOATING_LEG_BPS = 10;
+    // Options. RHO is sensitivity to the domestic risk-free rate and
+    // DIVIDEND_RHO to the dividend yield; both are OneAssetOption results
+    // (ql/instruments/oneassetoption.hpp) and were simply not asked for
+    // before.
+    RESULT_KIND_RHO = 11;
+    RESULT_KIND_DIVIDEND_RHO = 12;
+    // Quanto options only. The three sensitivities that exist because the
+    // payoff is converted at a fixed rate: to the foreign risk-free rate, to
+    // the exchange-rate volatility, and to the correlation between the two
+    // (ql/instruments/quantovanillaoption.hpp, QuantoOptionResults).
+    RESULT_KIND_QRHO = 13;
+    RESULT_KIND_QVEGA = 14;
+    RESULT_KIND_QLAMBDA = 15;
 }
 
 message PriceResult {
@@ -360,6 +406,16 @@ message Instrument {
     oneof kind {
         VanillaOption vanilla_option = 1;
         VanillaSwap vanilla_swap = 2;
+
+        // The quanto family. Four shapes because QuantoEngine is a template
+        // over (instrument, inner engine) and each combination is a distinct
+        // C++ type — the same constraint that makes CurveBootstrap a menu
+        // (DESIGN §6.1). They share their market through QuantoMarket rather
+        // than repeating seven ids four times.
+        QuantoVanillaOption quanto_vanilla_option = 3;
+        QuantoForwardVanillaOption quanto_forward_vanilla_option = 4;
+        QuantoBarrierOption quanto_barrier_option = 5;
+        QuantoDoubleBarrierOption quanto_double_barrier_option = 6;
     }
 }
 
@@ -428,4 +484,157 @@ message SwapLeg {
     // (Calendar::isEndOfMonth); false is the ordinary convention and is a real
     // value here rather than an unset one.
     bool end_of_month = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Quanto options
+// ---------------------------------------------------------------------------
+//
+// A quanto option pays off on a foreign asset but settles in the domestic
+// currency at a rate fixed in advance, so its price depends on the exchange
+// rate's volatility and on its correlation with the underlying even though no
+// FX ever changes hands. QuantLib expresses that by wrapping an ordinary
+// engine: QuantoEngine<Instr, Engine> adjusts the dividend yield through a
+// QuantoTermStructure and delegates
+// (ql/pricingengines/quanto/quantoengine.hpp).
+//
+// The shapes and the reference values below follow QuantLib's own test suite,
+// test-suite/quantooption.cpp; test/smoke_quanto.py drives this schema with
+// exactly those tables.
+
+// The market one quanto option is priced against.
+//
+// Seven live inputs, matching the seven SimpleQuotes the QuantLib test builds
+// by hand. Every one of them is an id rather than a value, so the frontend
+// moves any of them with UpdateMarket and gets a recalculation out of the
+// live graph rather than a rebuild (DESIGN §5).
+message QuantoMarket {
+    // Spot of the foreign underlying, in foreign currency.
+    string spot_quote_id = 1;
+
+    // Black volatility of the underlying. Becomes a BlackConstantVol on
+    // `vol_day_counter`.
+    string vol_quote_id = 2;
+
+    // Dividend yield of the underlying, and the domestic risk-free rate the
+    // payoff is discounted at. Both are curve ids, so either can be a
+    // bootstrapped curve or a FlatForwardCurve.
+    string dividend_curve_id = 3;
+    string risk_free_curve_id = 4;
+
+    // The foreign risk-free rate — the currency the underlying lives in, not
+    // the one the option settles in. This is what makes the option a quanto:
+    // QuantoEngine offsets the dividend yield by (r_domestic - r_foreign)
+    // before delegating.
+    string fx_risk_free_curve_id = 5;
+
+    // Volatility of the exchange rate, and its correlation with the
+    // underlying. The correlation is a plain quote in [-1, 1]; the service
+    // rejects anything outside it rather than letting QuantLib produce a
+    // complex-valued variance.
+    string fx_vol_quote_id = 6;
+    string correlation_quote_id = 7;
+
+    // Day counter for the two flat Black surfaces built from `vol_quote_id`
+    // and `fx_vol_quote_id`. The yield curves carry their own; these two have
+    // nowhere else to state it, and Actual/360 against Actual/365 is a
+    // 1.4% difference in every variance on the request.
+    DayCounter vol_day_counter = 8;
+}
+
+// QuantoEngine<VanillaOption, AnalyticEuropeanEngine>.
+message QuantoVanillaOption {
+    VanillaOption.OptionType type = 1;
+    double strike = 2;
+    Date expiry = 3;
+    QuantoMarket market = 4;
+}
+
+// QuantoEngine<ForwardVanillaOption, ForwardVanillaEngine<AnalyticEuropeanEngine>>,
+// or the ForwardPerformanceVanillaEngine variant when `performance` is set.
+//
+// A forward-start option whose strike is fixed at `reset` as `moneyness`
+// times the spot then, which is why there is no strike field: QuantLib is
+// handed a zero-strike PlainVanillaPayoff and takes the strike from the
+// moneyness (test-suite/quantooption.cpp, testForwardValues).
+message QuantoForwardVanillaOption {
+    VanillaOption.OptionType type = 1;
+
+    // Strike as a multiple of the spot at the reset date. 1.0 is at-the-money
+    // forward; there is no sensible default, and 0.0 is rejected.
+    double moneyness = 2;
+
+    // When the strike is fixed. May equal the evaluation date, which degrades
+    // the instrument to an ordinary quanto option and is a case the reference
+    // values cover.
+    Date reset = 3;
+    Date expiry = 4;
+
+    QuantoMarket market = 5;
+
+    // Pay the *return* rather than the absolute amount: the payoff is divided
+    // by the spot at reset, which scales the price by roughly 1/spot. A plain
+    // bool because it selects between two engines, not between two
+    // conventions.
+    bool performance = 6;
+}
+
+// QuantoEngine<BarrierOption, AnalyticBarrierEngine>.
+message QuantoBarrierOption {
+    VanillaOption.OptionType type = 1;
+    double strike = 2;
+    Date expiry = 3;
+
+    BarrierType barrier_type = 4;
+
+    // Barrier level, in the same units as the spot. Continuously monitored:
+    // AnalyticBarrierEngine has no discrete-monitoring adjustment.
+    double barrier = 5;
+
+    // Paid if the option knocks out (or fails to knock in). Zero is a real
+    // value here, not an unset one.
+    double rebate = 6;
+
+    QuantoMarket market = 7;
+}
+
+// QuantoEngine<DoubleBarrierOption, AnalyticDoubleBarrierEngine>.
+message QuantoDoubleBarrierOption {
+    VanillaOption.OptionType type = 1;
+    double strike = 2;
+    Date expiry = 3;
+
+    DoubleBarrierType barrier_type = 4;
+
+    // barrier_low must be strictly below barrier_high, and the spot should
+    // start between them.
+    double barrier_low = 5;
+    double barrier_high = 6;
+    double rebate = 7;
+
+    QuantoMarket market = 8;
+}
+
+// Maps to QuantLib's Barrier::Type (ql/instruments/barriertype.hpp:36). The
+// numeric values differ, as everywhere else: QuantLib's DownIn is 0, which is
+// the reserved unspecified slot here.
+enum BarrierType {
+    BARRIER_TYPE_UNSPECIFIED = 0;
+    DOWN_IN = 1;
+    UP_IN = 2;
+    DOWN_OUT = 3;
+    UP_OUT = 4;
+}
+
+// Maps to QuantLib's DoubleBarrier::Type
+// (ql/instruments/doublebarriertype.hpp:34). KIKO knocks in at the lower
+// barrier and out at the upper; KOKI is the reverse. Neither is supported by
+// AnalyticDoubleBarrierEngine, so both are accepted by the schema and
+// rejected by the engine with QuantLib's own message.
+enum DoubleBarrierType {
+    DOUBLE_BARRIER_TYPE_UNSPECIFIED = 0;
+    KNOCK_IN = 1;
+    KNOCK_OUT = 2;
+    KIKO = 3;
+    KOKI = 4;
 }

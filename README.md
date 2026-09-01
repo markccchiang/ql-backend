@@ -8,11 +8,14 @@ only the instruments that depend on it.
 The design, and the QuantLib constraints that force it, are in
 [`DESIGN.md`](DESIGN.md).
 
-**Status.** It runs. `qlserviced` serves the protocol over a WebSocket and
-prices: a session opens, a quote bump reprices off the live graph, Monte Carlo
-reports progress, and a cancel comes back as `CANCELLED` with the session still
-alive. `test/` drives all of that end to end. Builds warning-free against
-QuantLib 1.44 with AppleClang 21 at C++17, schema clean under `protoc 34.0`.
+**Status.** It runs, and it prices correctly. `qlserviced` serves the protocol
+over a WebSocket: a session opens, a quote bump reprices off the live graph,
+Monte Carlo reports progress, and a cancel comes back as `CANCELLED` with the
+session still alive. `test/` drives all of that end to end, and
+`test/smoke_quanto.py` reproduces all eighteen reference values from QuantLib's
+own `test-suite/quantooption.cpp` over the wire, each within the tolerance that
+test uses. Builds warning-free against QuantLib 1.44 with AppleClang 21 at
+C++17, schema clean under `protoc 34.0`.
 
 What is missing is the process boundary. Workers are threads in the gateway
 process for now, so a cancel that has to kill cannot (DESIGN §3), and
@@ -42,8 +45,7 @@ amount of re-reading would have shown: `namespace pb` collides with protobuf's
 own alias in `extension_set.h`, `RateHelper` is a typedef and cannot be forward
 declared, `ql/indexes/ibor/overnightindex.hpp` does not exist (`OvernightIndex`
 lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
-`uint64` a proto field returns. What compiles is still unproven — nothing here
-has priced anything — but it is no longer unproven *and* unbuildable.
+`uint64` a proto field returns.
 
 | File | What it holds |
 | --- | --- |
@@ -61,7 +63,7 @@ has priced anything — but it is no longer unproven *and* unbuildable.
 | [`src/gateway/gateway.hpp`](src/gateway/gateway.hpp) / [`.cpp`](src/gateway/gateway.cpp) | The WebSocket front end: loop, session ids, backpressure, deadlines |
 | [`src/gateway/threadhost.hpp`](src/gateway/threadhost.hpp) / [`.cpp`](src/gateway/threadhost.cpp) | The staging `ProcessHost`: workers as threads, so a kill only disowns |
 | [`src/app/main.cpp`](src/app/main.cpp) | `qlserviced` entry point |
-| [`test/`](test/README.md) | End-to-end smoke scripts, and how to run them |
+| [`test/`](test/README.md) | End-to-end smoke scripts, including the quanto reference values, and how to run them |
 | [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |
 | `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON` |
