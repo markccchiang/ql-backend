@@ -117,7 +117,7 @@ perfectly correctly. It only goes wrong with two sessions in one process, which
 then silently share one evaluation date — plausible numbers, wrong date, no
 error anywhere. DESIGN §2 is the argument in full.
 
-`test/smoke_sessions.py` is the check that catches it. Its two sessions sit on
+`test/smoke_v2.py` is the check that catches it. Two of its sessions sit on
 evaluation dates one day apart and must disagree by one day of theta; **prices
 that agree exactly mean the wrong QuantLib is linked.**
 
@@ -150,10 +150,10 @@ vendored QuantLib's headers are marked as system includes.
 
 ## Verifying the build
 
-There is no unit-test target. `test/` holds two end-to-end scripts that drive a
-running `qlserviced` over a real WebSocket; [`test/README.md`](test/README.md)
-has the setup and how to run them.
+There is no unit-test target. `test/smoke_v2.py` drives a running `qlserviced`
+over a real WebSocket; [`test/README.md`](test/README.md) has the setup and how
+to run it.
 
-Run `smoke_sessions.py` at least once after any change to which QuantLib you are
-linking. It is the only thing in the repository that distinguishes a *wrong*
-QuantLib from a missing one.
+Run it at least once after any change to which QuantLib you are linking. Its
+two-session check is the only thing in the repository that distinguishes a
+*wrong* QuantLib from a missing one.

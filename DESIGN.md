@@ -205,7 +205,8 @@ migration, because the graph is thread-bound and cannot be handed over — and
 never a kill either, because the process it is leaving is probably hosting
 other sessions. A panel that alternates an analytic price with a Monte Carlo on
 the same session pays that bootstrap in each direction, so requests of one kind
-belong on a session of their own. Engine kind is a crude proxy for "long" — a
+belong on a session of their own. The engine method is a crude proxy for
+"long" — a
 200-path Monte Carlo is cheap and a large FD grid is not — and a sample count
 or a client-declared budget would be the better signal (§8).
 
@@ -332,7 +333,9 @@ The kill is the honest part; the grace only buys the cheaper outcome on the
 rare engine that can offer it.
 
 **Decision: progress is opt-in and computed by us.** A `PriceRequest` may set
-`progress_every_paths`; the worker then runs Monte Carlo in path batches and
+`engine.mc.progress_every_paths` — on the Monte Carlo parameter block, because
+it changes the answer and belongs beside the seed and the sample count that
+determine it; the worker then runs Monte Carlo in path batches and
 accumulates on our side, emitting `Progress` frames between batches. Without
 that field the engine is called once and only a terminal frame is sent. The
 protocol must not promise progress QuantLib cannot supply.
@@ -354,8 +357,9 @@ batches with seeds derived from the request seed and average their means. That
 estimates the same quantity, but it partitions the RNG stream differently from
 one run of the same total: the batched price and the single-shot price at the
 same seed do not agree. Reproducibility therefore keys on
-`(seed, samples, progress_every_paths)`, all three of which `PriceResult`
-echoes. A user who turns a progress bar on must not be told the price moved.
+`(seed, samples, progress_every_paths)`. `PriceResult` echoes the whole
+`Engine` message rather than three named copies of it, so the promise cannot
+fall behind the schema the way three hand-maintained fields would. A user who turns a progress bar on must not be told the price moved.
 
 ## 5. The lazy graph is why the backend is stateful
 
@@ -424,7 +428,7 @@ traits/interpolator pair is a distinct type that must be named in source.
 
 There is no lookup table that can produce one from a wire value. What
 `Session::makeCurve` holds instead is an explicit instantiation table — the
-cross-product, written out — which is why `CurveBootstrap` offers three traits
+cross-product, written out — which is why `BootstrappedCurve` offers three traits
 and three interpolators rather than QuantLib's full set. Each addition is a
 line of source and a recompile, and each instantiation costs compile time and
 object size, so the schema stays small on purpose. The same applies to any
@@ -446,14 +450,19 @@ that have to agree, and only one of them is a free choice:
 
 | Where | Form |
 | --- | --- |
-| On disk | `proto/quantlib/v1/` |
-| Proto package | `package quantlib.v1;` (`conventions.proto:21`, `envelope.proto:8`) |
-| Generated C++ namespace | `quantlib::v1`, aliased to `qlpb` (`session.cpp:43`) |
-| Generated headers | `${CMAKE_BINARY_DIR}/generated/quantlib/v1/`, included as `"quantlib/v1/envelope.pb.h"` |
+| On disk | `proto/quantlib/v2/` |
+| Proto package | `package quantlib.v2;` (`envelope.proto:14`) |
+| Generated C++ namespace | `quantlib::v2`, aliased to `qlpb` (`session.cpp:71`) |
+| Generated headers | `${CMAKE_BINARY_DIR}/generated/quantlib/v2/`, included as `"quantlib/v2/envelope.pb.h"` |
+
+`v1` still occupies the same four slots, because §6.3 imports its
+`conventions.proto` rather than forking it. The alias is the only line that had
+to move when the service changed generation, which is the whole return on the
+segment.
 
 The directory has to mirror the package because `protoc` resolves imports by
 path relative to `-I proto`: `import "quantlib/v1/conventions.proto"`
-(`envelope.proto:10`) is a filesystem path, not a package reference. The free
+(`envelope.proto:17`) is a filesystem path, not a package reference. The free
 choice is whether there is a version segment at all, and the layout
 `<package-path>/<version>/<file>.proto` is the Protobuf community convention.
 
@@ -476,11 +485,13 @@ wire-compatible and silently wrong — the same failure mode the `*_UNSPECIFIED`
 rule in §6 exists to prevent, one level up. A change of that kind needs `v2`
 even though nothing in the encoding would object.
 
-**The rule.** Stay on `v1` while every change is additive; open `v2` the first
-time one is not. The quanto family is the worked example so far: it added
-messages, oneof arms, enum values, and the fields `CurveDefinition.flat`,
-`Engine.fd_grid` and `PriceResult.fd_grid`, all additive, so a `PriceRequest`
-serialized before it still parses after it.
+**The rule.** Stay on a version while every change is additive; open the next
+one the first time a change is not. The quanto family was the worked example on
+the additive side: within `v1` it added messages, oneof arms, enum values, and
+the fields `CurveDefinition.flat`, `Engine.fd_grid` and `PriceResult.fd_grid`
+— all additive, so a `PriceRequest` serialized before it still parsed after it.
+(Those are `v1` field names; §6.3 spells the same ideas differently, which is
+exactly what makes it a version rather than an extension.)
 
 **It earned its keep sooner than expected.** The reasoning above was written
 against a hypothetical `v2`; §6.3 is one, and it arrived from a survey rather

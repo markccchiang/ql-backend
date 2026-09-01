@@ -10,15 +10,25 @@ The design, and the QuantLib constraints that force it, are in
 
 **Status.** It runs, and it prices correctly. `qlserviced` serves the protocol
 over a WebSocket: a session opens, a quote bump reprices off the live graph,
-Monte Carlo reports progress, and a cancel comes back as `CANCELLED` with the
-session still alive. `test/` drives all of that end to end, and
-`test/smoke_quanto.py` reproduces all eighteen reference values from QuantLib's
-own `test-suite/quantooption.cpp` over the wire, each within the tolerance that
-test uses, then cross-checks the analytic prices against a PDE — which answers
-the `TODO: bench against an existing prop calculator` that test leaves open,
-and finds one of its three recorded barrier values not reproducible
-([`test/README.md`](test/README.md)). Builds warning-free against QuantLib 1.44 with AppleClang 21 at
-C++17, schema clean under `protoc 34.0`.
+one frame sweeps a quote across a spot ladder, Monte Carlo reports progress,
+and a cancel comes back as `CANCELLED` with the session still alive.
+
+The wire schema is `v2` (DESIGN §6.3), derived from what QuantLib's own test
+suite shows a pricing request has to carry: an option is a payoff, an exercise,
+an underlying and a style, with quanto composing over the styles rather than
+multiplying them into their own messages. Eight payoffs, three exercises and
+six styles reach 39 distinct compiled engines — analytic, lattice,
+finite-difference, integral and Monte Carlo.
+
+`test/smoke_v2.py` prices **209 rows of QuantLib's published reference values**
+over the wire, each within the tolerance its own test uses. The rows are not
+transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`.
+It also cross-checks the analytic quanto barriers against a PDE, which answers
+the `TODO: bench against an existing prop calculator` that
+`test-suite/quantooption.cpp` leaves open, and finds one of its three recorded
+values not reproducible ([`test/BENCHMARK.md`](test/BENCHMARK.md)). Builds
+warning-free against QuantLib 1.44 with AppleClang 21 at C++17, schema clean
+under `protoc 34.0`.
 
 What is missing is the process boundary. Workers are threads in the gateway
 process for now, so a cancel that has to kill cannot (DESIGN §3), and
@@ -54,8 +64,12 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | --- | --- |
 | [`INSTALL.md`](INSTALL.md) | Prerequisites, both build routes, and what fails silently |
 | [`DESIGN.md`](DESIGN.md) | The architecture: what each component owns and which QuantLib constraint forces it |
-| [`proto/quantlib/v1/envelope.proto`](proto/quantlib/v1/envelope.proto) | Transport envelope, session lifecycle, cancellation, progress |
-| [`proto/quantlib/v1/conventions.proto`](proto/quantlib/v1/conventions.proto) | Convention enums and messages — the schema half of the registry |
+| [`proto/quantlib/v2/envelope.proto`](proto/quantlib/v2/envelope.proto) | Transport envelope, session lifecycle, pricing, sweeps, cancellation |
+| [`proto/quantlib/v2/market.proto`](proto/quantlib/v2/market.proto) | The market namespace: quotes, curves, volatility, indices, fixings |
+| [`proto/quantlib/v2/instrument.proto`](proto/quantlib/v2/instrument.proto) | Payoff × exercise × underlying × style, and the legs |
+| [`proto/quantlib/v2/engine.proto`](proto/quantlib/v2/engine.proto) | Method × model, and the parameter block each one takes |
+| [`proto/quantlib/v2/results.proto`](proto/quantlib/v2/results.proto) | What comes back: the `Value` variant, cash flows, plot series |
+| [`proto/quantlib/v1/conventions.proto`](proto/quantlib/v1/conventions.proto) | Convention enums and messages — shared by both schema versions |
 | [`src/conventions/registry.hpp`](src/conventions/registry.hpp) | Registry interface: proto → QuantLib objects |
 | [`src/conventions/registry.cpp`](src/conventions/registry.cpp) | Reference implementation of the translation |
 | [`src/session/session.hpp`](src/session/session.hpp) / [`.cpp`](src/session/session.cpp) | One client's live object graph: quotes, curves, pricing |
@@ -66,7 +80,7 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | [`src/gateway/gateway.hpp`](src/gateway/gateway.hpp) / [`.cpp`](src/gateway/gateway.cpp) | The WebSocket front end: loop, session ids, backpressure, deadlines |
 | [`src/gateway/threadhost.hpp`](src/gateway/threadhost.hpp) / [`.cpp`](src/gateway/threadhost.cpp) | The staging `ProcessHost`: workers as threads, so a kill only disowns |
 | [`src/app/main.cpp`](src/app/main.cpp) | `qlserviced` entry point |
-| [`test/`](test/README.md) | End-to-end smoke scripts, including the quanto reference values, and how to run them |
+| [`test/`](test/README.md) | The end-to-end smoke script, the reference-table generator, and how to run them |
 | [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |
 | `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON` |

@@ -1,7 +1,7 @@
 # Quanto barrier benchmark
 
-The benchmark `smoke_quanto.py` runs, and the numbers it produced. Extracted
-from `README.md`, which now points here.
+The benchmark `smoke_v2.py` runs, and the numbers it produced. Extracted from
+`README.md`, which now points here.
 
 ## What is being benchmarked, and why
 
@@ -12,7 +12,7 @@ either, but the same file shows the substitute: `testPDEOptionValues`
 benchmarks the analytic quanto vanilla against a PDE at `2e-4`.
 `FdBlackScholesBarrierEngine` is single-argument constructible, so
 `QuantoEngine` can wrap it and the same trick works for barriers. That is what
-`Engine.fd_grid` exists for.
+`FdParameters` exists for.
 
 ## The market
 
