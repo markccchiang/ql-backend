@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-namespace qlpb = quantlib::v1;
+namespace qlpb = quantlib::v2;
 
 namespace qlservice {
 
@@ -25,14 +25,24 @@ namespace qlservice {
         // keeps replay proportional to the number of distinct quotes instead
         // of to how long the user has been dragging a slider.
         std::map<std::string, int> index;
-        for (int i = 0; i < open_.quotes_size(); ++i)
-            index[open_.quotes(i).quote_id()] = i;
+        for (int i = 0; i < open_.market_size(); ++i)
+            if (open_.market(i).has_quote())
+                index[open_.market(i).id()] = i;
 
-        for (const auto& u : msg.updates()) {
+        for (const auto& u : msg.quotes()) {
             auto it = index.find(u.quote_id());
             QL_REQUIRE(it != index.end(),
                        "update for quote '" << u.quote_id() << "' that the session never defined");
-            open_.mutable_quotes(it->second)->set_value(u.value());
+            open_.mutable_market(it->second)->mutable_quote()->set_value(u.value());
+        }
+
+        // Fixings are graph input the replay has to reproduce as well, and
+        // they only ever accumulate: appending is the whole fold.
+        for (const auto& f : msg.fixings()) {
+            auto* obj = open_.add_market();
+            obj->set_id("fixings:" + f.index_id() + ":" +
+                        std::to_string(open_.market_size()));
+            *obj->mutable_fixings() = f;
         }
     }
 
@@ -170,9 +180,9 @@ namespace qlservice {
 
 
     Supervisor::Placement Supervisor::placementFor(const qlpb::PriceRequest& msg) {
-        switch (msg.engine().kind()) {
-            case qlpb::Engine::MONTE_CARLO:
-            case qlpb::Engine::FINITE_DIFFERENCE:
+        switch (msg.engine().method()) {
+            case qlpb::Engine::METHOD_MONTE_CARLO:
+            case qlpb::Engine::METHOD_FINITE_DIFFERENCE:
                 return Placement::Sacrificial;
             default:
                 return Placement::Shared;

@@ -221,7 +221,10 @@ message Scenario {
         Relative relative = 4;
     }
     message Explicit { repeated double values = 1 [packed = true]; }
-    message Linear { double from = 1; double to = 2; uint32 steps = 3; }
+    // Named begin/end rather than from/to: `from` is a keyword in
+    // Python and several other generated languages, where the field
+    // then becomes unreachable or is silently renamed.
+    message Linear { double begin = 1; double end = 2; uint32 steps = 3; }
     // Multipliers of the quote's current value: 0.8, 0.9, 1.0 ...
     message Relative { repeated double factors = 1 [packed = true]; }
 
@@ -273,6 +276,11 @@ message Error {
         WORKER_DIED = 8;
         OVERLOADED = 9;
         INTERNAL = 10;
+        // A *_UNSPECIFIED enum reached the registry. Its own code because it
+        // is the one client mistake proto3 cannot make impossible, and the
+        // frontend's fix for it is different: fill the field in, rather than
+        // correct the value in it.
+        UNSPECIFIED_ENUM = 11;
     }
     Code code = 1;
 

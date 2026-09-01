@@ -48,7 +48,7 @@ namespace qlservice {
         using Post = std::function<void(std::function<void()>)>;
 
         //! Emits a frame a worker produced. Always called on the loop.
-        using FrameSink = std::function<void(const quantlib::v1::ServerFrame&)>;
+        using FrameSink = std::function<void(const quantlib::v2::ServerFrame&)>;
 
         ThreadProcessHost(Post post, FrameSink frames);
         ~ThreadProcessHost() override;
@@ -57,7 +57,7 @@ namespace qlservice {
         ThreadProcessHost& operator=(const ThreadProcessHost&) = delete;
 
         std::string spawn(Supervisor::Placement placement) override;
-        void send(const std::string& workerId, const quantlib::v1::ClientFrame& frame) override;
+        void send(const std::string& workerId, const quantlib::v2::ClientFrame& frame) override;
         void requestStop(const std::string& workerId) override;
         void kill(const std::string& workerId) override;
 

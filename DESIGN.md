@@ -580,13 +580,39 @@ invalidated — against N round trips that each rebuild everything. That is the
 entire argument for a stateful backend (§5), and until now nothing in the
 schema let a client ask for it in one request.
 
-**What it does not do.** It is a schema, not an implementation: there is no
-handler, no registry entry and no `Session` method behind any of it, and
-several arms name QuantLib classes this service has never constructed. Bringing
-a shape up is the same work the quanto family was — a registry mapping, an
-explicit instantiation table where a template is involved (§6.1), and a test
-row with a reference value — and the schema is now the part that does not have
-to be redesigned each time.
+**It is what the service speaks.** `qlserviced` was ported to `v2` in the same
+pass: `Session` is rebuilt around the market namespace and the payoff x
+exercise x style decomposition, and the transport above it — worker,
+supervisor, gateway — carries `v2` frames. `v1` remains in the tree because
+`v2` imports its conventions and because §6.2 is about it, but nothing serves
+it and its three client scripts are gone.
+
+**What is implemented, and what is only in the schema.** The one-asset option
+family is live: eight payoffs, three exercises, and the vanilla, barrier,
+double-barrier, forward-start, Asian and lookback styles, against analytic
+(including the three American approximations), lattice, finite-difference,
+integral and Monte Carlo engines, with quanto composing over the shapes
+QuantLib has a wrappable engine for. Swaps are the general n-leg `Swap` rather
+than `VanillaSwap`. The market builds quotes, flat/interpolated/bootstrapped
+yield curves, three volatility shapes, Ibor and overnight indices, and past
+fixings.
+
+Not implemented, and rejected by name as `UNSUPPORTED` rather than
+mispriced: bonds, credit, inflation, FX forwards, variance swaps, swaptions,
+caps and floors; the multi-asset styles (basket, spread, compound, chooser,
+cliquet); discrete dividends, discretely monitored and partial-time barriers;
+the Heston, Bates and local-volatility processes; and the correlation matrix,
+which the schema carries for the basket case the engines do not yet cover.
+Each is the same work the quanto family was — a registry mapping, an explicit
+instantiation table where a template is involved (§6.1), and a test row with a
+reference value — and the schema is now the part that does not have to be
+redesigned each time.
+
+**How it is checked.** `test/smoke_v2.py` prices 209 rows of QuantLib's own
+published reference values over the wire and compares each against the value
+its test suite records, at the tolerance that test uses. The rows are not
+transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`,
+which is the only way a benchmark stays one.
 
 ## 7. Prior art
 

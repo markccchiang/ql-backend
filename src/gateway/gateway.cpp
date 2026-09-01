@@ -2,7 +2,7 @@
 
 #include "gateway.hpp"
 #include "App.h"
-#include "quantlib/v1/envelope.pb.h"
+#include "quantlib/v2/envelope.pb.h"
 #include "session/supervisor.hpp"
 #include "threadhost.hpp"
 #include <chrono>
@@ -16,7 +16,7 @@
 #include <string_view>
 #include <utility>
 
-namespace qlpb = quantlib::v1;
+namespace qlpb = quantlib::v2;
 
 namespace qlservice {
 

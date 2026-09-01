@@ -7,7 +7,7 @@
 #ifndef qlservice_session_supervisor_hpp
 #define qlservice_session_supervisor_hpp
 
-#include "quantlib/v1/envelope.pb.h"
+#include "quantlib/v2/envelope.pb.h"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -36,13 +36,13 @@ namespace qlservice {
     */
     class SessionLog {
       public:
-        SessionLog(std::string sessionId, quantlib::v1::OpenSession open);
+        SessionLog(std::string sessionId, quantlib::v2::OpenSession open);
 
         //! Folds an applied UpdateMarket into the compacted state.
         /*! Called only after the worker acked it, so the log never contains a
             write the graph rejected.
         */
-        void record(const quantlib::v1::UpdateMarket& msg);
+        void record(const quantlib::v2::UpdateMarket& msg);
 
         //! The frames that rebuild this session, in order.
         /*! One OpenSession carrying the current quote values, and nothing
@@ -53,13 +53,13 @@ namespace qlservice {
             host routes on: a replay frame without it reaches the worker
             process but no thread inside it.
         */
-        std::vector<quantlib::v1::ClientFrame> replayFrames() const;
+        std::vector<quantlib::v2::ClientFrame> replayFrames() const;
 
-        std::size_t quoteCount() const { return open_.quotes_size(); }
+        std::size_t marketSize() const { return open_.market_size(); }
 
       private:
         std::string sessionId_;
-        quantlib::v1::OpenSession open_;
+        quantlib::v2::OpenSession open_;
     };
 
 
@@ -105,7 +105,7 @@ namespace qlservice {
                 is what picks the thread inside it.
             */
             virtual void send(const std::string& workerId,
-                              const quantlib::v1::ClientFrame& frame) = 0;
+                              const quantlib::v2::ClientFrame& frame) = 0;
             //! Best-effort stop between Monte Carlo batches.
             virtual void requestStop(const std::string& workerId) = 0;
             //! Unconditional, and takes every session on the process with it.
@@ -114,7 +114,7 @@ namespace qlservice {
             virtual void kill(const std::string& workerId) = 0;
         };
 
-        using FrameSink = std::function<void(const quantlib::v1::ServerFrame&)>;
+        using FrameSink = std::function<void(const quantlib::v2::ServerFrame&)>;
 
         //! Reports that a session's worker died under it.
         /*! Called once per affected session after a kill, and after any frame
@@ -178,9 +178,9 @@ namespace qlservice {
                    DisruptionSink disrupted,
                    DeadlineTimer armTimer);
 
-        void openSession(const std::string& sessionId, const quantlib::v1::ClientFrame& frame);
+        void openSession(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
 
-        void dispatch(const std::string& sessionId, const quantlib::v1::ClientFrame& frame);
+        void dispatch(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
 
         //! Serves a CancelRequest: stop politely, then kill after the grace.
         /*! Returns as soon as the polite stop has been asked for; it does not
@@ -200,7 +200,7 @@ namespace qlservice {
             calculation that finishes on its own inside the grace terminates
             normally and the kill is dropped.
         */
-        void cancel(const std::string& sessionId, const quantlib::v1::ClientFrame& frame);
+        void cancel(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
 
         //! Tells the supervisor that a request has terminated.
         /*! Called by the gateway for every terminal frame it forwards, cancel
@@ -220,7 +220,7 @@ namespace qlservice {
             state.
         */
         void onRequestTerminated(const std::string& sessionId,
-                                 const quantlib::v1::ServerFrame& frame);
+                                 const quantlib::v2::ServerFrame& frame);
 
         //! Called when a worker exits on its own.
         /*! Replayed like a cancel. A session that fails to replay twice is
@@ -235,7 +235,7 @@ namespace qlservice {
             count, or a client-declared budget, is probably the better signal —
             DESIGN §8.
         */
-        static Placement placementFor(const quantlib::v1::PriceRequest& msg);
+        static Placement placementFor(const quantlib::v2::PriceRequest& msg);
 
       private:
         //! The cancels asked for on one session that have not resolved yet.
@@ -259,7 +259,7 @@ namespace qlservice {
                 an Ack or by being dropped — on an error, or with the worker it
                 was sent to.
             */
-            std::map<std::uint64_t, quantlib::v1::UpdateMarket> pendingUpdates;
+            std::map<std::uint64_t, quantlib::v2::UpdateMarket> pendingUpdates;
             unsigned replayFailures = 0;
             PendingCancel cancel;
             //! Bumped when a round ends, so its timer fires into nothing.
@@ -303,7 +303,7 @@ namespace qlservice {
         //! Emits one terminal error naming both the request and the session.
         void emitError(const std::string& sessionId,
                        std::uint64_t requestId,
-                       quantlib::v1::Error::Code code,
+                       quantlib::v2::Error::Code code,
                        const std::string& message);
 
         //! Terminates every outstanding cancel target with CANCELLED.

@@ -1,0 +1,769 @@
+"""End-to-end checks for the v2 schema, against QuantLib's own reference tables.
+
+Every number checked here comes from `reference_tables.py`, which is generated
+from QuantLib's test-suite sources by `extract_tables.py` rather than typed in.
+The tolerances are the ones the C++ tests use, and are not tightened: those
+published values are what is under test.
+
+One session, one live graph. Each row is a quote write plus a price, which is
+the shape a frontend actually drives — and the reason the backend is stateful
+at all.
+
+    ./build/qlserviced --port 9111 &
+    /tmp/qlvenv/bin/python test/smoke_v2.py /tmp/qlpb2
+"""
+
+import asyncio
+import math
+import os
+import sys
+import time
+from datetime import date, timedelta
+
+sys.path.insert(0, sys.argv[1] if len(sys.argv) > 1 else "pb")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import websockets
+from quantlib.v1 import conventions_pb2 as C
+from quantlib.v2 import engine_pb2 as EN
+from quantlib.v2 import envelope_pb2 as E
+from quantlib.v2 import instrument_pb2 as I
+from quantlib.v2 import market_pb2 as M
+from quantlib.v2 import results_pb2 as R
+
+import reference_tables as T
+
+URL = "ws://127.0.0.1:9111"
+
+# The C++ tests all price against Actual/360 with the expiry a whole number of
+# 360ths of a year away (test-suite/utilities.hpp:141). Nothing here has a
+# calendar, so a fixed evaluation date is as good as today's and reproduces.
+TODAY = date(2026, 9, 1)
+
+
+def days(t):
+    """timeToDays(t, 360) — Integer(std::lround(t * 360))."""
+    return int(math.floor(t * 360 + 0.5))
+
+
+def expiry(t):
+    return (TODAY + timedelta(days=days(t))).isoformat()
+
+
+rid = 0
+
+
+def next_id():
+    global rid
+    rid += 1
+    return rid
+
+
+def act360(msg):
+    msg.family = C.DayCounter.ACTUAL_360
+
+
+# ---------------------------------------------------------------------------
+# One market, rewritten per row
+# ---------------------------------------------------------------------------
+
+QUOTES = {
+    "S": 100.0,   # spot
+    "Q": 0.0,     # dividend yield
+    "R": 0.05,    # risk-free
+    "V": 0.20,    # volatility
+    "FXR": 0.05,  # foreign risk-free, quanto only
+    "FXV": 0.20,  # FX volatility
+    "CORR": 0.30,
+}
+
+
+def open_session():
+    f = E.ClientFrame(request_id=next_id())
+    o = f.open_session
+    o.evaluation_date.iso = TODAY.isoformat()
+    o.client_label = "smoke_v2"
+
+    for qid, v in QUOTES.items():
+        m = o.market.add()
+        m.id = qid
+        m.quote.value = v
+        m.quote.unit = M.Quote.UNIT_ABSOLUTE if qid == "S" else M.Quote.UNIT_RATE
+
+    # Flat curves on live quotes, which is what makes a bump move the price.
+    # flatRate() in the C++ helper is FlatForward(today, handle, dc) with
+    # Continuous/Annual defaults (test-suite/utilities.hpp).
+    for cid, qid in [("RC", "R"), ("QC", "Q"), ("FXRC", "FXR")]:
+        m = o.market.add()
+        m.id = cid
+        act360(m.yield_curve.day_counter)
+        m.yield_curve.flat.rate.quote_id = qid
+        m.yield_curve.flat.compounding = C.CONTINUOUS
+        m.yield_curve.flat.frequency = C.ANNUAL
+
+    for vid, qid in [("VOL", "V"), ("FXVOL", "FXV")]:
+        m = o.market.add()
+        m.id = vid
+        act360(m.volatility.day_counter)
+        m.volatility.constant.volatility.quote_id = qid
+
+    return f
+
+
+def set_market(sid, **values):
+    f = E.ClientFrame(request_id=next_id(), session_id=sid)
+    for qid, v in values.items():
+        f.update_market.quotes.add(quote_id=qid, value=v)
+    return f
+
+
+def row_market(row):
+    """The quote writes one reference row implies."""
+    out = {"S": row["s"], "R": row["r"], "V": row["v"]}
+    if "q" in row:
+        out["Q"] = row["q"]
+    if "fxr" in row:
+        out.update(FXR=row["fxr"], FXV=row["fxv"], CORR=row["corr"])
+    return out
+
+
+def underlying(opt, quanto=False):
+    u = opt.underlyings.add()
+    u.spot_quote_id = "S"
+    u.discount_curve_id = "RC"
+    u.dividend_curve_id = "QC"
+    u.volatility_id = "VOL"
+    u.process = I.Underlying.PROCESS_BLACK_SCHOLES_MERTON
+    if quanto:
+        opt.quanto.fx_risk_free_curve_id = "FXRC"
+        opt.quanto.fx_volatility_id = "FXVOL"
+        opt.quanto.correlation_id = "CORR"
+    return u
+
+
+OPTION_TYPE = {"call": I.Payoff.OPTION_TYPE_CALL, "put": I.Payoff.OPTION_TYPE_PUT}
+BARRIER_TYPE = {
+    "down_in": I.Barrier.TYPE_DOWN_IN,
+    "up_in": I.Barrier.TYPE_UP_IN,
+    "down_out": I.Barrier.TYPE_DOWN_OUT,
+    "up_out": I.Barrier.TYPE_UP_OUT,
+}
+DOUBLE_BARRIER_TYPE = {
+    "knock_in": I.DoubleBarrier.TYPE_KNOCK_IN,
+    "knock_out": I.DoubleBarrier.TYPE_KNOCK_OUT,
+    "kiko": I.DoubleBarrier.TYPE_KIKO,
+    "koki": I.DoubleBarrier.TYPE_KOKI,
+}
+
+
+def base_frame(sid):
+    f = E.ClientFrame(request_id=next_id(), session_id=sid)
+    return f, f.price.instrument.option
+
+
+def set_exercise(opt, kind, t):
+    opt.exercise.dates.add().iso = expiry(t)
+    if kind == "american":
+        opt.exercise.type = I.Exercise.TYPE_AMERICAN
+        # payoff_at_expiry is a Flag, not a bool: unset would be indistinguishable
+        # from false and it changes the price (DESIGN §6.3).
+        opt.exercise.payoff_at_expiry = M.FLAG_FALSE
+    else:
+        opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+
+
+def vanilla_frame(sid, row, method=EN.Engine.METHOD_ANALYTIC, exercise="european",
+                  approximation=None, steps=0, preset=None, mc=None, quanto=False):
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.plain.strike = row["strike"]
+    set_exercise(opt, exercise, row["t"])
+    underlying(opt, quanto)
+    opt.vanilla.SetInParent()
+
+    eng = f.price.engine
+    eng.method = method
+    eng.model = EN.Engine.MODEL_BLACK_SCHOLES
+    if approximation is not None:
+        eng.analytic.approximation = approximation
+    if steps:
+        eng.lattice.tree = EN.LatticeParameters.TREE_COX_ROSS_RUBINSTEIN
+        eng.lattice.steps = steps
+    if preset is not None:
+        eng.fd.preset = preset
+    if mc is not None:
+        eng.mc.seed, eng.mc.samples = mc
+        eng.mc.rng = EN.McParameters.RNG_PSEUDO_RANDOM
+    return f
+
+
+def barrier_frame(sid, row, method=EN.Engine.METHOD_ANALYTIC, preset=None, steps=0,
+                  quanto=False):
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.plain.strike = row["strike"]
+    set_exercise(opt, row.get("exercise", "european"), row["t"])
+    underlying(opt, quanto)
+    opt.barrier.type = BARRIER_TYPE[row["barrier_type"]]
+    opt.barrier.level = row["barrier"]
+    opt.barrier.rebate = row["rebate"]
+
+    eng = f.price.engine
+    eng.method = method
+    eng.model = EN.Engine.MODEL_BLACK_SCHOLES
+    if preset is not None:
+        eng.fd.preset = preset
+    if steps:
+        eng.lattice.tree = EN.LatticeParameters.TREE_COX_ROSS_RUBINSTEIN
+        eng.lattice.steps = steps
+    return f
+
+
+def double_barrier_frame(sid, row, quanto=False):
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.plain.strike = row["strike"]
+    set_exercise(opt, "european", row["t"])
+    underlying(opt, quanto)
+    opt.double_barrier.type = DOUBLE_BARRIER_TYPE[row["barrier_type"]]
+    opt.double_barrier.lower = row["barrier_lo"]
+    opt.double_barrier.upper = row["barrier_hi"]
+    opt.double_barrier.rebate = row["rebate"]
+    f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+    return f
+
+
+def forward_frame(sid, row, performance=False, quanto=False):
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.percentage_strike.moneyness = row["moneyness"]
+    set_exercise(opt, "european", row["t"])
+    underlying(opt, quanto)
+    opt.forward_start.reset.iso = expiry(row["start"])
+    opt.forward_start.performance = M.FLAG_TRUE if performance else M.FLAG_FALSE
+    f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+    return f
+
+
+# ---------------------------------------------------------------------------
+# Transport
+# ---------------------------------------------------------------------------
+
+async def collect(ws, want, timeout=120.0):
+    progress = 0
+    deadline = time.time() + timeout
+    while True:
+        raw = await asyncio.wait_for(ws.recv(), timeout=max(0.1, deadline - time.time()))
+        f = E.ServerFrame()
+        f.ParseFromString(raw)
+        if f.HasField("progress"):
+            progress += 1
+            continue
+        if f.request_id == want and f.terminal:
+            return f, progress
+
+
+async def send(ws, frame):
+    await ws.send(frame.SerializeToString())
+    reply, _ = await collect(ws, frame.request_id)
+    return reply
+
+
+async def main():
+    failures = []
+    checks = 0
+
+    def check(name, ok, detail=""):
+        nonlocal checks
+        checks += 1
+        print(("  PASS  " if ok else "  FAIL  ") + name + ("  " + detail if detail else ""))
+        if not ok:
+            failures.append(name)
+
+    async def table(ws, sid, label, rows, build, tol=None, price_of=None):
+        """Prices every row of a reference table and checks it against `result`."""
+        worst, worst_row = 0.0, None
+        for n, row in enumerate(rows):
+            await send(ws, set_market(sid, **row_market(row)))
+            reply = await send(ws, build(sid, row))
+            if not reply.HasField("price_result"):
+                check(f"{label}[{n}]", False,
+                      f"{E.Error.Code.Name(reply.error.code)} "
+                      f"{reply.error.field_path!r} {reply.error.message!r}")
+                return
+            got = price_of(reply.price_result) if price_of else reply.price_result.npv
+            err = abs(got - row["result"])
+            limit = tol if tol is not None else row.get("tol", 1.0e-4)
+            if err > limit:
+                check(f"{label}[{n}]", False,
+                      f"expected {row['result']} got {got:.6f} err={err:.2e} tol={limit:g}")
+                return
+            if err > worst:
+                worst, worst_row = err, n
+        check(f"{label} ({len(rows)} rows)", True, f"worst err={worst:.2e} at row {worst_row}")
+
+    async with websockets.connect(URL, max_size=16 << 20) as ws:
+
+        # -- lifecycle -------------------------------------------------------
+        print("\n  -- session lifecycle --")
+        f = open_session()
+        r = await send(ws, f)
+        if not r.HasField("session_opened"):
+            print("open failed:", r)
+            return 1
+        sid = r.session_id
+        check("OpenSession", True,
+              f"session={sid} objects={len(r.session_opened.market_ids)} "
+              f"bootstrap={r.session_opened.bootstrap_seconds:.4f}s")
+        check("SessionOpened lists what it built",
+              list(r.session_opened.market_ids) ==
+              list(QUOTES) + ["RC", "QC", "FXRC", "VOL", "FXVOL"])
+
+        # -- the reference tables --------------------------------------------
+        print("\n  -- QuantLib's published values --")
+
+        await table(ws, sid, "european analytic", T.EUROPEAN,
+                    lambda s, row: vanilla_frame(s, row))
+
+        # Three American approximations, each against its own table and its
+        # own tolerance from the C++ test that owns it.
+        await table(ws, sid, "american Barone-Adesi-Whaley", T.AMERICAN_BAW,
+                    lambda s, row: vanilla_frame(
+                        s, row, exercise="american",
+                        approximation=EN.AnalyticParameters.APPROXIMATION_BARONE_ADESI_WHALEY),
+                    tol=3.0e-3)
+        await table(ws, sid, "american Bjerksund-Stensland", T.AMERICAN_BS,
+                    lambda s, row: vanilla_frame(
+                        s, row, exercise="american",
+                        approximation=EN.AnalyticParameters.APPROXIMATION_BJERKSUND_STENSLAND),
+                    tol=5.0e-5)
+        await table(ws, sid, "american Ju quadratic", T.AMERICAN_JU,
+                    lambda s, row: vanilla_frame(
+                        s, row, exercise="american",
+                        approximation=EN.AnalyticParameters.APPROXIMATION_JU_QUADRATIC),
+                    tol=1.0e-3)
+
+        european_barriers = [r for r in T.BARRIER if r["exercise"] == "european"]
+        american_barriers = [r for r in T.BARRIER if r["exercise"] == "american"]
+        await table(ws, sid, "barrier analytic", european_barriers,
+                    lambda s, row: barrier_frame(s, row))
+        # The American rows have no closed form, and FdBlackScholesBarrierEngine
+        # refuses a non-European exercise, so these go through the lattice --
+        # Cox-Ross-Rubinstein with the Derman-Kani correction at 400 steps,
+        # exactly what barrieroption.cpp:567 prices them with. Its tolerance
+        # for that pairing is 4e-2, not the 1.1e-2 it uses for the Boyle-Lau
+        # discretisation: the same tree with a different barrier correction is
+        # a different convergence rate.
+        await table(ws, sid, "barrier american lattice", american_barriers,
+                    lambda s, row: barrier_frame(
+                        s, row, method=EN.Engine.METHOD_LATTICE, steps=400),
+                    tol=4.0e-2)
+
+        await table(ws, sid, "forward start", T.FORWARD,
+                    lambda s, row: forward_frame(s, row))
+
+        await table(ws, sid, "quanto vanilla", T.QUANTO,
+                    lambda s, row: vanilla_frame(s, row, quanto=True))
+        await table(ws, sid, "quanto forward", T.QUANTO_FORWARD,
+                    lambda s, row: forward_frame(s, row, quanto=True))
+        await table(ws, sid, "quanto barrier", T.QUANTO_BARRIER,
+                    lambda s, row: barrier_frame(s, row, quanto=True))
+        await table(ws, sid, "quanto double barrier", T.QUANTO_DOUBLE_BARRIER,
+                    lambda s, row: double_barrier_frame(s, row, quanto=True))
+
+        # -- one payoff and exercise, four methods ---------------------------
+        #
+        # The point of the v2 decomposition: the same trade description reaches
+        # four engines because only the engine block changed.
+        print("\n  -- the same option through four engines --")
+        row = dict(type="call", strike=100.0, s=100.0, q=0.04, r=0.06, t=1.0, v=0.20,
+                   result=0.0)
+        await send(ws, set_market(sid, **row_market(row)))
+
+        analytic = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+
+        for label, frame, tol in [
+            ("lattice CRR 801", vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=801),
+             5.0e-3),
+            ("finite difference", vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE,
+                                                preset=EN.FdParameters.PRESET_FINE), 5.0e-3),
+            ("integral", vanilla_frame(sid, row, EN.Engine.METHOD_INTEGRAL), 1.0e-4),
+            ("monte carlo", vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO,
+                                          mc=(42, 200000)), 5.0e-2),
+        ]:
+            reply = await send(ws, frame)
+            if not reply.HasField("price_result"):
+                check(label, False, f"{E.Error.Code.Name(reply.error.code)} "
+                                    f"{reply.error.message!r}")
+                continue
+            err = abs(reply.price_result.npv - analytic)
+            check(label, err < tol,
+                  f"analytic={analytic:.6f} got={reply.price_result.npv:.6f} err={err:.2e}")
+
+        # The engine is echoed whole, so a client can tell two prices apart by
+        # what produced them and not by remembering what it asked for.
+        reply = await send(ws, vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO,
+                                             mc=(7, 20000)))
+        echo = reply.price_result.engine
+        check("engine echoed on the result",
+              echo.method == EN.Engine.METHOD_MONTE_CARLO and echo.mc.seed == 7
+              and echo.mc.samples == 20000,
+              f"seed={echo.mc.seed} samples={echo.mc.samples}")
+        check("monte carlo reports an error estimate",
+              reply.price_result.error_estimate.standard_error > 0.0,
+              f"stderr={reply.price_result.error_estimate.standard_error:.2e}")
+
+        # -- greeks ----------------------------------------------------------
+        print("\n  -- greeks --")
+        f = vanilla_frame(sid, row)
+        f.price.results.extend([R.RESULT_KIND_DELTA, R.RESULT_KIND_GAMMA, R.RESULT_KIND_VEGA,
+                                R.RESULT_KIND_RHO, R.RESULT_KIND_DIVIDEND_RHO,
+                                R.RESULT_KIND_THETA])
+        reply = await send(ws, f)
+        results = reply.price_result.results
+        check("analytic engine supplies six greeks",
+              all(k in results for k in
+                  ("delta", "gamma", "vega", "rho", "dividendRho", "theta")),
+              " ".join(f"{k}={results[k].scalar:.4f}" for k in sorted(results)))
+
+        # A greek the engine cannot supply is an absent key, not a failure:
+        # the frontend asks every engine the same question.
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(1, 5000))
+        f.price.results.append(R.RESULT_KIND_VEGA)
+        reply = await send(ws, f)
+        check("a greek the MC engine lacks is absent, not an error",
+              reply.HasField("price_result") and "vega" not in reply.price_result.results)
+
+        # -- the scenario sweep ----------------------------------------------
+        print("\n  -- scenario sweep --")
+        f = vanilla_frame(sid, row)
+        f.price.results.append(R.RESULT_KIND_DELTA)
+        f.price.scenario.quote_id = "S"
+        f.price.scenario.linear.begin = 80.0
+        f.price.scenario.linear.end = 120.0
+        f.price.scenario.linear.steps = 41
+        f.price.scenario.plot = R.RESULT_KIND_NPV
+        reply = await send(ws, f)
+        ok = reply.HasField("scenario_result")
+        check("sweep returns a ScenarioResult", ok,
+              "" if ok else f"{E.Error.Code.Name(reply.error.code)} {reply.error.message!r}")
+        if ok:
+            sweep = reply.scenario_result
+            check("sweep priced every point", len(sweep.prices) == 41,
+                  f"points={len(sweep.prices)}")
+            # The midpoint is the spot the session already held, so it must
+            # reproduce the single-shot price exactly: same graph, same engine.
+            mid = sweep.prices[20].npv
+            check("sweep midpoint equals the direct price", abs(mid - analytic) < 1.0e-12,
+                  f"direct={analytic:.10f} swept={mid:.10f}")
+            check("sweep is monotone in spot for a call",
+                  all(a.npv <= b.npv for a, b in zip(sweep.prices, sweep.prices[1:])))
+            check("sweep carries a plottable series",
+                  len(sweep.series.x) == 41 and len(sweep.series.y) == 41
+                  and sweep.series.x_axis == R.Series.AXIS_SPOT)
+
+        # A sweep is a question, not an edit: the quote must be where it was.
+        reply = await send(ws, vanilla_frame(sid, row))
+        check("sweep restored the quote it wrote",
+              abs(reply.price_result.npv - analytic) < 1.0e-12,
+              f"before={analytic:.10f} after={reply.price_result.npv:.10f}")
+
+        # -- the live graph --------------------------------------------------
+        print("\n  -- the live graph --")
+        await send(ws, set_market(sid, S=110.0))
+        bumped = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        check("a quote write moves the price", bumped > analytic,
+              f"{analytic:.6f} -> {bumped:.6f}")
+        await send(ws, set_market(sid, S=100.0))
+        restored = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        check("and writing it back restores it exactly",
+              abs(restored - analytic) < 1.0e-12)
+
+        # -- rejections ------------------------------------------------------
+        #
+        # Each of these is a field the client could plausibly leave out, and
+        # each would otherwise price on a default nobody chose.
+        print("\n  -- rejections --")
+
+        async def rejected(label, frame, field, code=None):
+            reply = await send(ws, frame)
+            ok = reply.HasField("error") and reply.error.field_path == field
+            if ok and code is not None:
+                ok = reply.error.code == code
+            check(label, ok,
+                  f"field={reply.error.field_path!r} "
+                  f"code={E.Error.Code.Name(reply.error.code)}" if reply.HasField("error")
+                  else "priced instead of failing")
+
+        f = vanilla_frame(sid, row)
+        f.price.engine.ClearField("method")
+        await rejected("unset engine method", f, "engine.method", E.Error.UNSPECIFIED_ENUM)
+
+        f = vanilla_frame(sid, row, exercise="american")
+        await rejected("American analytic with no approximation named", f,
+                       "engine.analytic.approximation", E.Error.UNSPECIFIED_ENUM)
+
+        f = vanilla_frame(sid, row, exercise="american",
+                          approximation=EN.AnalyticParameters.APPROXIMATION_BARONE_ADESI_WHALEY)
+        f.price.instrument.option.exercise.ClearField("payoff_at_expiry")
+        await rejected("unset payoff_at_expiry Flag", f,
+                       "instrument.option.exercise.payoff_at_expiry", E.Error.UNSPECIFIED_ENUM)
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO)
+        f.price.engine.mc.samples = 1000
+        await rejected("Monte Carlo with no seed", f, "engine.mc.seed")
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+        await rejected("finite difference with no grid", f, "engine.fd.preset",
+                       E.Error.UNSPECIFIED_ENUM)
+
+        # The quanto FD path can only take one of the compiled presets, and
+        # says so rather than rounding a custom grid to the nearest one.
+        f = barrier_frame(sid, T.QUANTO_BARRIER[0], method=EN.Engine.METHOD_FINITE_DIFFERENCE,
+                          quanto=True)
+        f.price.engine.fd.custom.time_steps = 500
+        f.price.engine.fd.custom.asset_steps = 250
+        await rejected("quanto FD with an explicit grid", f, "engine.fd.custom",
+                       E.Error.UNSUPPORTED)
+
+        f = vanilla_frame(sid, row)
+        f.price.instrument.option.underlyings[0].spot_quote_id = "NOPE"
+        await rejected("unknown quote id", f,
+                       "instrument.option.underlyings[0].spot_quote_id", E.Error.UNKNOWN_ID)
+
+        f = vanilla_frame(sid, row)
+        f.price.instrument.option.underlyings.add().spot_quote_id = "S"
+        await rejected("two underlyings on a one-asset option", f,
+                       "instrument.option.underlyings")
+
+        # A quote id on an interpolated curve node would look live and never
+        # move: InterpolatedZeroCurve copies its rates at construction.
+        f = E.ClientFrame(request_id=next_id())
+        f.open_session.evaluation_date.iso = TODAY.isoformat()
+        m = f.open_session.market.add()
+        m.id = "Z"
+        act360(m.yield_curve.day_counter)
+        m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
+        m.yield_curve.zero.compounding = C.CONTINUOUS
+        m.yield_curve.zero.frequency = C.ANNUAL
+        for tenor, v in [("1Y", 0.03), ("5Y", 0.04)]:
+            n = m.yield_curve.zero.nodes.add()
+            n.tenor = tenor
+            n.value.quote_id = "R"
+        await rejected("a quote id on an interpolated curve node", f,
+                       "market[0].yield_curve.zero.nodes[0].value.quote_id",
+                       E.Error.UNSUPPORTED)
+
+        # -- an interpolated curve that is spelled correctly ------------------
+        print("\n  -- a second session, built a different way --")
+        f = E.ClientFrame(request_id=next_id())
+        o = f.open_session
+        o.evaluation_date.iso = (TODAY + timedelta(days=1)).isoformat()
+        m = o.market.add()
+        m.id = "S"
+        m.quote.value = 100.0
+        m = o.market.add()
+        m.id = "V"
+        m.quote.value = 0.20
+        m = o.market.add()
+        m.id = "Z"
+        act360(m.yield_curve.day_counter)
+        m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
+        m.yield_curve.zero.compounding = C.CONTINUOUS
+        m.yield_curve.zero.frequency = C.ANNUAL
+        m.yield_curve.zero.interpolator = M.INTERPOLATOR_LINEAR
+        # The first node has to sit on the reference date: an
+        # InterpolatedZeroCurve takes its reference from dates[0], so a curve
+        # whose first pillar is 6M out starts six months from now and
+        # discounts nothing before then.
+        for tenor, v in [("0D", 0.05), ("1Y", 0.05), ("5Y", 0.05)]:
+            n = m.yield_curve.zero.nodes.add()
+            n.tenor = tenor
+            n.value.fixed = v
+        m = o.market.add()
+        m.id = "VOL"
+        act360(m.volatility.day_counter)
+        m.volatility.constant.volatility.quote_id = "V"
+        reply = await send(ws, f)
+        ok = reply.HasField("session_opened")
+        check("a session on an interpolated zero curve opens", ok,
+              "" if ok else f"{reply.error.field_path!r} {reply.error.message!r}")
+
+        if ok:
+            sid2 = reply.session_id
+            # The second session's evaluation date is a day later. Under
+            # QL_ENABLE_SESSIONS that is thread-local, so the two disagree by
+            # one day of theta; without it they would agree exactly and this
+            # is the check that catches the wrong QuantLib being linked
+            # (DESIGN §2).
+            f, opt = base_frame(sid2)
+            opt.payoff.type = I.Payoff.OPTION_TYPE_CALL
+            opt.payoff.plain.strike = 100.0
+            opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+            opt.exercise.dates.add().iso = expiry(1.0)
+            u = opt.underlyings.add()
+            u.spot_quote_id, u.discount_curve_id, u.volatility_id = "S", "Z", "VOL"
+            opt.vanilla.SetInParent()
+            f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+            second = await send(ws, f)
+            ok2 = second.HasField("price_result")
+            check("the second session prices", ok2,
+                  "" if ok2 else f"{second.error.field_path!r} {second.error.message!r}")
+
+            if ok2:
+                await send(ws, set_market(sid, S=100.0, Q=0.0, R=0.05, V=0.20))
+                first = await send(ws, vanilla_frame(
+                    sid, dict(type="call", strike=100.0, s=100.0, q=0.0, r=0.05,
+                              t=1.0, v=0.20)))
+                gap = abs(first.price_result.npv - second.price_result.npv)
+                check("two sessions hold their own evaluation dates",
+                      1.0e-6 < gap < 1.0e-1,
+                      f"one day of theta = {gap:.6f}; exactly zero would mean "
+                      f"QL_ENABLE_SESSIONS is off")
+
+            await send(ws, E.ClientFrame(request_id=next_id(), session_id=sid2,
+                                         close_session=E.CloseSession()))
+
+
+        # -- progress, and the cancel that depends on it ----------------------
+        #
+        # Batched Monte Carlo is the only calculation this layer can interrupt:
+        # QuantLib cannot be stopped inside an engine call, so the stop is
+        # taken between batches (DESIGN §3). Under the thread host that is the
+        # only cancel that works at all.
+        print("\n  -- progress and cancel --")
+        await send(ws, set_market(sid, **row_market(row)))
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, 400000))
+        f.price.engine.mc.progress_every_paths = 50000
+        await ws.send(f.SerializeToString())
+        reply, progress = await collect(ws, f.request_id)
+        check("batched Monte Carlo reports progress",
+              reply.HasField("price_result") and progress >= 4,
+              f"frames={progress} npv={reply.price_result.npv:.6f}")
+
+        # The batched price is not the single-shot price: independent batches
+        # with derived seeds partition the RNG stream differently. Both are
+        # valid estimates, and the echo is what lets a client tell them apart.
+        check("the batch size is echoed with the seed",
+              reply.price_result.engine.mc.progress_every_paths == 50000)
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, 4000000))
+        f.price.engine.mc.progress_every_paths = 20000
+        await ws.send(f.SerializeToString())
+        # Wait for the calculation to be genuinely under way before cancelling,
+        # so this tests the stop rather than a race with the queue.
+        seen = 0
+        while seen < 2:
+            raw = await asyncio.wait_for(ws.recv(), timeout=60.0)
+            g = E.ServerFrame()
+            g.ParseFromString(raw)
+            if g.HasField("progress"):
+                seen += 1
+
+        c = E.ClientFrame(request_id=next_id(), session_id=sid)
+        c.cancel.target_request_id = f.request_id
+        await ws.send(c.SerializeToString())
+
+        terminals = {}
+        deadline = time.time() + 60.0
+        while f.request_id not in terminals or c.request_id not in terminals:
+            raw = await asyncio.wait_for(ws.recv(), timeout=max(0.1, deadline - time.time()))
+            g = E.ServerFrame()
+            g.ParseFromString(raw)
+            if g.terminal:
+                terminals[g.request_id] = g
+
+        cancelled = terminals[f.request_id]
+        check("a cancelled request terminates as CANCELLED",
+              cancelled.HasField("error") and cancelled.error.code == E.Error.CANCELLED,
+              cancelled.error.message[:60] if cancelled.HasField("error") else "priced anyway")
+        # Every request gets exactly one terminal frame, the cancel included:
+        # nothing downstream answers a cancel, so the gateway does (DESIGN §9.5).
+        check("the cancel itself is acknowledged",
+              terminals[c.request_id].HasField("ack"))
+
+        reply = await send(ws, vanilla_frame(sid, row))
+        check("the session still prices after a cancel",
+              reply.HasField("price_result") and abs(reply.price_result.npv - analytic) < 1e-12)
+
+        # -- the quanto barrier benchmark -------------------------------------
+        #
+        # testBarrierValues in quantooption.cpp carries a "TODO: bench against
+        # an existing prop calculator" and a tolerance of 0.5 to match. There
+        # is no vendor pricer here either, but the same file benchmarks the
+        # quanto vanilla against a PDE, and FdBlackScholesBarrierEngine is
+        # single-argument constructible, so QuantoEngine can wrap it and the
+        # trick works for barriers too. See test/BENCHMARK.md.
+        print("\n  -- quanto barriers: analytic against the PDE --")
+        for n, brow in enumerate(T.QUANTO_BARRIER):
+            await send(ws, set_market(sid, **row_market(brow)))
+            got = (await send(ws, barrier_frame(sid, brow, quanto=True))).price_result.npv
+
+            errs = {}
+            for name, preset in [("coarse", EN.FdParameters.PRESET_COARSE),
+                                 ("standard", EN.FdParameters.PRESET_STANDARD),
+                                 ("fine", EN.FdParameters.PRESET_FINE)]:
+                pde = await send(ws, barrier_frame(
+                    sid, brow, method=EN.Engine.METHOD_FINITE_DIFFERENCE, preset=preset,
+                    quanto=True))
+                if not pde.HasField("price_result"):
+                    check(f"quanto barrier[{n}] PDE {name}", False,
+                          f"{E.Error.Code.Name(pde.error.code)} {pde.error.message!r}")
+                    break
+                errs[name] = abs(pde.price_result.npv - got)
+                fine = pde.price_result.npv
+            else:
+                check(f"quanto barrier[{n}] analytic agrees with the PDE",
+                      errs["fine"] <= 1.0e-3,
+                      f"analytic={got:.6f} pde={fine:.6f} err={errs['fine']:.2e}")
+                # A fixed offset would mean the two methods agree on a
+                # different instrument. Refinement has to keep closing the gap.
+                check(f"quanto barrier[{n}] PDE converges",
+                      errs["coarse"] > errs["standard"] > errs["fine"],
+                      " > ".join(f"{k}={errs[k]:.2e}" for k in ("coarse", "standard", "fine")))
+                gap = abs(got - brow["result"])
+                # Reported, not asserted. The recorded value is the thing under
+                # test here, and it is the one with no provenance.
+                print(f"         recorded={brow['result']} ours={got:.6f} gap={gap:.3e}"
+                      + ("   <-- recorded value not reproduced" if gap > 1.0e-2 else ""))
+
+        # In-out parity and an unreachable barrier need no second engine at
+        # all, and both hold exactly.
+        brow = dict(T.QUANTO_BARRIER[0], rebate=0.0)
+        await send(ws, set_market(sid, **row_market(brow)))
+        plain = (await send(ws, vanilla_frame(sid, brow, quanto=True))).price_result.npv
+        down_in = (await send(ws, barrier_frame(
+            sid, dict(brow, barrier_type="down_in"), quanto=True))).price_result.npv
+        down_out = (await send(ws, barrier_frame(
+            sid, dict(brow, barrier_type="down_out"), quanto=True))).price_result.npv
+        check("in-out parity", abs(down_in + down_out - plain) < 1.0e-9,
+              f"{down_in:.8f} + {down_out:.8f} vs {plain:.8f}")
+
+        unreachable = (await send(ws, barrier_frame(
+            sid, dict(brow, barrier_type="down_out", barrier=1.0e-6), quanto=True))
+        ).price_result.npv
+        check("an unreachable barrier degrades to the vanilla price",
+              abs(unreachable - plain) < 1.0e-9)
+
+        # -- close -----------------------------------------------------------
+        print("\n  -- close --")
+        reply = await send(ws, E.ClientFrame(request_id=next_id(), session_id=sid,
+                                             close_session=E.CloseSession()))
+        check("CloseSession", reply.HasField("ack"))
+
+        f = vanilla_frame(sid, row)
+        reply = await send(ws, f)
+        check("pricing a closed session fails as SESSION_NOT_FOUND",
+              reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND)
+
+    print(f"\n{checks} checks, {len(failures)} failed")
+    if failures:
+        print("FAILED: " + ", ".join(failures))
+        return 1
+    print("\nALL PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

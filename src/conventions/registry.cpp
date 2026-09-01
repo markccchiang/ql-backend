@@ -1,6 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 #include "registry.hpp"
+#include "quantlib/v2/envelope.pb.h"
 #include "errors/fielderror.hpp"
 #include <ql/indexes/ibor/estr.hpp>
 #include <ql/indexes/ibor/euribor.hpp>
@@ -41,7 +42,7 @@ namespace qlservice {
             to whatever convention sits at the head of the list.
         */
         void requireSet(bool isSet, const std::string& fieldPath, const char* what) {
-            QLS_FIELD_REQUIRE(isSet, qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+            QLS_FIELD_REQUIRE(isSet, quantlib::v2::Error::UNSPECIFIED_ENUM, fieldPath,
                               "unspecified " << what << " at '" << fieldPath
                                              << "'; the field must be set explicitly");
         }
@@ -58,7 +59,7 @@ namespace qlservice {
             case qlpb::Date::kSerialNumber:
                 QLS_FIELD_REQUIRE(msg.serial_number() >= Date::minDate().serialNumber() &&
                                       msg.serial_number() <= Date::maxDate().serialNumber(),
-                                  qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                                  quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                                   "serial number " << msg.serial_number() << " at '" << fieldPath
                                                    << "' is outside QuantLib's date range");
                 return Date(static_cast<Date::serial_type>(msg.serial_number()));
@@ -67,16 +68,16 @@ namespace qlservice {
                 // turns into Error{CALCULATION_FAILED} with the message intact.
                 return DateParser::parseISO(msg.iso());
             case qlpb::Date::FORM_NOT_SET:
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                                "no date form set at '" << fieldPath << "'");
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath,
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                        "unhandled date form at '" << fieldPath << "'");
     }
 
 
     Period ConventionRegistry::period(const std::string& text, const std::string& fieldPath) const {
-        QLS_FIELD_REQUIRE(!text.empty(), qlpb::Error::INVALID_ARGUMENT, fieldPath,
+        QLS_FIELD_REQUIRE(!text.empty(), quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                           "empty period at '" << fieldPath << "'");
         // PeriodParser covers the whole tenor space, so this is the one
         // convention that does not need a registry entry per value.
@@ -107,7 +108,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath,
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                        "unhandled business day convention " << msg << " at '" << fieldPath << "'");
     }
 
@@ -147,7 +148,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath,
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                        "unhandled frequency " << msg << " at '" << fieldPath << "'");
     }
 
@@ -169,7 +170,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath,
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                        "unhandled compounding " << msg << " at '" << fieldPath << "'");
     }
 
@@ -195,7 +196,7 @@ namespace qlservice {
                 // Business/252 counts business days, so it carries a calendar.
                 // QuantLib defaults it to Brazil() (business252.hpp:50); defaulting
                 // it here would price a EUR leg on Brazilian holidays.
-                QLS_FIELD_REQUIRE(msg.has_business_252_calendar(), qlpb::Error::INVALID_ARGUMENT,
+                QLS_FIELD_REQUIRE(msg.has_business_252_calendar(), quantlib::v2::Error::INVALID_ARGUMENT,
                                   fieldPath + ".business_252_calendar",
                                   "Business/252 needs a calendar at '" << fieldPath << "'");
                 return Business252(
@@ -228,7 +229,7 @@ namespace qlservice {
                     default:
                         break;
                 }
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".thirty_360",
+                QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".thirty_360",
                                "unhandled 30/360 convention at '" << fieldPath << ".thirty_360'");
             }
 
@@ -253,14 +254,14 @@ namespace qlservice {
                         // are therefore built by the leg builder, which has it. The
                         // schedule-free form silently gives a different year fraction
                         // on a stub, so it is refused rather than approximated.
-                        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".actual_actual",
+                        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".actual_actual",
                                        "Act/Act (ISMA) at '"
                                            << fieldPath
                                            << "' must be built with a schedule by the leg builder");
                     default:
                         break;
                 }
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".actual_actual",
+                QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".actual_actual",
                                "unhandled act/act convention at '" << fieldPath
                                                                    << ".actual_actual'");
             }
@@ -268,7 +269,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".family",
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".family",
                        "unhandled day counter family at '" << fieldPath << "'");
     }
 
@@ -282,7 +283,7 @@ namespace qlservice {
     Calendar ConventionRegistry::calendar(const qlpb::Calendar& msg,
                                           const std::string& fieldPath,
                                           Size depth) const {
-        QLS_FIELD_REQUIRE(depth <= maxJointCalendarDepth_, qlpb::Error::INVALID_ARGUMENT,
+        QLS_FIELD_REQUIRE(depth <= maxJointCalendarDepth_, quantlib::v2::Error::INVALID_ARGUMENT,
                           fieldPath + ".joint",
                           "joint calendars nested more than " << maxJointCalendarDepth_
                                                               << " deep at '" << fieldPath << "'");
@@ -324,7 +325,7 @@ namespace qlservice {
                     default:
                         break;
                 }
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".united_states_market",
+                QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".united_states_market",
                                "unhandled US market at '" << fieldPath << ".united_states_market'");
             }
 
@@ -342,14 +343,14 @@ namespace qlservice {
                     default:
                         break;
                 }
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".united_kingdom_market",
+                QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".united_kingdom_market",
                                "unhandled UK market at '" << fieldPath
                                                           << ".united_kingdom_market'");
             }
 
             case qlpb::Calendar::JOINT: {
                 QLS_FIELD_REQUIRE(
-                    msg.joint_size() >= 2, qlpb::Error::INVALID_ARGUMENT, fieldPath + ".joint",
+                    msg.joint_size() >= 2, quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".joint",
                     "a joint calendar at '" << fieldPath << "' needs at least two members, got "
                                             << msg.joint_size());
                 std::vector<Calendar> members;
@@ -363,7 +364,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".name",
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".name",
                        "unhandled calendar at '" << fieldPath << "'");
     }
 
@@ -382,11 +383,11 @@ namespace qlservice {
         const bool overnight = msg.family() == qlpb::IborIndex::SOFR ||
                                msg.family() == qlpb::IborIndex::ESTR ||
                                msg.family() == qlpb::IborIndex::SONIA;
-        QLS_FIELD_REQUIRE(!(overnight && !msg.tenor().empty()), qlpb::Error::INVALID_ARGUMENT,
+        QLS_FIELD_REQUIRE(!(overnight && !msg.tenor().empty()), quantlib::v2::Error::INVALID_ARGUMENT,
                           fieldPath + ".tenor",
                           "overnight index at '" << fieldPath << "' cannot take tenor '"
                                                  << msg.tenor() << "'");
-        QLS_FIELD_REQUIRE(overnight || !msg.tenor().empty(), qlpb::Error::INVALID_ARGUMENT,
+        QLS_FIELD_REQUIRE(overnight || !msg.tenor().empty(), quantlib::v2::Error::INVALID_ARGUMENT,
                           fieldPath + ".tenor", "index at '" << fieldPath << "' needs a tenor");
 
         switch (msg.family()) {
@@ -408,7 +409,7 @@ namespace qlservice {
             default:
                 break;
         }
-        QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, fieldPath + ".family",
+        QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath + ".family",
                        "unhandled index family at '" << fieldPath << "'");
     }
 

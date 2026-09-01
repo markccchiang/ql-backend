@@ -16,7 +16,8 @@ benchmarks the analytic quanto vanilla against a PDE at `2e-4`.
 
 ## The market
 
-All three rows share one market, from `BARRIER_VALUES` in `smoke_quanto.py`:
+All three rows share one market, from `QUANTO_BARRIER` in `reference_tables.py`, itself extracted from
+`quantooption.cpp`:
 
 | | |
 | --- | --- |
@@ -47,10 +48,10 @@ recorded to four and three significant figures. Row 2 is a different matter:
 per grid refinement, so the two methods are converging to the same number
 rather than agreeing by accident.
 
-The three grids are `FD_GRID_COARSE` (100 x 100, QuantLib's own defaults),
-`FD_GRID_STANDARD` (400 x 200) and `FD_GRID_FINE` (2000 x 800). The script
+The three grids are `PRESET_COARSE` (100 x 100, QuantLib's own defaults),
+`PRESET_STANDARD` (400 x 200) and `PRESET_FINE` (2000 x 800). The script
 asserts `coarse > standard > fine` on the gap to the analytic price, and that
-`PriceResult.fd_grid` echoes the grid the number came from.
+`PriceResult.engine` echoes the grid the number came from.
 
 ## What this establishes, precisely
 
@@ -74,5 +75,7 @@ backwards.
 
 ## Reproducing it
 
-Run `smoke_quanto.py` as `README.md` describes; the benchmark is the section
-printed after the reference tables.
+Run `smoke_v2.py` as `README.md` describes; the benchmark is the
+"quanto barriers: analytic against the PDE" section near the end. The three
+grid presets it sweeps are `FdParameters` `PRESET_COARSE`, `PRESET_STANDARD`
+and `PRESET_FINE`.

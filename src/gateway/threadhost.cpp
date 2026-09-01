@@ -7,7 +7,7 @@
 #include <thread>
 #include <utility>
 
-namespace qlpb = quantlib::v1;
+namespace qlpb = quantlib::v2;
 
 namespace qlservice {
 

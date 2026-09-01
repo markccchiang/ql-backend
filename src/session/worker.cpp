@@ -1,6 +1,8 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 #include "worker.hpp"
+#include <limits>
+#include <vector>
 #include "errors/fielderror.hpp"
 #include "session.hpp"
 #include <ql/errors.hpp>
@@ -8,7 +10,7 @@
 #include <utility>
 
 using namespace QuantLib;
-namespace qlpb = quantlib::v1;
+namespace qlpb = quantlib::v2;
 
 namespace qlservice {
 
@@ -35,6 +37,33 @@ namespace qlservice {
         template <class T>
         double wire(const T& x) {
             return value(x);
+        }
+
+        //! The map key a ResultKind is reported under.
+        /*! The same names QuantLib's engines use in additionalResults, so a
+            client asking for RESULT_KIND_DELTA and a client dumping the
+            engine's own map read the same key (results.proto).
+        */
+        std::string resultName(qlpb::ResultKind kind) {
+            switch (kind) {
+                case qlpb::RESULT_KIND_NPV:
+                    return "npv";
+                case qlpb::RESULT_KIND_DELTA:
+                    return "delta";
+                case qlpb::RESULT_KIND_GAMMA:
+                    return "gamma";
+                case qlpb::RESULT_KIND_VEGA:
+                    return "vega";
+                case qlpb::RESULT_KIND_THETA:
+                    return "theta";
+                case qlpb::RESULT_KIND_RHO:
+                    return "rho";
+                case qlpb::RESULT_KIND_DIVIDEND_RHO:
+                    return "dividendRho";
+                default:
+                    break;
+            }
+            return "";
         }
 
     }
@@ -110,6 +139,149 @@ namespace qlservice {
     }
 
 
+    void Worker::fillResult(qlpb::PriceResult& result,
+                            const qlpb::PriceRequest& request,
+                            const Session::PriceOutcome& outcome) const {
+        result.set_npv(wire(outcome.npv));
+        result.set_calculation_seconds(outcome.calculationSeconds);
+
+        // The engine as it actually ran, echoed rather than assumed. A
+        // batched Monte Carlo runs independent batches with derived seeds and
+        // averages them, which partitions the RNG stream differently from one
+        // run of the same total, so two requests differing only in
+        // progress_every_paths return different numbers (DESIGN §4). An FD
+        // price depends on its grid the same way. A client comparing two
+        // prices has to be able to see which is which from the results alone,
+        // and copying the whole Engine message is the form of that promise
+        // that cannot fall behind the schema.
+        *result.mutable_engine() = request.engine();
+
+        for (const auto& entry : outcome.results) {
+            // Scalars only: everything this layer computes is a number. The
+            // Value variant carries the vectors and matrices an engine can
+            // publish, and nothing here produces one yet.
+            (*result.mutable_results())[entry.first].set_scalar(wire(entry.second));
+        }
+
+        auto err = outcome.results.find("errorEstimate");
+        if (err != outcome.results.end()) {
+            auto* estimate = result.mutable_error_estimate();
+            estimate->set_standard_error(wire(err->second));
+            estimate->set_samples(request.engine().mc().samples());
+        }
+    }
+
+
+    void Worker::serveScenario(const qlpb::ClientFrame& frame,
+                               const Session::ProgressSink& progress) {
+        const auto& scenario = frame.price().scenario();
+        const std::string path = "price.scenario";
+
+        QLS_FIELD_REQUIRE(!scenario.quote_id().empty(), qlpb::Error::INVALID_ARGUMENT,
+                          path + ".quote_id", "a scenario sweeps one named quote");
+
+        const double original = session_->quoteValue(scenario.quote_id(), path + ".quote_id");
+
+        std::vector<double> points;
+        switch (scenario.points_case()) {
+            case qlpb::Scenario::kExplicit:
+                points.assign(scenario.explicit_().values().begin(),
+                              scenario.explicit_().values().end());
+                break;
+            case qlpb::Scenario::kLinear: {
+                const auto& lin = scenario.linear();
+                QLS_FIELD_REQUIRE(lin.steps() >= 2, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".linear.steps",
+                                  "a linear sweep needs at least two steps");
+                for (std::uint32_t i = 0; i < lin.steps(); ++i)
+                    points.push_back(lin.begin() + (lin.end() - lin.begin()) * i /
+                                                      static_cast<double>(lin.steps() - 1));
+                break;
+            }
+            case qlpb::Scenario::kRelative:
+                for (double f : scenario.relative().factors())
+                    points.push_back(original * f);
+                break;
+            default:
+                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, path,
+                               "a scenario needs explicit, linear or relative points");
+        }
+        QLS_FIELD_REQUIRE(!points.empty(), qlpb::Error::INVALID_ARGUMENT, path,
+                          "a scenario needs at least one point");
+
+        qlpb::ScenarioResult out;
+        out.set_quote_id(scenario.quote_id());
+
+        // Restoring on the way out, including when a point throws. A sweep is
+        // a question rather than an edit: the session log never saw these
+        // writes, so leaving one in place would put the live graph out of step
+        // with what a replay would rebuild (DESIGN §2.1).
+        try {
+            for (std::size_t i = 0; i < points.size(); ++i) {
+                session_->writeQuote(scenario.quote_id(), points[i], path + ".quote_id");
+                const auto outcome = session_->price(frame.price(), nullptr);
+
+                out.add_values(points[i]);
+                fillResult(*out.add_prices(), frame.price(), outcome);
+
+                emit(frame.request_id(), false, [&](qlpb::ServerFrame& o) {
+                    auto* p = o.mutable_progress();
+                    p->set_completed(i + 1);
+                    p->set_total(points.size());
+                    p->set_running_npv(wire(outcome.npv));
+                    p->set_scenario_point(static_cast<std::uint32_t>(i));
+                });
+
+                if (stopRequested_.load(std::memory_order_relaxed))
+                    QL_FAIL("cancelled after " << i + 1 << " of " << points.size()
+                                               << " scenario points");
+            }
+        } catch (...) {
+            if (!scenario.keep_final_value())
+                session_->writeQuote(scenario.quote_id(), original, path + ".quote_id");
+            throw;
+        }
+
+        if (!scenario.keep_final_value())
+            session_->writeQuote(scenario.quote_id(), original, path + ".quote_id");
+
+        if (scenario.plot() != qlpb::RESULT_KIND_UNSPECIFIED)
+            fillSeries(*out.mutable_series(), out, scenario.plot());
+
+        emit(frame.request_id(), true,
+             [&](qlpb::ServerFrame& o) { *o.mutable_scenario_result() = out; });
+
+        // The progress lambda is unused on this path: a sweep reports its own
+        // progress per point, and each point is a single engine call that
+        // nothing can interrupt from inside.
+        (void)progress;
+    }
+
+
+    void Worker::fillSeries(qlpb::Series& series,
+                            const qlpb::ScenarioResult& scenario,
+                            qlpb::ResultKind kind) {
+        series.set_name(resultName(kind));
+        series.set_x_axis(qlpb::Series::AXIS_SPOT);
+        series.set_y_axis(kind == qlpb::RESULT_KIND_NPV ? qlpb::Series::AXIS_NPV
+                                                        : qlpb::Series::AXIS_GREEK);
+        for (int i = 0; i < scenario.prices_size(); ++i) {
+            series.add_x(scenario.values(i));
+            if (kind == qlpb::RESULT_KIND_NPV) {
+                series.add_y(scenario.prices(i).npv());
+                continue;
+            }
+            const auto& results = scenario.prices(i).results();
+            auto it = results.find(resultName(kind));
+            // A point the engine could not supply breaks the line rather than
+            // shifting it: NaN is what a plotting library renders as a gap,
+            // and dropping the point would silently misalign x and y.
+            series.add_y(it == results.end() ? std::numeric_limits<double>::quiet_NaN()
+                                             : it->second.scalar());
+        }
+    }
+
+
     void Worker::serve(const qlpb::ClientFrame& frame) {
         try {
             switch (frame.payload_case()) {
@@ -127,6 +299,12 @@ namespace qlservice {
                         auto* opened = out.mutable_session_opened();
                         opened->set_session_id(sessionId_);
                         opened->set_bootstrap_seconds(elapsed);
+                        // What was actually built, in build order: a client
+                        // that posted forty objects and got thirty-nine can
+                        // see which one is missing without diffing its own
+                        // request.
+                        for (const auto& id : session_->marketIds())
+                            opened->add_market_ids(id);
                     });
                     break;
                 }
@@ -153,31 +331,15 @@ namespace qlservice {
                         return !stopRequested_.load(std::memory_order_relaxed);
                     };
 
+                    if (frame.price().has_scenario()) {
+                        serveScenario(frame, progress);
+                        break;
+                    }
+
                     const auto outcome = session_->price(frame.price(), progress);
 
                     emit(requestId, true, [&](qlpb::ServerFrame& out) {
-                        auto* result = out.mutable_price_result();
-                        result->set_npv(wire(outcome.npv));
-                        result->set_calculation_seconds(outcome.calculationSeconds);
-
-                        // All three, not just the seed. A batched Monte Carlo runs
-                        // independent batches with derived seeds and averages them,
-                        // which partitions the RNG stream differently from one run
-                        // of the same total, so two requests differing only in
-                        // progress_every_paths return different numbers (DESIGN
-                        // §4). A client comparing two prices has to be able to see
-                        // that from the results alone.
-                        result->set_seed(frame.price().engine().seed());
-                        result->set_samples(frame.price().engine().samples());
-                        result->set_progress_every_paths(frame.price().progress_every_paths());
-
-                        // Same contract on the finite-difference side: the
-                        // grid is part of the answer, not a tuning knob, so a
-                        // client comparing two FD prices can see which grid
-                        // each came from. Unspecified for every other engine.
-                        result->set_fd_grid(frame.price().engine().fd_grid());
-                        for (const auto& [name, v] : outcome.results)
-                            (*result->mutable_results())[name] = wire(v);
+                        fillResult(*out.mutable_price_result(), frame.price(), outcome);
                     });
                     break;
                 }

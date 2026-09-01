@@ -50,6 +50,7 @@ message Engine {
     Model model = 2;
 
     oneof parameters {
+        AnalyticParameters analytic = 9;
         LatticeParameters lattice = 10;
         FdParameters fd = 11;
         McParameters mc = 12;
@@ -61,6 +62,24 @@ message Engine {
     // conventions, so they are quote ids like everything else a client can
     // move.
     map<string, string> model_quote_ids = 20;
+}
+
+// Which closed form, when a shape has more than one.
+//
+// An American vanilla has three approximations in QuantLib and they disagree
+// in the third decimal; the test suite tabulates each separately. Leaving the
+// choice to the service would make the price depend on a default nobody
+// stated.
+message AnalyticParameters {
+    enum Approximation {
+        // The only engine for the shape. Correct for everything with one.
+        APPROXIMATION_UNSPECIFIED = 0;
+        APPROXIMATION_BARONE_ADESI_WHALEY = 1;
+        APPROXIMATION_BJERKSUND_STENSLAND = 2;
+        APPROXIMATION_JU_QUADRATIC = 3;
+        APPROXIMATION_INTEGRAL = 4;
+    }
+    Approximation approximation = 1;
 }
 
 message LatticeParameters {

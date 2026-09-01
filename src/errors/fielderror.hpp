@@ -7,7 +7,7 @@
 #ifndef qlservice_errors_fielderror_hpp
 #define qlservice_errors_fielderror_hpp
 
-#include "quantlib/v1/envelope.pb.h"
+#include "quantlib/v2/envelope.pb.h"
 #include <ql/errors.hpp>
 #include <sstream>
 #include <string>
@@ -34,7 +34,7 @@ namespace qlservice {
     */
     class FieldError : public QuantLib::Error {
       public:
-        FieldError(quantlib::v1::Error::Code code,
+        FieldError(quantlib::v2::Error::Code code,
                    std::string fieldPath,
                    const std::string& message,
                    const std::string& file,
@@ -43,13 +43,13 @@ namespace qlservice {
         : QuantLib::Error(file, line, function, message), code_(code),
           fieldPath_(std::move(fieldPath)) {}
 
-        quantlib::v1::Error::Code code() const { return code_; }
+        quantlib::v2::Error::Code code() const { return code_; }
 
         //! Proto field path, e.g. "instrument.vanilla_swap.fixed_leg.frequency".
         const std::string& fieldPath() const { return fieldPath_; }
 
       private:
-        quantlib::v1::Error::Code code_;
+        quantlib::v2::Error::Code code_;
         std::string fieldPath_;
     };
 

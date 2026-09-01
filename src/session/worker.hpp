@@ -7,7 +7,8 @@
 #ifndef qlservice_session_worker_hpp
 #define qlservice_session_worker_hpp
 
-#include "quantlib/v1/envelope.pb.h"
+#include "session.hpp"
+#include "quantlib/v2/envelope.pb.h"
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -18,8 +19,6 @@
 #include <thread>
 
 namespace qlservice {
-
-    class Session;
 
     //! Owns one Session on one thread and serves its frames one at a time.
     /*! The queue is the point. QuantLib's session isolation is per thread
@@ -38,7 +37,7 @@ namespace qlservice {
     class Worker {
       public:
         //! Emits a frame back to the gateway. Called on the worker thread.
-        using FrameSink = std::function<void(const quantlib::v1::ServerFrame&)>;
+        using FrameSink = std::function<void(const quantlib::v2::ServerFrame&)>;
 
         Worker(std::string sessionId, FrameSink sink);
         ~Worker();
@@ -52,7 +51,7 @@ namespace qlservice {
         void start();
 
         //! Queues a frame. Returns false once the worker is shutting down.
-        bool submit(const quantlib::v1::ClientFrame& frame);
+        bool submit(const quantlib::v2::ClientFrame& frame);
 
         //! Asks the running request to stop between Monte Carlo batches.
         /*! Best-effort and slow: it takes effect only at a batch boundary, and
@@ -65,7 +64,24 @@ namespace qlservice {
 
       private:
         void run();
-        void serve(const quantlib::v1::ClientFrame& frame);
+        void serve(const quantlib::v2::ClientFrame& frame);
+
+        //! Fills a PriceResult from one outcome, engine echo included.
+        void fillResult(quantlib::v2::PriceResult& result,
+                        const quantlib::v2::PriceRequest& request,
+                        const Session::PriceOutcome& outcome) const;
+
+        //! Prices once per scenario point off the one live graph.
+        /*! The reason a session is kept alive at all: N prices here cost N
+            lazy recomputes of whatever the bumped quote invalidated, against
+            N round trips that each rebuild the whole graph (DESIGN §5).
+        */
+        void serveScenario(const quantlib::v2::ClientFrame& frame,
+                           const Session::ProgressSink& progress);
+
+        static void fillSeries(quantlib::v2::Series& series,
+                               const quantlib::v2::ScenarioResult& scenario,
+                               quantlib::v2::ResultKind kind);
 
         //! Rejects a frame that needs a graph this worker does not hold.
         /*! SESSION_NOT_FOUND rather than a calculation failure: the client
@@ -76,9 +92,9 @@ namespace qlservice {
 
         void emit(std::uint64_t requestId,
                   bool terminal,
-                  const std::function<void(quantlib::v1::ServerFrame&)>& fill);
+                  const std::function<void(quantlib::v2::ServerFrame&)>& fill);
         void emitError(std::uint64_t requestId,
-                       quantlib::v1::Error::Code code,
+                       quantlib::v2::Error::Code code,
                        const std::string& message,
                        const std::string& fieldPath = {});
 
@@ -91,7 +107,7 @@ namespace qlservice {
         std::thread thread_;
         std::mutex mutex_;
         std::condition_variable cv_;
-        std::deque<quantlib::v1::ClientFrame> queue_;
+        std::deque<quantlib::v2::ClientFrame> queue_;
         bool shuttingDown_ = false;
 
         std::atomic<bool> stopRequested_{false};

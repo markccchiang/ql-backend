@@ -8,8 +8,10 @@
 #define qlservice_session_session_hpp
 
 #include "conventions/registry.hpp"
-#include "quantlib/v1/envelope.pb.h"
+#include "quantlib/v2/envelope.pb.h"
+#include <ql/exercise.hpp>
 #include <ql/handle.hpp>
+#include <ql/instruments/payoffs.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/shared_ptr.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
@@ -48,6 +50,11 @@ namespace qlservice {
         when neither mutates market data, because `NPV()` writes its cache as
         it computes (`ql/patterns/lazyobject.hpp`). Concurrency comes from more
         Sessions, never from more threads on one — see DESIGN §2.1.
+
+        This is the `v2` session. The market is a namespace of named objects
+        rather than a fixed set of fields, and an option is a payoff, an
+        exercise, an underlying and a style rather than one message per product
+        (DESIGN §6.3).
     */
     class Session {
       public:
@@ -58,18 +65,28 @@ namespace qlservice {
             double calculationSeconds = 0.0;
         };
 
-        //! The live handles one quanto engine is assembled from.
-        /*! Nothing in here is a value. `QuantoEngine` registers with all four
-            members (`ql/pricingengines/quanto/quantoengine.hpp`), so a write
-            to any of the seven underlying quotes invalidates the instrument
-            and the next price recomputes — the same contract the vanilla path
-            gets from its two quotes (DESIGN §5).
+        //! The live handles one option's engine is assembled from.
+        /*! Nothing in here is a value. Every engine registers with the
+            process and, when the trade is quanto, with the three FX handles
+            as well, so a write to any underlying quote invalidates the
+            instrument and the next price recomputes (DESIGN §5).
 
             Public only so the engine tables in session.cpp can name it; it
             never crosses the wire and nothing outside this file builds one.
         */
-        struct QuantoGraph {
+        struct EquityGraph {
             QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess> process;
+            QuantLib::Handle<QuantLib::Quote> spot;
+            QuantLib::Handle<QuantLib::YieldTermStructure> riskFree;
+            QuantLib::Handle<QuantLib::YieldTermStructure> dividend;
+            QuantLib::Handle<QuantLib::BlackVolTermStructure> volatility;
+
+            //! Set only when the request carried a Quanto block.
+            /*! Quanto is not a product here, it is an adjustment to whatever
+                engine the style would otherwise get, so it travels with the
+                market rather than with the instrument (DESIGN §6.3).
+            */
+            bool quanto = false;
             QuantLib::Handle<QuantLib::YieldTermStructure> fxRiskFree;
             QuantLib::Handle<QuantLib::BlackVolTermStructure> fxVol;
             QuantLib::Handle<QuantLib::Quote> correlation;
@@ -83,7 +100,7 @@ namespace qlservice {
         using ProgressSink = std::function<bool(
             QuantLib::Size done, QuantLib::Size total, QuantLib::Real runningNpv)>;
 
-        explicit Session(const quantlib::v1::OpenSession& msg);
+        explicit Session(const quantlib::v2::OpenSession& msg);
 
         //! Live forwarding/discount curve by id; throws when unknown.
         /*! An unknown id must not return an empty handle: an index built on
@@ -92,13 +109,26 @@ namespace qlservice {
         */
         QuantLib::Handle<QuantLib::YieldTermStructure> curve(const std::string& curveId) const;
 
+        //! Every market id this session built, in the order it built them.
+        const std::vector<std::string>& marketIds() const { return marketIds_; }
+
         //! Applies a batch of quote writes, then commits once.
         /*! The whole batch runs under one UpdateGuard so dependent instruments
             recalculate once rather than once per quote.
         */
-        void apply(const quantlib::v1::UpdateMarket& msg);
+        void apply(const quantlib::v2::UpdateMarket& msg);
 
-        PriceOutcome price(const quantlib::v1::PriceRequest& msg, const ProgressSink& progress);
+        PriceOutcome price(const quantlib::v2::PriceRequest& msg, const ProgressSink& progress);
+
+        //! Reads and writes one quote directly, for a scenario sweep.
+        /*! A sweep is N prices off one graph, so it cannot go through
+            `apply`: that takes an UpdateMarket, and the supervisor records
+            every UpdateMarket in the session log. A swept value is a question
+            rather than an edit and must not enter the replay (DESIGN §2.1),
+            which is why the sweep restores the quote by default.
+        */
+        double quoteValue(const std::string& quoteId, const std::string& fieldPath) const;
+        void writeQuote(const std::string& quoteId, double value, const std::string& fieldPath);
 
         //! True once a commit failed and the graph is only partly invalidated.
         /*! A dirty Session is not repaired in place: the worker drops it and
@@ -109,51 +139,58 @@ namespace qlservice {
         const QuantLib::Date& evaluationDate() const { return evaluationDate_; }
 
       private:
-        void buildCurves(const quantlib::v1::OpenSession& msg);
+        // --- market -------------------------------------------------------
+
+        void buildMarket(const quantlib::v2::OpenSession& msg);
+        void buildYieldCurve(const std::string& id,
+                             const quantlib::v2::YieldCurve& def,
+                             const std::string& fieldPath);
+        void buildVolatility(const std::string& id,
+                             const quantlib::v2::VolatilitySurface& def,
+                             const std::string& fieldPath);
+        void buildIndex(const std::string& id,
+                        const quantlib::v2::Index& def,
+                        const std::string& fieldPath);
+        void applyFixings(const quantlib::v2::FixingSeries& msg, const std::string& fieldPath);
 
         //! One bootstrap helper from one pillar quote.
         QuantLib::ext::shared_ptr<QuantLib::RateHelper>
-        buildHelper(const quantlib::v1::CurvePillar& pillar,
-                    const quantlib::v1::CurveDefinition& def,
+        buildHelper(const quantlib::v2::Pillar& pillar,
+                    const quantlib::v2::YieldCurve& def,
                     const std::string& fieldPath);
-
-        //! Builds a FlatForward from one quote, for a curve with no pillars.
-        QuantLib::Handle<QuantLib::YieldTermStructure>
-        makeFlatCurve(const quantlib::v1::CurveDefinition& def, const std::string& fieldPath);
 
         //! Instantiates the piecewise curve for a traits/interpolator pair.
         /*! `PiecewiseYieldCurve` is a template, so the pair cannot be resolved
             by a registry lookup the way a calendar is: each combination is a
             distinct type and has to be named in source. This is the explicit
             instantiation table, and the reason the schema offers a small fixed
-            set rather than an open one.
+            set rather than an open one (DESIGN §6.1).
         */
         QuantLib::Handle<QuantLib::YieldTermStructure>
-        makeCurve(const quantlib::v1::CurveDefinition& def,
+        makeCurve(const quantlib::v2::BootstrappedCurve& boot,
                   std::vector<QuantLib::ext::shared_ptr<QuantLib::RateHelper>> helpers,
+                  const QuantLib::DayCounter& dayCounter,
                   const std::string& fieldPath);
 
-        PriceOutcome priceOption(const quantlib::v1::PriceRequest& msg,
-                                 const ProgressSink& progress);
-
-        PriceOutcome priceSwap(const quantlib::v1::PriceRequest& msg);
-
-        //! Resolves a QuantoMarket message against this session's graph.
-        QuantoGraph quantoGraph(const quantlib::v1::QuantoMarket& msg,
-                                const std::string& fieldPath) const;
-
-        //! Prices any of the four quanto shapes.
-        /*! One method rather than four because they differ only in the
-            instrument and the inner engine, and `QuantoEngine<Instr, Engine>`
-            makes each pair a distinct type. The switch below is therefore an
-            explicit instantiation table like `makeCurve`, for the same reason
-            (DESIGN §6.1).
-        */
-        PriceOutcome priceQuantoOption(const quantlib::v1::PriceRequest& msg);
+        // --- resolution ---------------------------------------------------
 
         //! One live quote by id; throws naming the field when unknown.
         QuantLib::Handle<QuantLib::Quote> quoteHandle(const std::string& quoteId,
                                                       const std::string& fieldPath) const;
+
+        //! A Number, which is either a live quote or a constant.
+        /*! A `fixed` becomes a SimpleQuote nobody holds an id for, so the
+            graph shape is identical either way and only the bumpability
+            differs.
+        */
+        QuantLib::Handle<QuantLib::Quote> number(const quantlib::v2::Number& msg,
+                                                 const std::string& fieldPath) const;
+
+        QuantLib::Handle<QuantLib::BlackVolTermStructure>
+        volatility(const std::string& volId, const std::string& fieldPath) const;
+
+        QuantLib::ext::shared_ptr<QuantLib::IborIndex>
+        indexById(const std::string& indexId, const std::string& fieldPath) const;
 
         //! Parses an expiry and rejects one that is not after the evaluation date.
         /*! An already-expired option is not a pricing failure in QuantLib — it
@@ -163,22 +200,46 @@ namespace qlservice {
         QuantLib::Date expiryDate(const quantlib::v1::Date& msg,
                                   const std::string& fieldPath) const;
 
-        //! Schedule for one swap leg.
-        QuantLib::Schedule schedule(const quantlib::v1::SwapLeg& leg,
-                                    const QuantLib::Date& start,
-                                    const QuantLib::Date& maturity,
+        // --- instruments --------------------------------------------------
+
+        //! Resolves an Underlying, plus the request's Quanto block if any.
+        EquityGraph equityGraph(const quantlib::v2::Underlying& msg,
+                                const quantlib::v2::Option& option,
+                                const std::string& fieldPath) const;
+
+        QuantLib::ext::shared_ptr<QuantLib::StrikedTypePayoff>
+        payoff(const quantlib::v2::Payoff& msg, const std::string& fieldPath) const;
+
+        QuantLib::ext::shared_ptr<QuantLib::Exercise>
+        exercise(const quantlib::v2::Exercise& msg, const std::string& fieldPath) const;
+
+        //! Prices any of the supported option styles.
+        /*! One method rather than one per style, because they differ only in
+            the instrument and the inner engine, and every quanto pairing is a
+            distinct C++ type. The switch below is an explicit instantiation
+            table like `makeCurve`, for the same reason (DESIGN §6.1).
+        */
+        PriceOutcome priceOption(const quantlib::v2::PriceRequest& msg,
+                                 const ProgressSink& progress);
+
+        PriceOutcome priceSwap(const quantlib::v2::PriceRequest& msg);
+
+        //! Builds one leg's cash flows.
+        QuantLib::Leg buildLeg(const quantlib::v2::Leg& msg, const std::string& fieldPath);
+
+        QuantLib::Schedule schedule(const quantlib::v2::Schedule& msg,
                                     const std::string& fieldPath);
 
         //! Runs Monte Carlo in batches so progress can be reported.
         PriceOutcome priceInBatches(
-            const quantlib::v1::PriceRequest& msg,
+            const quantlib::v2::PriceRequest& msg,
             const QuantLib::ext::shared_ptr<QuantLib::VanillaOption>& option,
-            const QuantLib::ext::shared_ptr<QuantLib::GeneralizedBlackScholesProcess>& process,
+            const EquityGraph& graph,
             const ProgressSink& progress);
 
         /*! Owned, not borrowed, and bound to this session's own curve map:
             the registry resolves forwarding curves while the graph is still
-            being built, so it has to see `curves_` as it fills. Curve
+            being built, so it has to see `curves_` as it fills. Market
             definitions therefore arrive in dependency order.
         */
         ConventionRegistry registry_;
@@ -195,6 +256,11 @@ namespace qlservice {
         std::map<std::string, QuantLib::ext::shared_ptr<QuantLib::SimpleQuote>> quotes_;
 
         std::map<std::string, QuantLib::Handle<QuantLib::YieldTermStructure>> curves_;
+        std::map<std::string, QuantLib::Handle<QuantLib::BlackVolTermStructure>> vols_;
+        std::map<std::string, QuantLib::ext::shared_ptr<QuantLib::IborIndex>> indices_;
+
+        //! Every id in the market namespace, in definition order.
+        std::vector<std::string> marketIds_;
 
         bool dirty_ = false;
     };
