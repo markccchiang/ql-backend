@@ -35,7 +35,7 @@ process for now, so a cancel that has to kill cannot (DESIGN §3), and
 replay-after-death is never exercised.
 
 ```bash
-git submodule update --init --recursive                        # uWebSockets + uSockets
+git submodule update --init --recursive                        # proto, uWebSockets + uSockets
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
 cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
 cmake --build build -j
@@ -64,12 +64,12 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | --- | --- |
 | [`INSTALL.md`](INSTALL.md) | Prerequisites, both build routes, and what fails silently |
 | [`DESIGN.md`](DESIGN.md) | The architecture: what each component owns and which QuantLib constraint forces it |
-| [`proto/quantlib/v2/envelope.proto`](proto/quantlib/v2/envelope.proto) | Transport envelope, session lifecycle, pricing, sweeps, cancellation |
-| [`proto/quantlib/v2/market.proto`](proto/quantlib/v2/market.proto) | The market namespace: quotes, curves, volatility, indices, fixings |
-| [`proto/quantlib/v2/instrument.proto`](proto/quantlib/v2/instrument.proto) | Payoff × exercise × underlying × style, and the legs |
-| [`proto/quantlib/v2/engine.proto`](proto/quantlib/v2/engine.proto) | Method × model, and the parameter block each one takes |
-| [`proto/quantlib/v2/results.proto`](proto/quantlib/v2/results.proto) | What comes back: the `Value` variant, cash flows, plot series |
-| [`proto/quantlib/v1/conventions.proto`](proto/quantlib/v1/conventions.proto) | Convention enums and messages — shared by both schema versions |
+| [`proto/quantlib/v2/envelope.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/envelope.proto) | Transport envelope, session lifecycle, pricing, sweeps, cancellation |
+| [`proto/quantlib/v2/market.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/market.proto) | The market namespace: quotes, curves, volatility, indices, fixings |
+| [`proto/quantlib/v2/instrument.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/instrument.proto) | Payoff × exercise × underlying × style, and the legs |
+| [`proto/quantlib/v2/engine.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/engine.proto) | Method × model, and the parameter block each one takes |
+| [`proto/quantlib/v2/results.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/results.proto) | What comes back: the `Value` variant, cash flows, plot series |
+| [`proto/quantlib/v1/conventions.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v1/conventions.proto) | Convention enums and messages — shared by both schema versions |
 | [`src/conventions/registry.hpp`](src/conventions/registry.hpp) | Registry interface: proto → QuantLib objects |
 | [`src/conventions/registry.cpp`](src/conventions/registry.cpp) | Reference implementation of the translation |
 | [`src/session/session.hpp`](src/session/session.hpp) / [`.cpp`](src/session/session.cpp) | One client's live object graph: quotes, curves, pricing |
@@ -82,5 +82,6 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | [`src/app/main.cpp`](src/app/main.cpp) | `ql-backend` entry point |
 | [`test/`](test/README.md) | The end-to-end smoke script, the reference-table generator, and how to run them |
 | [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
+| `proto` | Submodule: the wire schema, [ql-protobuf](https://github.com/markccchiang/ql-protobuf) |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |
 | `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON` |

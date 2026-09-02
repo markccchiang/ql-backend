@@ -8,3 +8,10 @@
 	path = third_party/QuantLib
 	url = https://github.com/lballabio/QuantLib.git
 	update = none
+# The wire schema, kept in its own repository so a client can consume it
+# without cloning the service. Required, unlike the two above: the .proto files
+# are named directly in add_library(), so an uninitialized proto/ fails the
+# configure rather than degrading.
+[submodule "proto"]
+	path = proto
+	url = https://github.com/markccchiang/ql-protobuf.git

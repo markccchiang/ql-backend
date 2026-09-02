@@ -22,7 +22,7 @@ spelled `QLSERVICE_*`, after the library.
 | Boost ≥ 1.58, headers | 1.92.0 (Homebrew) | Required by QuantLib on **both** routes |
 | Protobuf with a CMake package config | 34.0 (Homebrew) | Found in CONFIG mode; see below |
 | `protoc` | 34.0 | Invoked by the build, not by hand |
-| git | | Both routes use submodules |
+| git | | Both routes use submodules; the wire schema is one of them |
 | Python 3 with `venv` | 3.14 | Only for `test/`, not for the build |
 
 On macOS with Homebrew: `brew install cmake boost protobuf`.
@@ -38,7 +38,7 @@ external dependency on both routes.
 ## Route A — build QuantLib from the submodule
 
 ```bash
-git submodule update --init --recursive                        # uWebSockets + uSockets
+git submodule update --init --recursive                        # proto, uWebSockets + uSockets
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
 cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
 cmake --build build -j
@@ -141,6 +141,10 @@ vendored QuantLib's headers are marked as system includes.
 - **`QuantLib_DIR` is cached.** Changing `CMAKE_PREFIX_PATH` on an existing
   build tree does not move an already-resolved QuantLib. Reconfigure with
   `cmake --fresh` or delete the tree.
+- **An uninitialized `proto` is a hard error.** The schema is a submodule,
+  and `add_library()` names its `.proto` files directly, so a clone that skips
+  `git submodule update` fails the configure with `Cannot find source file`
+  rather than degrading. It is the one submodule with no graceful path.
 - **An uninitialized `third_party/uWebSockets` is not an error.** The configure
   succeeds, `libqlservice.a` still builds, and only the `ql-backend` executable
   is skipped — with a message telling you to init the submodule. If you ran
