@@ -51,8 +51,13 @@ correct without are build settings rather than properties of somebody's install
 tree. That is the whole reason this route exists — see
 [Why sessions matter](#why-sessions-matter).
 
-Two notes:
+Three notes:
 
+- `-Wno-dev` suppresses one warning, and it is QuantLib's rather than this
+  project's: `CMP0167`, the removal of CMake's `FindBoost` module, raised at
+  `third_party/QuantLib/CMakeLists.txt:164`. It is a policy a parent project
+  cannot set on a submodule's behalf. Drop the flag to see it; nothing else is
+  hidden, and Route B configures clean with or without it.
 - The second command is separate because the QuantLib submodule is marked
   `update = none` in `.gitmodules`. A plain `--init --recursive` skips it, so
   nobody on Route B pays for an 800 MB clone they will not use. `--checkout` is
