@@ -212,28 +212,28 @@ if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
     # The gateway executable
     # -----------------------------------------------------------------------
 
-    add_executable(qlserviced
+    add_executable(ql-backend
         src/app/main.cpp
         src/gateway/gateway.cpp
         src/gateway/threadhost.cpp
     )
 
-    target_include_directories(qlserviced SYSTEM PRIVATE "${QLSERVICE_UWS}/src")
+    target_include_directories(ql-backend SYSTEM PRIVATE "${QLSERVICE_UWS}/src")
 
     # No permessage-deflate: the frames are already compact protobuf, and it
     # drops the zlib dependency.
-    target_compile_definitions(qlserviced PRIVATE UWS_NO_ZLIB)
+    target_compile_definitions(ql-backend PRIVATE UWS_NO_ZLIB)
 
-    target_link_libraries(qlserviced PRIVATE qlservice usockets)
+    target_link_libraries(ql-backend PRIVATE qlservice usockets)
 
     # -Wpedantic is left off here alone: uWebSockets' templates are
     # instantiated in this target and are not written to it.
-    target_compile_options(qlserviced PRIVATE -Wall -Wextra -Wno-switch)
+    target_compile_options(ql-backend PRIVATE -Wall -Wextra -Wno-switch)
 
 else()
 
     message(STATUS
-        "third_party/uWebSockets is empty, so the qlserviced target is skipped. "
+        "third_party/uWebSockets is empty, so the ql-backend target is skipped. "
         "Run: git submodule update --init --recursive")
 
 endif()

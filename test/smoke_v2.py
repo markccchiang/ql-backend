@@ -9,7 +9,7 @@ One session, one live graph. Each row is a quote write plus a price, which is
 the shape a frontend actually drives — and the reason the backend is stateful
 at all.
 
-    ./build/qlserviced --port 9111 &
+    ./build/ql-backend --port 9111 &
     /tmp/qlvenv/bin/python test/smoke_v2.py /tmp/qlpb2
 """
 

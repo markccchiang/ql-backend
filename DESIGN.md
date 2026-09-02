@@ -505,7 +505,7 @@ tree where `v1` still has to keep working.
 `proto/quantlib/v2/` is `v1` re-derived from QuantLib's own decomposition
 instead of from the two instruments that happened to be needed first. Nothing
 serves it yet — it is built so protoc and the compiler check it, which is the
-only verification this repository has — and `v1` remains the schema `qlserviced`
+only verification this repository has — and `v1` remains the schema `ql-backend`
 speaks.
 
 **Where it comes from.** QuantLib's `test-suite/` is 188 `.cpp` files, and its
@@ -591,7 +591,7 @@ invalidated — against N round trips that each rebuild everything. That is the
 entire argument for a stateful backend (§5), and until now nothing in the
 schema let a client ask for it in one request.
 
-**It is what the service speaks.** `qlserviced` was ported to `v2` in the same
+**It is what the service speaks.** `ql-backend` was ported to `v2` in the same
 pass: `Session` is rebuilt around the market namespace and the payoff x
 exercise x style decomposition, and the transport above it — worker,
 supervisor, gateway — carries `v2` frames. `v1` remains in the tree because

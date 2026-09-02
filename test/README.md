@@ -1,6 +1,6 @@
 # Smoke tests
 
-`smoke_v2.py` drives `qlserviced` over a real WebSocket and is the only proof
+`smoke_v2.py` drives `ql-backend` over a real WebSocket and is the only proof
 the service works; there is no unit-test target yet.
 
 It checks two different kinds of thing, and the distinction matters.
@@ -58,7 +58,7 @@ python3 -m venv /tmp/qlvenv && /tmp/qlvenv/bin/pip install websockets protobuf
 protoc -I proto --python_out=/tmp/qlpb2 proto/quantlib/v1/*.proto proto/quantlib/v2/*.proto
 touch /tmp/qlpb2/quantlib/__init__.py /tmp/qlpb2/quantlib/v{1,2}/__init__.py
 
-./build/qlserviced --port 9111 &
+./build/ql-backend --port 9111 &
 /tmp/qlvenv/bin/python test/smoke_v2.py /tmp/qlpb2
 ```
 

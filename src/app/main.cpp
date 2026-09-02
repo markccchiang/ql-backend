@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*! \file main.cpp
-    \brief the qlserviced entry point
+    \brief the ql-backend entry point
 */
 
 #include "gateway/gateway.hpp"
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
         } else if (arg == "--host" && i + 1 < argc) {
             options.host = argv[++i];
         } else if (arg == "--help" || arg == "-h") {
-            std::printf("usage: qlserviced [--host ADDR] [--port N]\n");
+            std::printf("usage: ql-backend [--host ADDR] [--port N]\n");
             return 0;
         } else {
             std::fprintf(stderr, "unknown argument '%s'\n", arg.c_str());

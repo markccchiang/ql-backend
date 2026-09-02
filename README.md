@@ -8,7 +8,7 @@ only the instruments that depend on it.
 The design, and the QuantLib constraints that force it, are in
 [`DESIGN.md`](DESIGN.md).
 
-**Status.** It runs, and it prices correctly. `qlserviced` serves the protocol
+**Status.** It runs, and it prices correctly. `ql-backend` serves the protocol
 over a WebSocket: a session opens, a quote bump reprices off the live graph,
 one frame sweeps a quote across a spot ladder, Monte Carlo reports progress,
 and a cancel comes back as `CANCELLED` with the session still alive.
@@ -39,7 +39,7 @@ git submodule update --init --recursive                        # uWebSockets + u
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
 cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
 cmake --build build -j
-./build/qlserviced --port 9111
+./build/ql-backend --port 9111
 ```
 
 That builds QuantLib from the submodule, which is the route that works
@@ -79,7 +79,7 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | [`src/errors/fielderror.hpp`](src/errors/fielderror.hpp) | The exception that carries a wire code and the proto field to blame |
 | [`src/gateway/gateway.hpp`](src/gateway/gateway.hpp) / [`.cpp`](src/gateway/gateway.cpp) | The WebSocket front end: loop, session ids, backpressure, deadlines |
 | [`src/gateway/threadhost.hpp`](src/gateway/threadhost.hpp) / [`.cpp`](src/gateway/threadhost.cpp) | The staging `ProcessHost`: workers as threads, so a kill only disowns |
-| [`src/app/main.cpp`](src/app/main.cpp) | `qlserviced` entry point |
+| [`src/app/main.cpp`](src/app/main.cpp) | `ql-backend` entry point |
 | [`test/`](test/README.md) | The end-to-end smoke script, the reference-table generator, and how to run them |
 | [`CMakeLists.txt`](CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |

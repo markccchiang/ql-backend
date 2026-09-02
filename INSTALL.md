@@ -9,9 +9,9 @@ Route B is the default in `CMakeLists.txt`, because a QuantLib build is nearly a
 thousand translation units and you do not want to repeat it. Route A is the one
 to start with, because it cannot be misconfigured.
 
-The targets are `qlservice` (the static library) and `qlserviced` (the daemon).
-The CMake project is named `ql-backend` — that is the name CLion and
-`CMAKE_PROJECT_NAME` show, and nothing in the build depends on it.
+The targets are `qlservice` (the static library) and `ql-backend` (the daemon,
+which shares its name with the CMake project). The build options below are
+spelled `QLSERVICE_*`, after the library.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ git submodule update --init --recursive                        # uWebSockets + u
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
 cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
 cmake --build build -j
-./build/qlserviced --port 9111
+./build/ql-backend --port 9111
 ```
 
 `CMakeLists.txt` forces `QL_ENABLE_SESSIONS=ON` and `QL_ENABLE_OPENMP=OFF`
@@ -78,7 +78,7 @@ all of them are new.
 git submodule update --init --recursive
 cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions
 cmake --build build -j
-./build/qlserviced --port 9111
+./build/ql-backend --port 9111
 ```
 
 `CMAKE_PREFIX_PATH` must name a QuantLib **built with `QL_ENABLE_SESSIONS`**.
@@ -142,7 +142,7 @@ vendored QuantLib's headers are marked as system includes.
   build tree does not move an already-resolved QuantLib. Reconfigure with
   `cmake --fresh` or delete the tree.
 - **An uninitialized `third_party/uWebSockets` is not an error.** The configure
-  succeeds, `libqlservice.a` still builds, and only the `qlserviced` executable
+  succeeds, `libqlservice.a` still builds, and only the `ql-backend` executable
   is skipped — with a message telling you to init the submodule. If you ran
   `cmake` before `git submodule update`, this is why there is no binary.
 - **`--recursive` matters for uWebSockets**, which nests uSockets inside itself.
@@ -154,7 +154,7 @@ vendored QuantLib's headers are marked as system includes.
 
 ## Verifying the build
 
-There is no unit-test target. `test/smoke_v2.py` drives a running `qlserviced`
+There is no unit-test target. `test/smoke_v2.py` drives a running `ql-backend`
 over a real WebSocket; [`test/README.md`](test/README.md) has the setup and how
 to run it.
 
