@@ -64,6 +64,7 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | --- | --- |
 | [`INSTALL.md`](INSTALL.md) | Prerequisites, both build routes, and what fails silently |
 | [`DESIGN.md`](DESIGN.md) | The architecture: what each component owns and which QuantLib constraint forces it |
+| [`HANDLERS.md`](HANDLERS.md) | Every handler the service implements today, and how to drive it |
 | [`proto/quantlib/v2/envelope.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/envelope.proto) | Transport envelope, session lifecycle, pricing, sweeps, cancellation |
 | [`proto/quantlib/v2/market.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/market.proto) | The market namespace: quotes, curves, volatility, indices, fixings |
 | [`proto/quantlib/v2/instrument.proto`](https://github.com/markccchiang/ql-protobuf/blob/main/quantlib/v2/instrument.proto) | Payoff × exercise × underlying × style, and the legs |
