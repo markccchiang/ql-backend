@@ -35,12 +35,12 @@ CMake package config will not work.
 Vendoring QuantLib does **not** make the build self-contained: Boost is an
 external dependency on both routes.
 
-## Route A — build QuantLib from the submodule
+## Route A (Recommended) — build QuantLib from the submodule
 
 ```bash
 git submodule update --init --recursive                        # proto, uWebSockets + uSockets
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
-cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
+cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON -Wno-dev
 cmake --build build -j
 ./build/ql-backend --port 9111
 ```
@@ -76,7 +76,7 @@ all of them are new.
 
 ```bash
 git submodule update --init --recursive
-cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions
+cmake -S . -B build -DCMAKE_PREFIX_PATH=$HOME/.local/quantlib-sessions -Wno-dev
 cmake --build build -j
 ./build/ql-backend --port 9111
 ```
