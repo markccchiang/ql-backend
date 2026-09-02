@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 # C is enabled for uSockets, the C library under uWebSockets, which is built
 # from the submodule rather than linked as a prebuilt archive.
-project(qlservice C CXX)
+project(ql-backend C CXX)
 
 # C++17 is QuantLib's baseline (QuantLib AGENTS.md §1); staying on it keeps a
 # worker binary compilable against the same library the rest of the stack uses.

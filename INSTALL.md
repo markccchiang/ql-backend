@@ -9,6 +9,10 @@ Route B is the default in `CMakeLists.txt`, because a QuantLib build is nearly a
 thousand translation units and you do not want to repeat it. Route A is the one
 to start with, because it cannot be misconfigured.
 
+The targets are `qlservice` (the static library) and `qlserviced` (the daemon).
+The CMake project is named `ql-backend` — that is the name CLion and
+`CMAKE_PROJECT_NAME` show, and nothing in the build depends on it.
+
 ## Prerequisites
 
 | Needs | Known good here | Notes |

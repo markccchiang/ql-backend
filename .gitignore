@@ -3,10 +3,11 @@
 
 # Build trees
 build/
+build-vendored/
 cmake-build-release/
 
-# Byte-compiled test scripts. test/smoke_quanto.py guards its entry point so
-# its reference tables can be imported, and importing it leaves one of these.
+# Byte-compiled test scripts. test/smoke_v2.py imports the generated
+# reference_tables.py, and importing it leaves one of these.
 __pycache__/
 
 # Agent instructions, kept local
