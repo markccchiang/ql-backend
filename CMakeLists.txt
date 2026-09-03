@@ -135,6 +135,7 @@ target_compile_options(qlservice_proto PRIVATE -w)
 
 add_library(qlservice STATIC
     src/conventions/registry.cpp
+    src/session/capabilities.cpp
     src/session/session.cpp
     src/session/supervisor.cpp
     src/session/worker.cpp

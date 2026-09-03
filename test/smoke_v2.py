@@ -304,6 +304,24 @@ async def main():
 
     async with websockets.connect(URL, max_size=16 << 20) as ws:
 
+        # -- what this build says it can do ----------------------------------
+        #
+        # The lists in src/session/capabilities.cpp and the dispatch in
+        # session.cpp are the same fact told twice. These checks tie the
+        # advertisement to observed behaviour so the two cannot drift apart
+        # silently, which is the whole reason the handshake exists.
+        print("\n  -- capabilities --")
+        f = E.ClientFrame(request_id=next_id())
+        f.hello.SetInParent()
+        caps = (await send(ws, f)).capabilities
+        check("Hello answers with Capabilities",
+              bool(caps.option_styles) and bool(caps.engine_methods) and bool(caps.result_kinds),
+              f"{len(caps.option_styles)} styles, {len(caps.engine_methods)} methods, "
+              f"{len(caps.result_kinds)} result kinds")
+        check("it names the build it is",
+              bool(caps.build) and bool(caps.quantlib_version),
+              f"{caps.build!r} on QuantLib {caps.quantlib_version!r}")
+
         # -- lifecycle -------------------------------------------------------
         print("\n  -- session lifecycle --")
         f = open_session()
@@ -571,6 +589,20 @@ async def main():
         f.price.include_cashflows = True
         await rejected("include_cashflows on a build without it", f, "include_cashflows",
                        E.Error.UNSUPPORTED)
+        check("and does not advertise it",
+              "include_cashflows" not in caps.price_request_options,
+              f"options={list(caps.price_request_options)}")
+
+        # Nothing advertised may be refused. The option path ignores a kind it
+        # has no answer for rather than failing, so this catches the opposite
+        # mistake: a kind advertised that the build rejects outright.
+        f = vanilla_frame(sid, row)
+        for kind in caps.result_kinds:
+            f.price.results.append(kind)
+        reply = await send(ws, f)
+        check("every advertised result kind is accepted", reply.HasField("price_result"),
+              f"got {reply.WhichOneof('payload')}"
+              + (f" {reply.error.field_path}" if reply.HasField("error") else ""))
         f = vanilla_frame(sid, row)
         f.price.curve_samples.add().market_id = "RC"
         await rejected("curve_samples on a build without it", f, "curve_samples",

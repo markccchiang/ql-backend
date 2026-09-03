@@ -3,6 +3,7 @@
 #include "gateway.hpp"
 #include "App.h"
 #include "quantlib/v2/envelope.pb.h"
+#include "session/capabilities.hpp"
 #include "session/supervisor.hpp"
 #include "threadhost.hpp"
 #include <chrono>
@@ -231,6 +232,15 @@ namespace qlservice {
                 } catch (const std::exception& e) {
                     fail(sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT, e.what());
                 }
+                return;
+            }
+
+            if (frame.has_hello()) {
+                // Answered here and never forwarded: what the build can price
+                // is a property of the service, not of a session, and a client
+                // has to be able to ask before it has opened one.
+                emit("", frame.request_id(),
+                     [](qlpb::ServerFrame& out) { fillCapabilities(*out.mutable_capabilities()); });
                 return;
             }
 
