@@ -583,6 +583,34 @@ async def main():
         await rejected("a sweep plotting a result with no single value", f, "scenario.plot",
                        E.Error.UNSUPPORTED)
 
+        # A quanto lookback was priced as a plain one: the lookback arm builds
+        # its engines on the bare process and nothing there consulted the
+        # quanto graph, so the FX adjustment was dropped and a number came back
+        # for a different trade. HANDLERS.md said quanto was unavailable on a
+        # lookback all along; this is the check that the code agrees.
+        f, opt = base_frame(sid)
+        opt.payoff.type = OPTION_TYPE[row["type"]]
+        opt.payoff.plain.strike = row["strike"]
+        set_exercise(opt, "european", row["t"])
+        underlying(opt, quanto=True)
+        opt.lookback.running_extremum = row["strike"]
+        f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+        await rejected("a quanto lookback, which has no engine", f,
+                       "instrument.option.quanto", E.Error.UNSUPPORTED)
+
+        # The same trade without the FX leg still prices, so the refusal is
+        # about the quanto rather than about lookbacks.
+        f, opt = base_frame(sid)
+        opt.payoff.type = OPTION_TYPE[row["type"]]
+        opt.payoff.plain.strike = row["strike"]
+        set_exercise(opt, "european", row["t"])
+        underlying(opt)
+        opt.lookback.running_extremum = row["strike"]
+        f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+        reply = await send(ws, f)
+        check("a plain lookback still prices", reply.HasField("price_result"),
+              f"got {reply.WhichOneof('payload')}")
+
         # And one the build does serve: the engine's own additional results.
         f = vanilla_frame(sid, row)
         f.price.include_additional_results = True

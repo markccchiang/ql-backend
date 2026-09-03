@@ -1693,6 +1693,18 @@ namespace qlservice {
 
                 QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
                                   "the continuous lookback engines are European only");
+                // Without this the request is priced as a plain lookback. The
+                // engines below take graph.process directly and nothing on
+                // this path consults graph.quanto, so the adjustment would be
+                // dropped and a number returned for a different trade -- the
+                // one failure mode DESIGN §6 exists to prevent. QuantLib has
+                // no quanto lookback instrument to carry the results and the
+                // test suite has no reference value for one, so this is
+                // refused by name rather than answered on a substitute.
+                // HANDLERS.md already says quanto is unavailable here; this is
+                // the code agreeing with it.
+                QLS_FIELD_REQUIRE(!graph.quanto, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                  "there is no quanto lookback engine in QuantLib");
                 QLS_FIELD_REQUIRE(eng.method() == qlpb::Engine_Method_METHOD_ANALYTIC,
                                   qlpb::Error::UNSUPPORTED, "engine.method",
                                   "lookback options take METHOD_ANALYTIC");
