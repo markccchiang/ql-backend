@@ -319,7 +319,18 @@ without it cannot tell that from a vega of zero.
 `include_additional_results` returns whatever the engine published in its own
 `additionalResults` map. Every value this layer reports is a **scalar** — the
 vector and matrix arms of `Value` are not filled. `error_estimate` is populated
-whenever the engine has one. `include_cashflows` is still `UNSUPPORTED`.
+whenever the engine has one.
+
+`include_cashflows` is served for the cash-flow instruments, which today means
+swaps. Each row carries its payment date, amount, the discount the engine used
+and their product, so the **sum of the present-value column is the NPV** — that
+property is what makes the table worth showing rather than decorating, and
+`test/smoke_v2.py` checks it. Coupons add their accrual dates, notional and
+rate; floating coupons add the fixing date, the spread and the gearing, and
+say whether the fixing came from `IndexManager` or is still a forecast. Rows
+that have already been paid are left out. Asked of an **option** it is
+`UNSUPPORTED`: an empty table would read as an instrument that happens to have
+no cash flows rather than one that was never going to have any.
 
 `curve_samples` is served. Each entry names a market object and a quantity and
 comes back as a `Series` on the result, sampled from the very handle the engine

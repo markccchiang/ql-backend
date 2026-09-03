@@ -585,12 +585,15 @@ async def main():
         # refused, not dropped: a client that asked for a cash-flow table and
         # got a price without one cannot tell that from an instrument with no
         # cash flows.
+        # Served for cash-flow instruments and refused for an option, which
+        # has no coupons: an empty table would read as an instrument that has
+        # none rather than one that was never going to.
         f = vanilla_frame(sid, row)
         f.price.include_cashflows = True
-        await rejected("include_cashflows on a build without it", f, "include_cashflows",
-                       E.Error.UNSUPPORTED)
-        check("and does not advertise it",
-              "include_cashflows" not in caps.price_request_options,
+        await rejected("include_cashflows on an option, which has no cash flows", f,
+                       "include_cashflows", E.Error.UNSUPPORTED)
+        check("and it is advertised, because a swap does have them",
+              "include_cashflows" in caps.price_request_options,
               f"options={list(caps.price_request_options)}")
 
         # Nothing advertised may be refused. The option path ignores a kind it
@@ -1040,6 +1043,36 @@ async def main():
                 check("a pillar bump moves the swap through the relinked index",
                       abs(bumped - at_par) > 1.0,
                       f"{at_par:.4f} -> {bumped:.4f}")
+
+                # The cash-flow table is the panel showing its working, and the
+                # property that makes it worth showing is that its present
+                # values add up to the NPV. Leg 0 pays and leg 1 receives, so
+                # the signs come from the trade rather than from the rows.
+                f = swap_frame(sid3)
+                f.price.include_cashflows = True
+                reply = await send(ws, f)
+                rows = list(reply.price_result.cashflows)
+                total = sum((-1.0 if r.leg == 0 else 1.0) * r.present_value for r in rows)
+                check("the cash-flow table adds up to the NPV",
+                      bool(rows) and abs(total - reply.price_result.npv) < 1e-8,
+                      f"{len(rows)} rows, sum={total:.6f} npv={reply.price_result.npv:.6f}")
+
+                fixed = [r for r in rows if r.leg == 0]
+                floating = [r for r in rows if r.leg == 1]
+                check("a fixed row carries its accrual and its rate",
+                      bool(fixed) and all(r.notional > 0 and r.accrual_period > 0
+                                          and r.rate > 0 for r in fixed),
+                      f"{len(fixed)} fixed rows")
+                # This swap starts in two days, so none of its fixings has
+                # happened; what is checked is that the flag agrees with the
+                # date beside it rather than that both kinds are present.
+                consistent = all(
+                    r.is_past_fixing == (r.fixing_date.iso <= TODAY.isoformat())
+                    for r in floating)
+                check("a floating row's fixing flag agrees with its fixing date",
+                      bool(floating) and consistent,
+                      f"{len(floating)} rows, first fixing {floating[0].fixing_date.iso if floating else '-'}"
+                      f", evaluation date {TODAY.isoformat()}")
 
             # The fair-rate formula assumes fixed first, floating second; any
             # other order would return a wrong number silently.

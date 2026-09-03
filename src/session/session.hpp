@@ -72,6 +72,12 @@ namespace qlservice {
                 not price with.
             */
             std::vector<quantlib::v2::Series> series;
+            //! The cash flows behind the NPV, when asked for.
+            /*! A table rather than a number, because the sum of its
+                present-value column is the NPV: it is the panel showing its
+                working, and the property a client can check.
+            */
+            std::vector<quantlib::v2::CashFlow> cashflows;
         };
 
         //! The live handles one option's engine is assembled from.
@@ -207,6 +213,11 @@ namespace qlservice {
 
         //! Fills PriceOutcome::series from PriceRequest::curve_samples.
         void sampleCurves(const quantlib::v2::PriceRequest& msg, PriceOutcome& out) const;
+
+        //! Fills PriceOutcome::cashflows from a priced swap's legs.
+        void fillCashflows(const std::vector<QuantLib::Leg>& legs,
+                           const QuantLib::Handle<QuantLib::YieldTermStructure>& discount,
+                           PriceOutcome& out) const;
 
         QuantLib::ext::shared_ptr<QuantLib::IborIndex>
         indexById(const std::string& indexId, const std::string& fieldPath) const;

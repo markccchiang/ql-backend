@@ -118,10 +118,9 @@ namespace qlservice {
         for (const auto kind : {qlpb::Leg_Kind_KIND_FIXED, qlpb::Leg_Kind_KIND_IBOR})
             out.add_leg_kinds(kind);
 
-        // include_cashflows is still rejected by this build (Session::price),
-        // so it is absent rather than listed.
         out.add_price_request_options("include_additional_results");
         out.add_price_request_options("curve_samples");
+        out.add_price_request_options("include_cashflows");
     }
 
 }

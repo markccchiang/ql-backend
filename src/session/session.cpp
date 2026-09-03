@@ -75,6 +75,15 @@ namespace qlservice {
 
     namespace {
 
+        //! Writes a QuantLib date into the wire's ISO form.
+        void writeDate(quantlib::v1::Date& out, const Date& date) {
+            std::ostringstream iso;
+            iso << std::setfill('0') << std::setw(4) << static_cast<int>(date.year()) << '-'
+                << std::setw(2) << static_cast<int>(date.month()) << '-' << std::setw(2)
+                << static_cast<int>(date.dayOfMonth());
+            out.set_iso(iso.str());
+        }
+
         //! The name a sampled quantity is reported under.
         const char* quantityName(qlpb::CurveSample::Quantity quantity) {
             switch (quantity) {
@@ -1100,8 +1109,13 @@ namespace qlservice {
         // Rejected, not dropped: a client that asked for a cash-flow table
         // and got a price without one cannot tell that from an instrument
         // with no cash flows.
-        QLS_FIELD_REQUIRE(!msg.include_cashflows(), qlpb::Error::UNSUPPORTED, "include_cashflows",
-                          "cash-flow tables are in the schema but not implemented");
+        // A cash-flow table is a property of a cash-flow instrument. An option
+        // has no coupons, and answering with an empty table would read as one
+        // that has none rather than one that was never going to have any.
+        QLS_FIELD_REQUIRE(!msg.include_cashflows() ||
+                              msg.instrument().kind_case() == qlpb::Instrument::kSwap,
+                          qlpb::Error::UNSUPPORTED, "include_cashflows",
+                          "cash-flow tables are for cash-flow instruments; this one has none");
 
         switch (msg.instrument().kind_case()) {
             case qlpb::Instrument::kOption: {
@@ -1768,6 +1782,58 @@ namespace qlservice {
     }
 
 
+    void Session::fillCashflows(const std::vector<Leg>& legs,
+                                const Handle<YieldTermStructure>& discount,
+                                PriceOutcome& out) const {
+        for (std::size_t i = 0; i < legs.size(); ++i) {
+            for (const auto& flow : legs[i]) {
+                if (flow->hasOccurred(evaluationDate_))
+                    continue;
+
+                qlpb::CashFlow row;
+                row.set_leg(static_cast<std::uint32_t>(i));
+                writeDate(*row.mutable_payment_date(), flow->date());
+                row.set_amount(flow->amount());
+
+                // The discount the engine used, not one recomputed from a
+                // different curve: the sum of the present-value column has to
+                // come to the NPV or the table is decoration.
+                const DiscountFactor df = discount->discount(flow->date());
+                row.set_discount(df);
+                row.set_present_value(flow->amount() * df);
+
+                if (const auto coupon = ext::dynamic_pointer_cast<Coupon>(flow)) {
+                    writeDate(*row.mutable_accrual_start(), coupon->accrualStartDate());
+                    writeDate(*row.mutable_accrual_end(), coupon->accrualEndDate());
+                    row.set_accrual_period(coupon->accrualPeriod());
+                    row.set_notional(coupon->nominal());
+                    row.set_rate(coupon->rate());
+                }
+
+                if (const auto floating = ext::dynamic_pointer_cast<FloatingRateCoupon>(flow)) {
+                    const Date fixing = floating->fixingDate();
+                    writeDate(*row.mutable_fixing_date(), fixing);
+                    row.set_spread(floating->spread());
+                    row.set_gearing(floating->gearing());
+                    // A fixing on or before the evaluation date came from
+                    // IndexManager; a later one is a forecast, and a client
+                    // reading a column of rates should be able to tell which
+                    // it is looking at.
+                    row.set_is_past_fixing(fixing <= evaluationDate_);
+                    try {
+                        row.set_index_fixing(floating->indexFixing());
+                    } catch (const Error&) {
+                        // A past fixing that was never supplied. The row is
+                        // still worth showing; the rate is what is missing.
+                    }
+                }
+
+                out.cashflows.push_back(std::move(row));
+            }
+        }
+    }
+
+
     void Session::sampleCurves(const qlpb::PriceRequest& msg, PriceOutcome& out) const {
         for (int i = 0; i < msg.curve_samples_size(); ++i) {
             const auto& sample = msg.curve_samples(i);
@@ -2086,10 +2152,14 @@ namespace qlservice {
             ext::make_shared<DiscountingSwapEngine>(
                 curveHandle(swapMsg.discount_curve_id(), base + ".discount_curve_id")));
 
+        const auto discount = curveHandle(swapMsg.discount_curve_id(), base + ".discount_curve_id");
         const auto t0 = std::chrono::steady_clock::now();
 
         PriceOutcome out;
         out.npv = swap->NPV();
+
+        if (msg.include_cashflows())
+            fillCashflows(legs, discount, out);
 
         for (const auto kind : msg.results()) {
             try {
