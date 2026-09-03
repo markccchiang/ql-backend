@@ -75,6 +75,22 @@ namespace qlservice {
 
     namespace {
 
+        //! The name a sampled quantity is reported under.
+        const char* quantityName(qlpb::CurveSample::Quantity quantity) {
+            switch (quantity) {
+                case qlpb::CurveSample::QUANTITY_ZERO_RATE:
+                    return "zeroRate";
+                case qlpb::CurveSample::QUANTITY_DISCOUNT_FACTOR:
+                    return "discountFactor";
+                case qlpb::CurveSample::QUANTITY_FORWARD_RATE:
+                    return "forwardRate";
+                case qlpb::CurveSample::QUANTITY_BLACK_VOLATILITY:
+                    return "blackVolatility";
+                default:
+                    return "unknown";
+            }
+        }
+
         double seconds(std::chrono::steady_clock::time_point from) {
             const auto elapsed = std::chrono::steady_clock::now() - from;
             return std::chrono::duration<double>(elapsed).count();
@@ -1086,14 +1102,18 @@ namespace qlservice {
         // with no cash flows.
         QLS_FIELD_REQUIRE(!msg.include_cashflows(), qlpb::Error::UNSUPPORTED, "include_cashflows",
                           "cash-flow tables are in the schema but not implemented");
-        QLS_FIELD_REQUIRE(msg.curve_samples_size() == 0, qlpb::Error::UNSUPPORTED, "curve_samples",
-                          "curve sampling is in the schema but not implemented");
 
         switch (msg.instrument().kind_case()) {
-            case qlpb::Instrument::kOption:
-                return priceOption(msg, progress);
-            case qlpb::Instrument::kSwap:
-                return priceSwap(msg);
+            case qlpb::Instrument::kOption: {
+                auto out = priceOption(msg, progress);
+                sampleCurves(msg, out);
+                return out;
+            }
+            case qlpb::Instrument::kSwap: {
+                auto out = priceSwap(msg);
+                sampleCurves(msg, out);
+                return out;
+            }
             case qlpb::Instrument::KIND_NOT_SET:
                 QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, "instrument",
                                "no instrument set at 'instrument'");
@@ -1745,6 +1765,111 @@ namespace qlservice {
         }
         QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, base,
                        "this option style is in the schema but not implemented");
+    }
+
+
+    void Session::sampleCurves(const qlpb::PriceRequest& msg, PriceOutcome& out) const {
+        for (int i = 0; i < msg.curve_samples_size(); ++i) {
+            const auto& sample = msg.curve_samples(i);
+            const std::string path = "curve_samples[" + std::to_string(i) + "]";
+
+            const bool byDate = sample.dates_size() > 0;
+            const bool byTime = sample.times_size() > 0;
+            QLS_FIELD_REQUIRE(byDate != byTime, qlpb::Error::INVALID_ARGUMENT, path,
+                              "a curve sample takes dates or times, one of the two");
+
+            // Rate quantities need to say what a rate means; a discount factor
+            // does not, and a compounding set beside one would be a field
+            // taken and ignored.
+            const auto quantity = sample.quantity();
+            const bool isRate = quantity == qlpb::CurveSample::QUANTITY_ZERO_RATE ||
+                                quantity == qlpb::CurveSample::QUANTITY_FORWARD_RATE;
+            const bool isVol = quantity == qlpb::CurveSample::QUANTITY_BLACK_VOLATILITY;
+
+            qlpb::Series series;
+            series.set_x_axis(byDate ? qlpb::Series::AXIS_DATE : qlpb::Series::AXIS_TIME_YEARS);
+
+            if (isRate || quantity == qlpb::CurveSample::QUANTITY_DISCOUNT_FACTOR) {
+                const auto curve = curveHandle(sample.market_id(), path + ".market_id");
+                Compounding compounding = Continuous;
+                Frequency frequency = Annual;
+                DayCounter dc;
+                if (isRate) {
+                    compounding = registry_.compounding(sample.compounding(), path + ".compounding");
+                    frequency = registry_.frequency(sample.frequency(), path + ".frequency");
+                    if (byDate)
+                        dc = registry_.dayCounter(sample.day_counter(), path + ".day_counter");
+                } else {
+                    QLS_FIELD_REQUIRE(
+                        sample.compounding() == quantlib::v1::COMPOUNDING_UNSPECIFIED,
+                        qlpb::Error::INVALID_ARGUMENT, path + ".compounding",
+                        "a discount factor has no compounding; it is the number a rate "
+                        "compounds to");
+                }
+
+                series.set_y_axis(isRate ? qlpb::Series::AXIS_RATE
+                                         : qlpb::Series::AXIS_DISCOUNT_FACTOR);
+                series.set_name(sample.market_id() + "." + quantityName(quantity));
+
+                for (int n = 0; n < (byDate ? sample.dates_size() : sample.times_size()); ++n) {
+                    Real value = 0.0;
+                    if (byDate) {
+                        const Date d = registry_.date(sample.dates(n),
+                                                      path + ".dates[" + std::to_string(n) + "]");
+                        value = quantity == qlpb::CurveSample::QUANTITY_ZERO_RATE
+                                    ? curve->zeroRate(d, dc, compounding, frequency).rate()
+                                : quantity == qlpb::CurveSample::QUANTITY_FORWARD_RATE
+                                    ? curve->forwardRate(d, d, dc, compounding, frequency).rate()
+                                    : curve->discount(d);
+                        *series.add_x_dates() = sample.dates(n);
+                    } else {
+                        const Time t = sample.times(n);
+                        value = quantity == qlpb::CurveSample::QUANTITY_ZERO_RATE
+                                    ? curve->zeroRate(t, compounding, frequency).rate()
+                                : quantity == qlpb::CurveSample::QUANTITY_FORWARD_RATE
+                                    ? curve->forwardRate(t, t, compounding, frequency).rate()
+                                    : curve->discount(t);
+                        series.add_x(t);
+                    }
+                    series.add_y(value);
+                }
+            } else if (isVol) {
+                // One strike gives a line. Several would give a surface, and a
+                // surface is a matrix rather than a series; that is a shape
+                // this reply cannot carry, so it is refused rather than
+                // flattened into the first strike.
+                QLS_FIELD_REQUIRE(sample.strikes_size() == 1, qlpb::Error::UNSUPPORTED,
+                                  path + ".strikes",
+                                  "sampling a surface takes exactly one strike: several would be "
+                                  "a matrix, which this reply does not carry");
+                const auto surface = volatility(sample.market_id(), path + ".market_id");
+                const Real strike = sample.strikes(0);
+
+                series.set_y_axis(qlpb::Series::AXIS_VOLATILITY);
+                series.set_name(sample.market_id() + "." + quantityName(quantity));
+
+                for (int n = 0; n < (byDate ? sample.dates_size() : sample.times_size()); ++n) {
+                    if (byDate) {
+                        const Date d = registry_.date(sample.dates(n),
+                                                      path + ".dates[" + std::to_string(n) + "]");
+                        series.add_y(surface->blackVol(d, strike));
+                        *series.add_x_dates() = sample.dates(n);
+                    } else {
+                        series.add_y(surface->blackVol(sample.times(n), strike));
+                        series.add_x(sample.times(n));
+                    }
+                }
+            } else {
+                // Survival, hazard and local volatility all need a term
+                // structure this build does not construct.
+                QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, path + ".quantity",
+                               "curve quantity at '" << path
+                                                     << ".quantity' is unspecified or not "
+                                                        "implemented");
+            }
+
+            out.series.push_back(std::move(series));
+        }
     }
 
 

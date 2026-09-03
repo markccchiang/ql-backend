@@ -183,6 +183,9 @@ namespace qlservice {
             (*result.mutable_results())[entry.first].set_scalar(wire(entry.second));
         }
 
+        for (const auto& series : outcome.series)
+            *result.add_series() = series;
+
         auto err = outcome.results.find("errorEstimate");
         if (err != outcome.results.end()) {
             auto* estimate = result.mutable_error_estimate();

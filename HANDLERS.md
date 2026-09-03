@@ -319,8 +319,26 @@ without it cannot tell that from a vega of zero.
 `include_additional_results` returns whatever the engine published in its own
 `additionalResults` map. Every value this layer reports is a **scalar** — the
 vector and matrix arms of `Value` are not filled. `error_estimate` is populated
-whenever the engine has one. `include_cashflows` and `curve_samples` are
-`UNSUPPORTED`.
+whenever the engine has one. `include_cashflows` is still `UNSUPPORTED`.
+
+`curve_samples` is served. Each entry names a market object and a quantity and
+comes back as a `Series` on the result, sampled from the very handle the engine
+priced against — which is the point of it: the alternative is shipping the term
+structure and re-implementing QuantLib's interpolation in the client, which is
+how a frontend ends up drawing a curve the backend did not price with. Four
+quantities are built:
+
+| `CurveSample.Quantity` | On | Needs |
+| --- | --- | --- |
+| `ZERO_RATE` | a yield curve | `compounding`, `frequency`, and `day_counter` when sampling by date |
+| `FORWARD_RATE` | a yield curve | the same |
+| `DISCOUNT_FACTOR` | a yield curve | nothing; a `compounding` set beside one is rejected rather than ignored |
+| `BLACK_VOLATILITY` | a volatility surface | exactly one `strikes` entry |
+
+`dates` or `times`, one of the two. `SURVIVAL_PROBABILITY`, `HAZARD_RATE` and
+`LOCAL_VOLATILITY` need term structures this build does not construct, and
+sampling a surface across several strikes would be a matrix rather than a
+series, so all four are `UNSUPPORTED` naming the field.
 
 ## Scenario sweeps
 

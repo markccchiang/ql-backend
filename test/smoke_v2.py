@@ -603,9 +603,51 @@ async def main():
         check("every advertised result kind is accepted", reply.HasField("price_result"),
               f"got {reply.WhichOneof('payload')}"
               + (f" {reply.error.field_path}" if reply.HasField("error") else ""))
+        # curve_samples used to be refused here. It is served now, so what is
+        # checked is that the numbers come off the curve the engine priced
+        # with: a flat 5% continuous curve discounts to exp(-0.05 t), and a
+        # client that had to re-implement the interpolation in its own language
+        # would be drawing something else.
         f = vanilla_frame(sid, row)
-        f.price.curve_samples.add().market_id = "RC"
-        await rejected("curve_samples on a build without it", f, "curve_samples",
+        cs = f.price.curve_samples.add()
+        cs.market_id = "RC"
+        cs.quantity = E.CurveSample.QUANTITY_DISCOUNT_FACTOR
+        for t in (0.25, 0.5, 1.0, 2.0):
+            cs.times.append(t)
+        cs = f.price.curve_samples.add()
+        cs.market_id = "RC"
+        cs.quantity = E.CurveSample.QUANTITY_ZERO_RATE
+        cs.compounding, cs.frequency = C.CONTINUOUS, C.ANNUAL
+        for t in (0.5, 1.0, 2.0):
+            cs.times.append(t)
+        reply = await send(ws, f)
+        series = {s.name: list(s.y) for s in reply.price_result.series}
+        dfs = series.get("RC.discountFactor", [])
+        zeros = series.get("RC.zeroRate", [])
+        # Checked against the rate the curve reports rather than the rate it
+        # was built with: by this point the live-graph section above has
+        # already written that quote, and a sample that did not follow it
+        # would be the bug this feature exists to prevent.
+        rate = zeros[0] if zeros else float("nan")
+        worst_df = max((abs(df - math.exp(-rate * t)) for df, t in
+                        zip(dfs, (0.25, 0.5, 1.0, 2.0))), default=1.0)
+        check("a sampled discount curve is the curve that priced",
+              len(dfs) == 4 and worst_df < 1e-12,
+              f"worst err={worst_df:.2e} against a sampled zero of {rate:.4f}")
+        check("a sampled zero curve is flat, and at the quote it now holds",
+              len(zeros) == 3 and max(abs(z - rate) for z in zeros) < 1e-12
+              and abs(rate - 0.06) < 1e-12,
+              f"zeros={[round(z, 6) for z in zeros]}")
+
+        # A surface across several strikes is a matrix, and this reply carries
+        # series; refused rather than flattened into the first strike.
+        f = vanilla_frame(sid, row)
+        cs = f.price.curve_samples.add()
+        cs.market_id = "VOL"
+        cs.quantity = E.CurveSample.QUANTITY_BLACK_VOLATILITY
+        cs.times.append(1.0)
+        cs.strikes.extend([90.0, 100.0, 110.0])
+        await rejected("sampling a surface across strikes", f, "curve_samples[0].strikes",
                        E.Error.UNSUPPORTED)
 
         f = vanilla_frame(sid, row)

@@ -64,6 +64,14 @@ namespace qlservice {
             QuantLib::Real npv = 0.0;
             std::map<std::string, QuantLib::Real> results;
             double calculationSeconds = 0.0;
+            //! Curves and surfaces sampled alongside the price.
+            /*! Sampled from the very handles the engine priced against, which
+                is the point: the alternative is shipping the term structure
+                and re-implementing QuantLib's interpolation in the client,
+                which is how a frontend ends up drawing a curve the backend did
+                not price with.
+            */
+            std::vector<quantlib::v2::Series> series;
         };
 
         //! The live handles one option's engine is assembled from.
@@ -196,6 +204,9 @@ namespace qlservice {
 
         QuantLib::Handle<QuantLib::BlackVolTermStructure>
         volatility(const std::string& volId, const std::string& fieldPath) const;
+
+        //! Fills PriceOutcome::series from PriceRequest::curve_samples.
+        void sampleCurves(const quantlib::v2::PriceRequest& msg, PriceOutcome& out) const;
 
         QuantLib::ext::shared_ptr<QuantLib::IborIndex>
         indexById(const std::string& indexId, const std::string& fieldPath) const;
