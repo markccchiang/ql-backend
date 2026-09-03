@@ -363,11 +363,27 @@ namespace qlservice {
         struct HasQuantoGreeks<T, std::void_t<decltype(std::declval<T&>().qrho())>>
         : std::true_type {};
 
+        //! Whether QuantLib can invert a price on this instrument.
+        /*! Declared on VanillaOption, BarrierOption and DoubleBarrierOption
+            and on no base they share, so it is a trait for the same reason
+            HasQuantoGreeks is.
+        */
+        template <class T, class = void>
+        struct HasImpliedVolatility : std::false_type {};
+
+        template <class T>
+        struct HasImpliedVolatility<
+            T,
+            std::void_t<decltype(std::declval<T&>().impliedVolatility(
+                Real(), ext::shared_ptr<GeneralizedBlackScholesProcess>()))>> : std::true_type {};
+
         //! Prices one instrument and collects the results asked for.
         template <class Instrument>
         Session::PriceOutcome run(const ext::shared_ptr<Instrument>& option,
                                   const ext::shared_ptr<PricingEngine>& engine,
-                                  const qlpb::PriceRequest& msg) {
+                                  const qlpb::PriceRequest& msg,
+                                  const ext::shared_ptr<GeneralizedBlackScholesProcess>& process =
+                                      nullptr) {
             option->setPricingEngine(engine);
 
             const auto start = std::chrono::steady_clock::now();
@@ -405,6 +421,26 @@ namespace qlservice {
                 const auto produced = out.results.size();
                 try {
                     switch (kind) {
+                        case qlpb::RESULT_KIND_IMPLIED_VOLATILITY:
+                            // A root find rather than a published result, so
+                            // it needs the process the engine was built from
+                            // and a price to look for. Where QuantLib cannot
+                            // invert this instrument, nothing is produced and
+                            // the kind is named absent like any other.
+                            if constexpr (HasImpliedVolatility<Instrument>::value) {
+                                if (process) {
+                                    const auto& iv = msg.implied_volatility();
+                                    out.results["impliedVolatility"] = option->impliedVolatility(
+                                        iv.target_price(), process,
+                                        iv.accuracy() > 0.0 ? iv.accuracy() : 1.0e-4,
+                                        iv.max_evaluations() > 0
+                                            ? static_cast<Size>(iv.max_evaluations())
+                                            : 100,
+                                        iv.min_volatility() > 0.0 ? iv.min_volatility() : 1.0e-7,
+                                        iv.max_volatility() > 0.0 ? iv.max_volatility() : 4.0);
+                                }
+                            }
+                            break;
                         case qlpb::RESULT_KIND_DELTA:
                             out.results["delta"] = option->delta();
                             break;
@@ -1116,6 +1152,17 @@ namespace qlservice {
         // Rejected, not dropped: a client that asked for a cash-flow table
         // and got a price without one cannot tell that from an instrument
         // with no cash flows.
+        // Inverting a price needs a price to invert, and the one this request
+        // is about to compute is not it: that would return the volatility the
+        // client sent in.
+        const bool wantsImplied =
+            std::find(msg.results().begin(), msg.results().end(),
+                      qlpb::RESULT_KIND_IMPLIED_VOLATILITY) != msg.results().end();
+        QLS_FIELD_REQUIRE(!wantsImplied || msg.implied_volatility().target_price() > 0.0,
+                          qlpb::Error::INVALID_ARGUMENT, "implied_volatility.target_price",
+                          "an implied volatility needs the price to invert; inverting the one "
+                          "this request computes would return the volatility you sent");
+
         // A cash-flow table is a property of a cash-flow instrument. An option
         // has no coupons, and answering with an empty table would read as one
         // that has none rather than one that was never going to have any.
@@ -1362,7 +1409,7 @@ namespace qlservice {
                                       qlpb::Error::UNSUPPORTED, "engine.method",
                                       "a quanto vanilla option takes METHOD_ANALYTIC or "
                                       "METHOD_FINITE_DIFFERENCE");
-                    return run(option, engineFor<VanillaOption, AnalyticEuropeanEngine>(graph), msg);
+                    return run(option, engineFor<VanillaOption, AnalyticEuropeanEngine>(graph), msg, graph.process);
                 }
 
                 auto option = ext::make_shared<VanillaOption>(po, ex);
@@ -1372,10 +1419,10 @@ namespace qlservice {
                         if (digitalPayoff && !european)
                             return run(option,
                                        ext::make_shared<AnalyticDigitalAmericanEngine>(graph.process),
-                                       msg);
+                                       msg, graph.process);
                         if (european)
                             return run(option,
-                                       ext::make_shared<AnalyticEuropeanEngine>(graph.process), msg);
+                                       ext::make_shared<AnalyticEuropeanEngine>(graph.process), msg, graph.process);
                         // American: three published approximations that
                         // disagree in the third decimal, so the client names
                         // one rather than inheriting a default (engine.proto).
@@ -1486,7 +1533,7 @@ namespace qlservice {
                                       qlpb::Error::UNSUPPORTED, "engine.method",
                                       "a quanto barrier option takes METHOD_ANALYTIC or "
                                       "METHOD_FINITE_DIFFERENCE");
-                    return run(option, engineFor<BarrierOption, AnalyticBarrierEngine>(graph), msg);
+                    return run(option, engineFor<BarrierOption, AnalyticBarrierEngine>(graph), msg, graph.process);
                 }
 
                 auto option = ext::make_shared<BarrierOption>(type, b.level(), b.rebate(), po, ex);
@@ -1499,7 +1546,7 @@ namespace qlservice {
                                           "barrier takes METHOD_LATTICE or "
                                           "METHOD_FINITE_DIFFERENCE");
                         return run(option, ext::make_shared<AnalyticBarrierEngine>(graph.process),
-                                   msg);
+                                   msg, graph.process);
 
                     case qlpb::Engine_Method_METHOD_FINITE_DIFFERENCE:
                         return run(option,
@@ -1581,7 +1628,7 @@ namespace qlservice {
 
                 return run(ext::make_shared<DoubleBarrierOption>(type, b.lower(), b.upper(),
                                                                  b.rebate(), po, ex),
-                           ext::make_shared<AnalyticDoubleBarrierEngine>(graph.process), msg);
+                           ext::make_shared<AnalyticDoubleBarrierEngine>(graph.process), msg, graph.process);
             }
 
             // -- forward start ---------------------------------------------

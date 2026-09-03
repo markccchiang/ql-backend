@@ -80,7 +80,7 @@ namespace qlservice {
               qlpb::RESULT_KIND_DIVIDEND_RHO, qlpb::RESULT_KIND_THETA_PER_DAY,
               qlpb::RESULT_KIND_DELTA_FORWARD, qlpb::RESULT_KIND_ELASTICITY,
               qlpb::RESULT_KIND_STRIKE_SENSITIVITY, qlpb::RESULT_KIND_ITM_CASH_PROBABILITY,
-              qlpb::RESULT_KIND_QRHO, qlpb::RESULT_KIND_QVEGA, qlpb::RESULT_KIND_QLAMBDA,
+              qlpb::RESULT_KIND_IMPLIED_VOLATILITY, qlpb::RESULT_KIND_QRHO, qlpb::RESULT_KIND_QVEGA, qlpb::RESULT_KIND_QLAMBDA,
               qlpb::RESULT_KIND_FAIR_RATE, qlpb::RESULT_KIND_LEG_NPV,
               qlpb::RESULT_KIND_LEG_BPS})
             out.add_result_kinds(kind);

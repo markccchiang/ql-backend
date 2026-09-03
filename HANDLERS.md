@@ -309,7 +309,17 @@ mapped:
 
 `NPV`, `DELTA`, `GAMMA`, `THETA`, `VEGA`, `RHO`, `DIVIDEND_RHO`,
 `THETA_PER_DAY`, `DELTA_FORWARD`, `ELASTICITY`, `STRIKE_SENSITIVITY`,
-`ITM_CASH_PROBABILITY`, `QRHO`, `QVEGA`, `QLAMBDA`, `FAIR_RATE`.
+`ITM_CASH_PROBABILITY`, `IMPLIED_VOLATILITY`, `QRHO`, `QVEGA`, `QLAMBDA`,
+`FAIR_RATE`, `LEG_NPV`, `LEG_BPS`.
+
+`IMPLIED_VOLATILITY` is the one that takes an input of its own. It is a root
+find, not a published result, so `PriceRequest.implied_volatility` carries the
+price to invert and, optionally, the bracket and tolerance to look in; without
+a target the request is `INVALID_ARGUMENT`, because inverting the price the
+request is about to compute would hand back the volatility the client sent.
+QuantLib can invert a vanilla, a barrier and a double barrier; asked of any
+other style the kind comes back in `unavailable_results` like any other result
+an engine cannot supply.
 
 Anything else in the enum — the bond, credit and remaining cash-flow kinds — is
 `UNSUPPORTED`.

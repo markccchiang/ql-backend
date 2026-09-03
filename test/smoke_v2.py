@@ -281,6 +281,7 @@ RESULT_NAME = {
     R.RESULT_KIND_QRHO: "qrho", R.RESULT_KIND_QVEGA: "qvega",
     R.RESULT_KIND_QLAMBDA: "qlambda", R.RESULT_KIND_FAIR_RATE: "fairRate",
     R.RESULT_KIND_LEG_NPV: "legNPV", R.RESULT_KIND_LEG_BPS: "legBPS",
+    R.RESULT_KIND_IMPLIED_VOLATILITY: "impliedVolatility",
 }
 
 
@@ -603,6 +604,30 @@ async def main():
         # Served for cash-flow instruments and refused for an option, which
         # has no coupons: an empty table would read as an instrument that has
         # none rather than one that was never going to.
+        # Inverting a price round-trips: price the option, hand the price back
+        # as the target, and the volatility that comes out is the one the
+        # market object holds. Checked this way rather than against a constant
+        # because the live-graph section above has already moved the quote.
+        # The market is put back to the row first: the live-graph section
+        # above has been writing quotes, so what the vol is at this point is
+        # not something to assume.
+        await send(ws, set_market(sid, **row_market(row)))
+        priced = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        f = vanilla_frame(sid, row)
+        f.price.results.append(R.RESULT_KIND_IMPLIED_VOLATILITY)
+        f.price.implied_volatility.target_price = priced
+        got = (await send(ws, f)).price_result.results.get("impliedVolatility")
+        check("an implied volatility inverts back to the quote it priced with",
+              got is not None and abs(got.scalar - row["v"]) < 1e-4,
+              f"implied={got.scalar:.6f} quote={row['v']}" if got else "absent")
+
+        # And it is refused without one, rather than inverting the price it is
+        # about to compute and handing back the volatility that went in.
+        f = vanilla_frame(sid, row)
+        f.price.results.append(R.RESULT_KIND_IMPLIED_VOLATILITY)
+        await rejected("an implied volatility with no price to invert", f,
+                       "implied_volatility.target_price", E.Error.INVALID_ARGUMENT)
+
         f = vanilla_frame(sid, row)
         f.price.include_cashflows = True
         await rejected("include_cashflows on an option, which has no cash flows", f,
@@ -617,6 +642,9 @@ async def main():
         f = vanilla_frame(sid, row)
         for kind in caps.result_kinds:
             f.price.results.append(kind)
+        # One of them needs an input of its own; asking for everything means
+        # supplying it rather than dropping the kind from the sweep.
+        f.price.implied_volatility.target_price = priced
         reply = await send(ws, f)
         check("every advertised result kind is accepted", reply.HasField("price_result"),
               f"got {reply.WhichOneof('payload')}"
