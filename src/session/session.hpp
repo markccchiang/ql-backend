@@ -78,6 +78,14 @@ namespace qlservice {
                 working, and the property a client can check.
             */
             std::vector<quantlib::v2::CashFlow> cashflows;
+            //! Kinds that were asked for and are not in `results`.
+            /*! Named rather than left to be inferred: a client that asked for
+                vega and got a map without it cannot tell that from a vega of
+                zero. Not a rejection, because an engine that does not publish
+                a greek is not a client error and refusing would cost the price
+                as well.
+            */
+            std::vector<quantlib::v2::ResultKind> unavailable;
         };
 
         //! The live handles one option's engine is assembled from.

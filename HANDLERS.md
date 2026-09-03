@@ -312,9 +312,22 @@ mapped:
 `ITM_CASH_PROBABILITY`, `QRHO`, `QVEGA`, `QLAMBDA`, `FAIR_RATE`.
 
 Anything else in the enum — the bond, credit and remaining cash-flow kinds — is
-`UNSUPPORTED`. An engine that cannot supply a result you asked for is a **named
-rejection, not a missing key**: a frontend that asked for vega and got a map
-without it cannot tell that from a vega of zero.
+`UNSUPPORTED`.
+
+An engine that cannot supply a result you asked for **names the absence**: the
+kind comes back in `PriceResult.unavailable_results` and the price comes back
+with it. This page used to promise a rejection instead, and the code never did
+it; the document was right about the problem and wrong about the remedy. A
+frontend that asked for vega and got a map without it cannot tell that from a
+vega of zero — but refusing the whole request would cost the price as well, and
+a client that wanted the NPV would learn to ask for nothing. `AnalyticEuropean-
+Engine` has vega, the binomial one does not, and a frontend should be able to
+ask both the same question and be told which answered.
+
+The same field carries a kind that does not apply to the instrument at all —
+a fair rate asked of an option, a greek asked of a swap. A kind this build does
+not implement anywhere is a different matter, and `Hello` answers that before
+the request is sent.
 
 `include_additional_results` returns whatever the engine published in its own
 `additionalResults` map. Every value this layer reports is a **scalar** — the

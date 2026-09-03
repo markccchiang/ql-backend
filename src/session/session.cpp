@@ -398,9 +398,11 @@ namespace qlservice {
             for (const auto kind : msg.results()) {
                 // Results are fetched by name and QuantLib throws when the
                 // engine did not produce one (ql/instrument.hpp:193). A
-                // missing greek is an absent map entry, not a failed request:
-                // AnalyticEuropeanEngine has vega, the binomial one does not,
-                // and the frontend asks both the same question.
+                // missing greek is not a failed request: AnalyticEuropeanEngine
+                // has vega, the binomial one does not, and the frontend asks
+                // both the same question. What it must not be is silent, so
+                // whatever this loop does not produce is named below.
+                const auto produced = out.results.size();
                 try {
                     switch (kind) {
                         case qlpb::RESULT_KIND_DELTA:
@@ -453,8 +455,13 @@ namespace qlservice {
                             break;
                     }
                 } catch (const Error&) {
-                    // not provided by this engine
+                    // Not published by this engine; named just below.
                 }
+
+                // NPV is the result's own field rather than a map entry, so it
+                // is never missing and never reported so.
+                if (out.results.size() == produced && kind != qlpb::RESULT_KIND_NPV)
+                    out.unavailable.push_back(static_cast<qlpb::ResultKind>(kind));
             }
 
             out.calculationSeconds = seconds(start);
@@ -2162,6 +2169,7 @@ namespace qlservice {
             fillCashflows(legs, discount, out);
 
         for (const auto kind : msg.results()) {
+            const auto produced = out.results.size();
             try {
                 switch (kind) {
                     case qlpb::RESULT_KIND_LEG_NPV:
@@ -2187,12 +2195,16 @@ namespace qlservice {
                         break;
                     }
                     default:
-                        // An option greek asked of a swap: absent, not an error.
+                        // An option greek asked of a swap. Absent, and named
+                        // as absent rather than left to be guessed at.
                         break;
                 }
             } catch (const Error&) {
-                // not provided by this engine
+                // Not published by this engine; named just below.
             }
+
+            if (out.results.size() == produced && kind != qlpb::RESULT_KIND_NPV)
+                out.unavailable.push_back(static_cast<qlpb::ResultKind>(kind));
         }
 
         out.calculationSeconds = seconds(t0);

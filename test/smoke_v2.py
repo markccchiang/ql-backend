@@ -269,6 +269,21 @@ async def send(ws, frame):
     return reply
 
 
+RESULT_NAME = {
+    R.RESULT_KIND_DELTA: "delta", R.RESULT_KIND_GAMMA: "gamma",
+    R.RESULT_KIND_THETA: "theta", R.RESULT_KIND_VEGA: "vega",
+    R.RESULT_KIND_RHO: "rho", R.RESULT_KIND_DIVIDEND_RHO: "dividendRho",
+    R.RESULT_KIND_THETA_PER_DAY: "thetaPerDay",
+    R.RESULT_KIND_DELTA_FORWARD: "deltaForward",
+    R.RESULT_KIND_ELASTICITY: "elasticity",
+    R.RESULT_KIND_STRIKE_SENSITIVITY: "strikeSensitivity",
+    R.RESULT_KIND_ITM_CASH_PROBABILITY: "itmCashProbability",
+    R.RESULT_KIND_QRHO: "qrho", R.RESULT_KIND_QVEGA: "qvega",
+    R.RESULT_KIND_QLAMBDA: "qlambda", R.RESULT_KIND_FAIR_RATE: "fairRate",
+    R.RESULT_KIND_LEG_NPV: "legNPV", R.RESULT_KIND_LEG_BPS: "legBPS",
+}
+
+
 async def main():
     failures = []
     checks = 0
@@ -606,6 +621,23 @@ async def main():
         check("every advertised result kind is accepted", reply.HasField("price_result"),
               f"got {reply.WhichOneof('payload')}"
               + (f" {reply.error.field_path}" if reply.HasField("error") else ""))
+
+        # And every one of them either comes back or is named as absent. This
+        # is the promise HANDLERS.md used to make and the code used to break:
+        # a client that asked for vega and got a map without it could not tell
+        # that from a vega of zero.
+        asked = set(caps.result_kinds) - {R.RESULT_KIND_NPV}
+        answered = set()
+        for kind in asked:
+            name = RESULT_NAME.get(kind)
+            if name and any(k == name or k.startswith(name + ".")
+                            for k in reply.price_result.results):
+                answered.add(kind)
+        named_absent = set(reply.price_result.unavailable_results)
+        check("every result asked for is answered or named absent",
+              asked == answered | named_absent,
+              f"{len(answered)} answered, {len(named_absent)} named absent, "
+              f"{len(asked - answered - named_absent)} silently missing")
         # curve_samples used to be refused here. It is served now, so what is
         # checked is that the numbers come off the curve the engine priced
         # with: a flat 5% continuous curve discounts to exp(-0.05 t), and a

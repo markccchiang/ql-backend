@@ -187,6 +187,8 @@ namespace qlservice {
             *result.add_series() = series;
         for (const auto& row : outcome.cashflows)
             *result.add_cashflows() = row;
+        for (const auto kind : outcome.unavailable)
+            result.add_unavailable_results(kind);
 
         auto err = outcome.results.find("errorEstimate");
         if (err != outcome.results.end()) {
