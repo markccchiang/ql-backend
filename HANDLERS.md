@@ -11,7 +11,7 @@ more than the service builds, and everything in the schema that is not here is
 
 The wire schema itself is a submodule at [`proto/`](https://github.com/markccchiang/ql-protobuf).
 
-## The five frames
+## The six frames
 
 One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly one,
 including for failures and for the cancel itself — a client that never sees a
@@ -23,7 +23,20 @@ terminal frame waits forever (DESIGN §9.5).
 | `update_market` | `Worker::serve`, under one `UpdateGuard` | `Ack` |
 | `price` | `Worker::serve` → `Session::price` | `PriceResult`, or `ScenarioResult` when `scenario` is set |
 | `cancel` | `Gateway`, which answers it itself | `Ack` |
+| `hello` | `Gateway`, which answers it itself | `Capabilities` |
 | `close_session` | `Gateway` / `Supervisor` | `Ack` |
+
+`hello` needs no session: what the build can price is a property of the
+service, and a client has to be able to ask before it opens one. The reply
+carries **sets** — the styles, methods, trees, approximations, result kinds,
+market shapes and leg kinds this build implements — and deliberately not the
+combinations. Whether an analytic barrier takes an American exercise is a rule
+about a pair, and there are more pairs than are worth putting on the wire; a
+client keeps its own table for those. What the handshake removes is the drift
+that actually happens, which is a value appearing in or disappearing from one
+of these lists while every client's copy of this page says otherwise.
+`src/session/capabilities.cpp` is where the lists live, next to the dispatch
+they describe.
 
 `Progress` is the one non-terminal frame. It arrives only from a batched Monte
 Carlo — `engine.mc.progress_every_paths` — and is also the only point at which a
