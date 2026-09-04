@@ -39,9 +39,11 @@ of these lists while every client's copy of this page says otherwise.
 `src/session/capabilities.cpp` is where the lists live, next to the dispatch
 they describe.
 
-`Progress` is the one non-terminal frame. It arrives only from a batched Monte
-Carlo — `engine.mc.progress_every_paths` — and is also the only point at which a
-running calculation can be stopped.
+`Progress` is the one non-terminal frame. Three shapes emit it: a batched Monte
+Carlo (`engine.mc.progress_every_paths`), a scenario sweep, and a batch. Those
+are also the three that can be stopped where they stand — see
+[Cancellation](#cancellation), which is not the one-line story this sentence
+used to tell.
 
 Every frame carries `request_id` (yours, echoed on every reply) and
 `session_id` (set on every server frame, because one socket can hold several
@@ -297,7 +299,8 @@ under quanto.
 the clock and the same inputs would price differently on every request. Give
 `samples` or `absolute_tolerance`, not both. Setting `progress_every_paths`
 switches to the batched path, which is what emits `Progress` frames and what
-makes a cancel possible — and it **changes the answer**, because batches draw
+lets a cancel stop the work rather than only the waiting — and it **changes the
+answer**, because batches draw
 from the RNG stream differently from one run of the same total. Reproducibility
 keys on `(seed, samples, progress_every_paths)`, which is why `PriceResult`
 echoes the whole `Engine` message back.
@@ -404,7 +407,7 @@ present, carrying the reason rather than a price.
 
 A batch reports `Progress` per entry and checks the stop flag between them, so
 it is cancellable at trade boundaries in exactly the way a sweep is cancellable
-at point boundaries. It also takes the placement decision over the whole book: a
+at point boundaries (see [Cancellation](#cancellation)). It also takes the placement decision over the whole book: a
 Monte Carlo eleven trades in moves the session to a sacrificial worker before
 the batch starts, because the batch runs to completion wherever it begins.
 
@@ -447,12 +450,52 @@ to be sent to place a cell — and beyond two axes neither is filled and `prices
 is the answer. A kind with no single value per point is `UNSUPPORTED` on
 `scenarios[0].plot`.
 
+`ScenarioResult.abandoned_after` is how many points were priced before a cancel
+stopped the sweep, and zero when the whole ladder ran. The axes are trimmed to
+what actually priced, so the series and the values still line up; a *grid*
+stopped mid-row has no rectangle to report, so its axes are cleared and `prices`
+is the whole of the answer.
+
 Every swept quote is **restored by default**, on the way out of a failure as
 well as a success. `keep_final_value` is per axis — a grid can leave spot where
 it ended and put vol back — and leaves that quote at its last swept value — phrased that way round because proto3 defaults it to false
 and the default has to be the safe one: a sweep is a question, not an edit. A
 kept sweep is folded into the session log as a synthetic `UpdateMarket`, so it
 survives a replay.
+
+## Cancellation
+
+A `CancelRequest` names one `request_id`. The cancel itself gets its own `Ack`
+from the gateway, because nothing downstream answers it, and the target gets
+exactly one terminal frame like every other request.
+
+**Every request can be cancelled.** What differs is what the cancel costs, and
+that is worth knowing before offering the button.
+
+| Where the request is | What a cancel does | What it costs |
+| --- | --- | --- |
+| between Monte Carlo batches (`progress_every_paths > 0`) | the engine loop sees the stop flag and returns | nothing: the worker is healthy, the graph is still warm |
+| between scenario sweep points | the sweep stops and returns the points it priced | nothing, and the partial ladder is kept |
+| between batch entries | the book stops and returns the prices it managed | nothing, and the partial book is kept |
+| anywhere else — inside one engine call | the request is terminated for the client after a 250 ms grace and the session is replayed into a fresh worker | one bootstrap, and the abandoned calculation runs to completion on a thread nobody is listening to |
+
+That last row is the one to be honest about. QuantLib cannot be interrupted
+inside an engine call, and this build hosts workers as threads, so the "kill"
+in `Supervisor::onStopGraceExpired` is a disown rather than a kill:
+`ThreadProcessHost::kill` asks the worker to stop, marks its seat dead and
+detaches it. The client is freed in 250 ms and the session survives, but the
+CPU is not given back until that engine call ends on its own.
+
+So a cancel is always worth offering, and a UI that says "cancel" on a
+finite-difference price is not lying — it is promising to give the user their
+session back, not to stop the machine. The three boundary rows are the ones
+where it also stops the work.
+
+A stop taken at a boundary reports `CANCELLED` rather than `CALCULATION_FAILED`:
+the client asked for it, and telling a user their trade failed to price would be
+a different and wrong statement. A sweep and a batch each terminate with their
+own result message carrying `abandoned_after`, not with an error, because the
+part they finished is worth having.
 
 ## Errors
 

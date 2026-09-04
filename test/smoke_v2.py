@@ -1020,12 +1020,14 @@ async def main():
                                          close_session=E.CloseSession()))
 
 
-        # -- progress, and the cancel that depends on it ----------------------
+        # -- progress, and the cancels that depend on it ----------------------
         #
-        # Batched Monte Carlo is the only calculation this layer can interrupt:
-        # QuantLib cannot be stopped inside an engine call, so the stop is
-        # taken between batches (DESIGN §3). Under the thread host that is the
-        # only cancel that works at all.
+        # Three shapes take a stop where they stand: a batched Monte Carlo
+        # between batches, a sweep between points, and a batch between trades.
+        # QuantLib cannot be interrupted inside an engine call, so anywhere
+        # else the cancel frees the client rather than the machine -- the
+        # worker is disowned after a grace and the session replayed
+        # (DESIGN §3). Each row of the table in HANDLERS.md is checked below.
         print("\n  -- progress and cancel --")
         await send(ws, set_market(sid, **row_market(row)))
 
@@ -1081,6 +1083,114 @@ async def main():
         reply = await send(ws, vanilla_frame(sid, row))
         check("the session still prices after a cancel",
               reply.HasField("price_result") and abs(reply.price_result.npv - analytic) < 1e-12)
+
+        async def cancel_after_progress(frame, label):
+            """Sends, waits for the work to be genuinely under way, then stops it.
+
+            Waiting for progress rather than sleeping is what makes this a test
+            of the stop rather than a race with the queue.
+            """
+            await ws.send(frame.SerializeToString())
+            seen = 0
+            terminals = {}
+            cancel = None
+            deadline = time.time() + 60.0
+            while True:
+                raw = await asyncio.wait_for(ws.recv(), timeout=max(0.1, deadline - time.time()))
+                g = E.ServerFrame()
+                g.ParseFromString(raw)
+                if g.HasField("progress"):
+                    seen += 1
+                    if seen == 2 and cancel is None:
+                        cancel = E.ClientFrame(request_id=next_id(), session_id=sid)
+                        cancel.cancel.target_request_id = frame.request_id
+                        await ws.send(cancel.SerializeToString())
+                if g.terminal:
+                    terminals[g.request_id] = g
+                if frame.request_id in terminals and cancel is not None \
+                        and cancel.request_id in terminals:
+                    break
+            check(f"the cancel of {label} is acknowledged",
+                  terminals[cancel.request_id].HasField("ack"))
+            return terminals[frame.request_id]
+
+        # A sweep stops between points and keeps the ones it priced: they were
+        # computed correctly and the client paid for them.
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=900)
+        axis = f.price.scenarios.add()
+        axis.quote_id = "S"
+        axis.linear.begin = 60.0
+        axis.linear.end = 140.0
+        axis.linear.steps = 1200
+        axis.plot = R.RESULT_KIND_NPV
+        stopped = await cancel_after_progress(f, "a sweep")
+        ok = stopped.HasField("scenario_result")
+        check("a cancelled sweep keeps the points it already priced", ok,
+              "" if ok else f"terminated as {stopped.WhichOneof('payload')}")
+        if ok:
+            partial = stopped.scenario_result
+            check("and says how far it got rather than pretending to be whole",
+                  0 < partial.abandoned_after < 1200
+                  and len(partial.prices) == partial.abandoned_after,
+                  f"abandoned_after={partial.abandoned_after} prices={len(partial.prices)}")
+            check("and trims its axis to the ladder it is returning",
+                  len(partial.axes[0].values) == len(partial.prices)
+                  and len(partial.series.x) == len(partial.prices),
+                  f"axis={len(partial.axes[0].values)} series={len(partial.series.x)}")
+
+        reply = await send(ws, vanilla_frame(sid, row))
+        check("a cancelled sweep leaves the market where it found it",
+              abs(reply.price_result.npv - analytic) < 1.0e-12,
+              f"before={analytic:.10f} after={reply.price_result.npv:.10f}")
+
+        # A batch stops between trades, on the same terms.
+        f = E.ClientFrame(request_id=next_id(), session_id=sid)
+        for _ in range(400):
+            one = f.batch.requests.add()
+            one.CopyFrom(vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=900).price)
+        stopped = await cancel_after_progress(f, "a batch")
+        ok = stopped.HasField("batch_result")
+        check("a cancelled batch keeps the prices it already had", ok,
+              "" if ok else f"terminated as {stopped.WhichOneof('payload')}")
+        if ok:
+            book = stopped.batch_result
+            priced = sum(1 for e in book.entries if e.HasField("price"))
+            check("and names the rest rather than dropping them",
+                  0 < book.abandoned_after < 400 and len(book.entries) == 400
+                  and priced == book.abandoned_after
+                  and book.entries[-1].error.code == E.Error.CANCELLED,
+                  f"abandoned_after={book.abandoned_after} priced={priced} "
+                  f"entries={len(book.entries)}")
+
+        # And the row the documentation used to get wrong: a single engine call
+        # cannot be interrupted, so the cancel frees the client rather than the
+        # machine. The request still terminates, and the session survives it --
+        # the worker is disowned and the session replayed into a fresh one.
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, 20000000))
+        await ws.send(f.SerializeToString())
+        c = E.ClientFrame(request_id=next_id(), session_id=sid)
+        c.cancel.target_request_id = f.request_id
+        await ws.send(c.SerializeToString())
+        terminals = {}
+        deadline = time.time() + 60.0
+        while f.request_id not in terminals or c.request_id not in terminals:
+            raw = await asyncio.wait_for(ws.recv(), timeout=max(0.1, deadline - time.time()))
+            g = E.ServerFrame()
+            g.ParseFromString(raw)
+            if g.terminal:
+                terminals[g.request_id] = g
+        uninterruptible = terminals[f.request_id]
+        check("a cancel inside one engine call still terminates the request",
+              uninterruptible.HasField("error")
+              and uninterruptible.error.code == E.Error.CANCELLED,
+              E.Error.Code.Name(uninterruptible.error.code)
+              if uninterruptible.HasField("error") else "priced anyway")
+        reply = await send(ws, vanilla_frame(sid, row))
+        check("and the session survives it, replayed into a fresh worker",
+              reply.HasField("price_result")
+              and abs(reply.price_result.npv - analytic) < 1.0e-12,
+              f"{reply.price_result.npv:.10f}" if reply.HasField("price_result")
+              else E.Error.Code.Name(reply.error.code))
 
         # -- the quanto barrier benchmark -------------------------------------
         #

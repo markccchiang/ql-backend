@@ -338,9 +338,15 @@ namespace qlservice {
                     p->set_scenario_point(static_cast<std::uint32_t>(i));
                 });
 
-                if (stopRequested_.load(std::memory_order_relaxed))
-                    QL_FAIL("cancelled after " << i + 1 << " of " << total
-                                               << " scenario points");
+                if (stopRequested_.load(std::memory_order_relaxed)) {
+                    // Kept, not thrown away. These points were priced correctly
+                    // and the client paid for them; losing them would be a
+                    // second cost on top of the one the user just asked to stop
+                    // paying. The axes are trimmed below so the ladder that
+                    // comes back is a prefix rather than a mislabelled whole.
+                    out.set_abandoned_after(static_cast<std::uint32_t>(i + 1));
+                    break;
+                }
             }
         } catch (...) {
             restore();
@@ -348,6 +354,17 @@ namespace qlservice {
         }
 
         restore();
+
+        // A cancelled sweep stopped part-way through the product, so the axes
+        // as asked for no longer describe what came back. One axis trims to the
+        // points priced; a grid stopped mid-row has no rectangle to report, so
+        // its axes are cleared and `prices` is the whole of the answer.
+        if (out.abandoned_after() > 0) {
+            if (plan.size() == 1)
+                out.mutable_axes(0)->mutable_values()->Truncate(out.prices_size());
+            else
+                out.clear_axes();
+        }
 
         const auto plot = plan.empty() ? qlpb::RESULT_KIND_UNSPECIFIED : requested[0].plot();
         if (plot != qlpb::RESULT_KIND_UNSPECIFIED) {
@@ -359,9 +376,12 @@ namespace qlservice {
                               "this result kind has no single value to plot per point");
             // A line for one axis, a surface for two. Past that a plot would
             // have to choose which axes to show, and prices is the answer.
+            // Neither is filled for a cancelled grid: a rectangle stopped
+            // mid-row is not one, and a line through it would be drawn against
+            // an axis that is no longer there.
             if (plan.size() == 1)
                 fillSeries(*out.mutable_series(), out, plot);
-            else if (plan.size() == 2)
+            else if (plan.size() == 2 && out.abandoned_after() == 0)
                 fillSurface(*out.mutable_surface(), out, plot);
         }
 
