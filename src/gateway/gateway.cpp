@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "App.h"
 #include "quantlib/v2/envelope.pb.h"
+#include <ql/version.hpp>
 #include "session/capabilities.hpp"
 #include "session/supervisor.hpp"
 #include "threadhost.hpp"
@@ -75,6 +76,9 @@ namespace qlservice {
         std::multimap<std::chrono::steady_clock::time_point, std::function<void()>> deadlines;
 
         std::uint64_t nextConnId = 0;
+
+        //! When the process started serving, for the uptime /healthz reports.
+        std::chrono::steady_clock::time_point startedAt = std::chrono::steady_clock::now();
         std::uint64_t nextSessionId = 0;
 
         //! The socket whose frame is being handled, if any.
@@ -429,7 +433,34 @@ namespace qlservice {
 
         bool listening = false;
         uWS::App app;
-        app.ws<SocketData>("/*", std::move(behavior))
+        app.get("/healthz",
+                [&impl](auto* res, auto* /*req*/) {
+                    // What this answer actually proves is that the loop is
+                    // turning: the gateway is single-threaded and everything
+                    // below it is off on worker threads, so a reply here means
+                    // frames are being served and says nothing about whether a
+                    // particular graph is healthy. That is the honest scope of
+                    // a liveness check and it is the one an orchestrator wants
+                    // — restarting on it is right, and it will not restart the
+                    // process because one client sent a bad trade.
+                    const auto uptime = std::chrono::duration_cast<std::chrono::seconds>(
+                                            std::chrono::steady_clock::now() - impl.startedAt)
+                                            .count();
+                    // No Access-Control-Allow-Origin, deliberately. A browser
+                    // may send this request from any page; without the header
+                    // it cannot read the reply, and the counts below are not
+                    // something a random tab should be able to poll.
+                    res->writeHeader("Content-Type", "application/json")
+                        ->end("{\"status\":\"ok\""
+                              ",\"build\":\"ql-backend\""
+                              ",\"quantlib\":\"" QL_VERSION "\""
+                              ",\"uptimeSeconds\":" + std::to_string(uptime) +
+                              ",\"connections\":" + std::to_string(impl.conns.size()) +
+                              ",\"sessions\":" + std::to_string(impl.sessionConn.size()) +
+                              ",\"maxConnections\":" + std::to_string(impl.options.maxConnections) +
+                              "}");
+                })
+            .ws<SocketData>("/*", std::move(behavior))
             .listen(impl.options.host, impl.options.port,
                     [&](us_listen_socket_t* token) { listening = token != nullptr; });
 

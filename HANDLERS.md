@@ -27,6 +27,10 @@ terminal frame waits forever (DESIGN §9.5).
 | `hello` | `Gateway`, which answers it itself | `Capabilities` |
 | `close_session` | `Gateway` / `Supervisor` | `Ack` |
 
+There is one thing that is not a frame at all: `GET /healthz` answers over
+plain HTTP, for a proxy or an orchestrator that cannot speak this protocol.
+See [Liveness](#liveness).
+
 `hello` needs no session: what the build can price is a property of the
 service, and a client has to be able to ask before it opens one. The reply
 carries **sets** — the styles, methods, trees, approximations, result kinds,
@@ -462,6 +466,32 @@ it ended and put vol back — and leaves that quote at its last swept value — 
 and the default has to be the safe one: a sweep is a question, not an edit. A
 kept sweep is folded into the session log as a synthetic `UpdateMarket`, so it
 survives a replay.
+
+## Liveness
+
+```
+GET /healthz -> 200 application/json
+{"status":"ok","build":"ql-backend","quantlib":"1.43",
+ "uptimeSeconds":142,"connections":3,"sessions":7,"maxConnections":32}
+```
+
+What this answer proves is that **the loop is turning**. The gateway is
+single-threaded and everything below it runs on worker threads, so a reply here
+means frames are being served and says nothing about whether any particular
+graph is healthy. That is the honest scope of a liveness check, and it is the
+one an orchestrator wants: restarting on it is right, and it will not restart
+the process because a client sent a bad trade.
+
+Before this the socket connecting was the only liveness signal, which a proxy
+or a container runtime cannot use — it would have to speak WebSocket and
+Protobuf to find out whether to restart something.
+
+The counts are the live ones rather than a fixed string, which is what makes
+them worth reading: `connections` and `sessions` are what the gateway is
+actually holding, and `maxConnections` is what it will hold before refusing.
+There is deliberately **no** `Access-Control-Allow-Origin`. A browser may send
+this request from any page; without the header it cannot read the reply, and
+these numbers are not something a random tab should be able to poll.
 
 ## The door
 

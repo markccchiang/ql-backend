@@ -14,10 +14,12 @@ at all.
 """
 
 import asyncio
+import json
 import math
 import os
 import sys
 import time
+import urllib.request
 from datetime import date, timedelta
 
 sys.path.insert(0, sys.argv[1] if len(sys.argv) > 1 else "pb")
@@ -34,6 +36,7 @@ from quantlib.v2 import results_pb2 as R
 import reference_tables as T
 
 URL = "ws://127.0.0.1:9111"
+HEALTH = "http://127.0.0.1:9111/healthz"
 
 # The C++ tests all price against Actual/360 with the expiry a whole number of
 # 360ths of a year away (test-suite/utilities.hpp:141). Nothing here has a
@@ -1441,6 +1444,36 @@ async def main():
         reply = await send(ws, f)
         check("pricing a closed session fails as SESSION_NOT_FOUND",
               reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND)
+
+        # -- liveness ---------------------------------------------------------
+        #
+        # The socket connecting used to be the only liveness signal, which a
+        # proxy or an orchestrator cannot use: it has to open a WebSocket to
+        # find out whether to restart the process.
+        print("\n  -- liveness --")
+        with urllib.request.urlopen(HEALTH, timeout=5) as response:
+            status = response.status
+            headers = dict(response.headers)
+            health = json.loads(response.read())
+        check("GET /healthz answers without a WebSocket",
+              status == 200 and health.get("status") == "ok",
+              f"{status} {health}")
+        check("and names the build a bug report would have to quote",
+              bool(health.get("build")) and bool(health.get("quantlib")),
+              f"{health.get('build')} on QuantLib {health.get('quantlib')}")
+
+        # The numbers have to be the real ones, or the endpoint is a constant
+        # dressed as a measurement. This connection is open and holds sessions.
+        check("and counts the sockets and sessions it is actually serving",
+              health.get("connections", 0) >= 1 and health.get("sessions", 0) >= 1,
+              f"connections={health.get('connections')} sessions={health.get('sessions')}")
+
+        # A browser may send this request from any page it likes; without the
+        # header it cannot read the reply, and these counts are not something a
+        # random tab should be able to poll.
+        check("and does not let a browser read it cross-origin",
+              "Access-Control-Allow-Origin" not in headers,
+              str(headers.get("Access-Control-Allow-Origin")))
 
         # -- the door ---------------------------------------------------------
         #
