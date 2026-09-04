@@ -463,6 +463,47 @@ and the default has to be the safe one: a sweep is a question, not an edit. A
 kept sweep is folded into the session log as a synthetic `UpdateMarket`, so it
 survives a replay.
 
+## The door
+
+There is no authentication, and this section is about what stands in for it.
+
+**Origin.** A WebSocket upgrade is not subject to the same-origin policy, so
+binding to loopback is not a boundary against a *browser*: any page in any tab
+can open `ws://127.0.0.1:9111` and drive this service. There is nothing here to
+steal and a great deal to spend — one frame can commit a hundred thousand
+engine calls. So an `Origin` header that is **present** must be on the allowed
+list, and one that is **absent** is let through: only browsers send it, which
+means the check closes the browser path and leaves `test/smoke_v2.py`, any CLI
+and any proxy that has already checked exactly as they were.
+
+```
+ql-backend --allow-origin https://desk.internal   # replaces the defaults
+ql-backend --any-origin                           # behind a proxy that checks
+```
+
+The defaults are the development server's origins (`5173`, `4173` on both
+`localhost` and `127.0.0.1`). A refused upgrade is `403 Forbidden` with a
+reason, not a dropped connection.
+
+**Limits.** The other half of having no authentication is that nothing stops
+one client taking everything:
+
+| Limit | Default | Refused with | Why this is the unit |
+| --- | --- | --- | --- |
+| sockets served at once | 32 | `503` at the upgrade | A refused connection is a better failure than a gateway that cannot accept the one that matters |
+| sessions per socket | 16 | `OVERLOADED` | A session is a live QuantLib graph on a worker seat, so this is what protects the pool rather than the socket |
+| frame size | 4 MB | closed by the transport | An `OpenSession` with a few hundred pillars exceeds uWebSockets' 16 KB default |
+| points per sweep | 100,000 | `INVALID_ARGUMENT` | A grid multiplies; see [Scenario sweeps](#scenario-sweeps) |
+
+`--max-connections` and `--max-sessions` move the first two. Both are refusals
+rather than breakages: close a session and the next one opens.
+
+**What is deliberately not here.** TLS, users, tokens. If this is ever served
+off the machine it runs on, a reverse proxy terminates TLS, authenticates and
+checks origin, and `ql-backend` goes on binding to loopback behind it. A
+pricing engine that grew its own TLS stack would be a worse pricing engine and
+a worse edge server.
+
 ## Cancellation
 
 A `CancelRequest` names one `request_id`. The cancel itself gets its own `Ack`

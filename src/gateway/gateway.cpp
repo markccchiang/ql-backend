@@ -1,6 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 #include "gateway.hpp"
+#include <algorithm>
 #include "App.h"
 #include "quantlib/v2/envelope.pb.h"
 #include "session/capabilities.hpp"
@@ -219,6 +220,18 @@ namespace qlservice {
             auto& conn = conns[connId];
 
             if (frame.has_open_session()) {
+                if (conn.openSessions.size() >= options.maxSessionsPerConnection) {
+                    // A session is a live graph on a worker seat, so this
+                    // protects the pool rather than the socket. OVERLOADED
+                    // rather than INVALID_ARGUMENT: the request is well formed
+                    // and would be served with fewer already open.
+                    fail({}, frame.request_id(), qlpb::Error::OVERLOADED,
+                         "this connection already holds " +
+                             std::to_string(conn.openSessions.size()) +
+                             " sessions, which is the limit; close one before opening another");
+                    return;
+                }
+
                 // Server-minted: a client-chosen id would let two connections
                 // collide on one graph (DESIGN §9.5).
                 const auto sessionId = "s-" + std::to_string(++nextSessionId);
@@ -373,6 +386,31 @@ namespace qlservice {
         behavior.maxBackpressure = impl.options.maxBackpressureBytes;
         behavior.closeOnBackpressureLimit = true;
         behavior.sendPingsAutomatically = true;
+
+        // The check that loopback does not perform for us. A browser sends
+        // Origin on the upgrade and is bound by what this says; anything that
+        // does not send one -- the smoke test, a CLI, a proxy that already
+        // checked -- is unaffected.
+        behavior.upgrade = [&impl](auto* res, auto* req, auto* context) {
+            const std::string_view origin = req->getHeader("origin");
+            const auto& allowed = impl.options.allowedOrigins;
+            if (!origin.empty() && !allowed.empty() &&
+                std::find(allowed.begin(), allowed.end(), origin) == allowed.end()) {
+                logf("upgrade refused", "origin " + std::string(origin));
+                res->writeStatus("403 Forbidden")->end("origin not allowed");
+                return;
+            }
+            if (impl.conns.size() >= impl.options.maxConnections) {
+                // Refused here rather than opened and closed, so the client
+                // reads a status rather than an unexplained disconnect.
+                logf("upgrade refused", "at the connection limit");
+                res->writeStatus("503 Service Unavailable")->end("too many connections");
+                return;
+            }
+            res->template upgrade<SocketData>({}, req->getHeader("sec-websocket-key"),
+                                              req->getHeader("sec-websocket-protocol"),
+                                              req->getHeader("sec-websocket-extensions"), context);
+        };
 
         behavior.open = [&impl](WS* ws) {
             const auto id = ++impl.nextConnId;

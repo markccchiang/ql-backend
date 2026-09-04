@@ -10,6 +10,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace qlservice {
 
@@ -30,6 +31,39 @@ namespace qlservice {
             std::string host = "127.0.0.1";
 
             int port = 9001;
+
+            //! Browser origins allowed to open a socket.
+            /*! A WebSocket upgrade is not subject to the same-origin policy,
+                so binding to loopback is not a boundary against a browser: any
+                page in any tab can open ws://127.0.0.1 and drive this service.
+                There is nothing here to steal, and plenty to spend -- one frame
+                can commit a hundred thousand engine calls.
+
+                The rule is that a *present* Origin must be on this list and an
+                *absent* one is allowed. Only browsers send the header, so this
+                closes the browser path and leaves test/smoke_v2.py and any
+                other non-browser client working. An empty list disables the
+                check, which is what a deployment behind a proxy that already
+                does it should use.
+            */
+            std::vector<std::string> allowedOrigins{"http://localhost:5173", "http://127.0.0.1:5173",
+                                                    "http://localhost:4173", "http://127.0.0.1:4173"};
+
+            //! Sockets served at once.
+            /*! The other half of having no authentication: nothing stops one
+                client opening sockets until the process runs out of them. A
+                refused connection is a far better failure than a gateway that
+                cannot accept the one that matters.
+            */
+            std::size_t maxConnections = 32;
+
+            //! Sessions one socket may hold open.
+            /*! A session is a live QuantLib graph on a worker seat, so this is
+                the limit that protects the pool rather than the socket. The
+                frontend opens one per tab; sixteen tabs is past generous and
+                still two orders below what would exhaust the seats.
+            */
+            std::size_t maxSessionsPerConnection = 16;
 
             //! Largest frame accepted from a client.
             /*! uWebSockets defaults to 16 KB, which an OpenSession carrying a

@@ -1442,6 +1442,74 @@ async def main():
         check("pricing a closed session fails as SESSION_NOT_FOUND",
               reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND)
 
+        # -- the door ---------------------------------------------------------
+        #
+        # A WebSocket upgrade is not bound by the same-origin policy, so
+        # loopback is not a boundary against a browser: any page in any tab can
+        # open this socket. The rule is that a present Origin must be allowed
+        # and an absent one is not the browser case at all -- which is why
+        # every check above, sending none, still works.
+        print("\n  -- the door --")
+        check("a client that sends no origin is served, which is this test",
+              ws.state.name == "OPEN")
+
+        try:
+            await websockets.connect(URL, origin="https://evil.example",
+                                     max_size=16 << 20)
+            refused = False
+        except Exception as e:
+            refused = "403" in str(e)
+        check("a browser origin that is not allowed is refused at the upgrade",
+              refused)
+
+        allowed = await websockets.connect(URL, origin="http://localhost:5173",
+                                           max_size=16 << 20)
+        check("and the development server's origin is let through",
+              allowed.state.name == "OPEN")
+        await allowed.close()
+
+        # Sockets are capped too, and refused at the upgrade so the client reads
+        # a status rather than an unexplained disconnect.
+        extra = []
+        refused_at = None
+        for n in range(64):
+            try:
+                extra.append(await websockets.connect(URL, max_size=16 << 20))
+            except Exception as e:
+                refused_at = (n, "503" in str(e))
+                break
+        check("a connection past the socket limit is refused at the upgrade",
+              refused_at is not None and refused_at[1],
+              f"opened {len(extra)} more before {refused_at}")
+        for e in extra:
+            await e.close()
+
+        # A session is a live graph on a worker seat, so the cap on them is what
+        # protects the pool. Sixteen is the default; the seventeenth is refused
+        # by name rather than by running out of seats.
+        held = []
+        while len(held) < 16:
+            reply = await send(ws, open_session())
+            if not reply.HasField("session_opened"):
+                break
+            held.append(reply.session_opened.session_id)
+        reply = await send(ws, open_session())
+        check("a connection past its session limit is refused as OVERLOADED",
+              reply.HasField("error") and reply.error.code == E.Error.OVERLOADED,
+              f"held={len(held)} "
+              + (E.Error.Code.Name(reply.error.code) if reply.HasField("error")
+                 else "opened anyway"))
+
+        # Refused, not broken: closing one makes room, so a client that hit the
+        # limit recovers by tidying up rather than by reconnecting.
+        await send(ws, E.ClientFrame(request_id=next_id(), session_id=held[0],
+                                     close_session=E.CloseSession()))
+        reply = await send(ws, open_session())
+        check("and closing one makes room again",
+              reply.HasField("session_opened"),
+              "" if reply.HasField("session_opened")
+              else E.Error.Code.Name(reply.error.code))
+
     print(f"\n{checks} checks, {len(failures)} failed")
     if failures:
         print("FAILED: " + ", ".join(failures))
