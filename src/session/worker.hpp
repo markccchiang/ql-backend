@@ -79,6 +79,15 @@ namespace qlservice {
         void serveScenario(const quantlib::v2::ClientFrame& frame,
                            const Session::ProgressSink& progress);
 
+        //! Prices a book of trades off the one live graph, in one reply.
+        /*! A failing entry does not fail the batch: it carries the rejection
+            it would have been sent on its own, because refusing the whole book
+            over one bad trade throws away the prices that were correct. The
+            exception is a failure that dirties the graph, after which nothing
+            later is trustworthy and the rest is abandoned.
+        */
+        void serveBatch(const quantlib::v2::ClientFrame& frame);
+
         static void fillSeries(quantlib::v2::Series& series,
                                const quantlib::v2::ScenarioResult& scenario,
                                quantlib::v2::ResultKind kind);

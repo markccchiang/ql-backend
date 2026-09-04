@@ -334,6 +334,9 @@ async def main():
               bool(caps.option_styles) and bool(caps.engine_methods) and bool(caps.result_kinds),
               f"{len(caps.option_styles)} styles, {len(caps.engine_methods)} methods, "
               f"{len(caps.result_kinds)} result kinds")
+        check("it names the frames it serves, batch among them",
+              "batch" in caps.frames and "price" in caps.frames,
+              f"frames={list(caps.frames)}")
         check("it advertises the sweep ceiling a grid has to fit under",
               caps.max_scenario_points > 0,
               f"max_scenario_points={caps.max_scenario_points}")
@@ -470,6 +473,74 @@ async def main():
         reply = await send(ws, f)
         check("a greek the MC engine lacks is absent, not an error",
               reply.HasField("price_result") and "vega" not in reply.price_result.results)
+
+        # -- a book in one frame ----------------------------------------------
+        print("\n  -- batch --")
+        # Three trades that price and one that cannot: the point of the shape is
+        # that the bad one costs its own row and nothing else.
+        f = E.ClientFrame(request_id=next_id(), session_id=sid)
+        for strike in (90.0, 100.0, 110.0):
+            one = f.batch.requests.add()
+            one.CopyFrom(vanilla_frame(sid, row).price)
+            one.instrument.option.payoff.plain.strike = strike
+        broken = f.batch.requests.add()
+        broken.CopyFrom(vanilla_frame(sid, row).price)
+        broken.instrument.option.underlyings[0].spot_quote_id = "NOPE"
+        reply = await send(ws, f)
+
+        ok = reply.HasField("batch_result")
+        check("a batch returns a BatchResult", ok,
+              "" if ok else f"{E.Error.Code.Name(reply.error.code)} {reply.error.message!r}")
+        if ok:
+            book = reply.batch_result
+            check("a batch answers one entry per request, in order",
+                  len(book.entries) == 4, f"entries={len(book.entries)}")
+            check("a batch prices the trades that price",
+                  all(e.HasField("price") for e in book.entries[:3])
+                  and book.entries[0].price.npv > book.entries[1].price.npv
+                  > book.entries[2].price.npv,
+                  " ".join(f"{e.price.npv:.4f}" for e in book.entries[:3]))
+            # The middle trade is the session's own, so it must equal the price
+            # a single request returns: same graph, same engine, same answer.
+            check("a batch entry equals the price sent on its own",
+                  abs(book.entries[1].price.npv - analytic) < 1.0e-12,
+                  f"direct={analytic:.10f} batched={book.entries[1].price.npv:.10f}")
+            bad = book.entries[3]
+            check("a failing trade costs its own row and nothing else",
+                  bad.HasField("error") and bad.error.code == E.Error.UNKNOWN_ID
+                  and bad.error.field_path.startswith("batch.requests[3]"),
+                  f"{E.Error.Code.Name(bad.error.code)} {bad.error.field_path!r}")
+            check("and the batch was not abandoned", book.abandoned_after == 0,
+                  f"abandoned_after={book.abandoned_after}")
+
+        # A sweep inside a batch is refused by name rather than served: nesting
+        # them is a product with no honest progress stream.
+        f = E.ClientFrame(request_id=next_id(), session_id=sid)
+        nested = f.batch.requests.add()
+        nested.CopyFrom(vanilla_frame(sid, row).price)
+        axis = nested.scenarios.add()
+        axis.quote_id = "S"
+        axis.explicit.values.extend([95.0, 105.0])
+        reply = await send(ws, f)
+        entry = reply.batch_result.entries[0] if reply.HasField("batch_result") else None
+        check("a sweep inside a batch is refused by name",
+              entry is not None and entry.HasField("error")
+              and entry.error.field_path == "batch.requests[0].scenarios"
+              and entry.error.code == E.Error.UNSUPPORTED,
+              f"{entry.error.field_path!r}" if entry is not None else "no batch_result")
+
+        # An empty book is the request itself being wrong, so it fails as one.
+        f = E.ClientFrame(request_id=next_id(), session_id=sid)
+        f.batch.SetInParent()
+        reply = await send(ws, f)
+        check("an empty batch fails as a request rather than as a row",
+              reply.HasField("error") and reply.error.field_path == "batch.requests",
+              f"{E.Error.Code.Name(reply.error.code)} {reply.error.field_path!r}"
+              if reply.HasField("error") else "returned a BatchResult")
+
+        # The batch left the graph as it found it.
+        check("a batch is a question about the market, not an edit",
+              abs((await send(ws, vanilla_frame(sid, row))).price_result.npv - analytic) < 1.0e-12)
 
         # -- the scenario sweep ----------------------------------------------
         print("\n  -- scenario sweep --")

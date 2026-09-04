@@ -244,6 +244,7 @@ namespace qlservice {
             DESIGN §8.
         */
         static Placement placementFor(const quantlib::v2::PriceRequest& msg);
+        static Placement placementFor(const quantlib::v2::PriceBatch& msg);
 
       private:
         //! The cancels asked for on one session that have not resolved yet.

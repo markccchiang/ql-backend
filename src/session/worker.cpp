@@ -375,6 +375,95 @@ namespace qlservice {
     }
 
 
+    void Worker::serveBatch(const qlpb::ClientFrame& frame) {
+        const auto& requests = frame.batch().requests();
+        QLS_FIELD_REQUIRE(!requests.empty(), qlpb::Error::INVALID_ARGUMENT, "batch.requests",
+                          "a batch prices at least one trade");
+
+        qlpb::BatchResult out;
+
+        for (int at = 0; at < requests.size(); ++at) {
+            const std::string path = "batch.requests[" + std::to_string(at) + "]";
+            auto* entry = out.add_entries();
+
+            // Refused per entry rather than up front: the rest of the book is
+            // still priced, and the client learns which row it was.
+            if (!requests[at].scenarios().empty()) {
+                auto* error = entry->mutable_error();
+                error->set_code(qlpb::Error::UNSUPPORTED);
+                error->set_field_path(path + ".scenarios");
+                error->set_message(
+                    "a sweep inside a batch is a product with no honest progress "
+                    "stream; send the sweep as its own request");
+                continue;
+            }
+
+            try {
+                const auto outcome = session_->price(requests[at], nullptr);
+                fillResult(*entry->mutable_price(), requests[at], outcome);
+            } catch (const FieldError& e) {
+                // The rejection this entry would have been sent on its own, so
+                // a blotter can put the complaint on the row it belongs to.
+                // The path is rewritten to name the entry: "instrument.option"
+                // is ambiguous across forty trades.
+                auto* error = entry->mutable_error();
+                error->set_code(e.code());
+                error->set_message(e.what());
+                error->set_field_path(e.fieldPath().empty() ? path : path + "." + e.fieldPath());
+            } catch (const Error& e) {
+                auto* error = entry->mutable_error();
+                error->set_code(stopRequested_.load(std::memory_order_relaxed)
+                                    ? qlpb::Error::CANCELLED
+                                    : qlpb::Error::CALCULATION_FAILED);
+                error->set_message(e.what());
+                error->set_field_path(path);
+            }
+
+            emit(frame.request_id(), false, [&](qlpb::ServerFrame& o) {
+                auto* p = o.mutable_progress();
+                p->set_completed(at + 1);
+                p->set_total(requests.size());
+                p->set_running_npv(entry->has_price() ? entry->price().npv() : 0.0);
+            });
+
+            // A dirtied graph is only partly invalidated, so every later price
+            // would be computed against something no longer coherent. The rest
+            // of the book is answered with what stopped it rather than with
+            // numbers nobody should trust; the supervisor replays the session
+            // into a fresh worker afterwards (DESIGN §2.1).
+            if (session_->dirty()) {
+                out.set_abandoned_after(static_cast<std::uint32_t>(at + 1));
+                break;
+            }
+            if (stopRequested_.load(std::memory_order_relaxed)) {
+                out.set_abandoned_after(static_cast<std::uint32_t>(at + 1));
+                break;
+            }
+        }
+
+        const bool wasCancelled = out.abandoned_after() > 0 && !session_->dirty();
+        for (int at = out.entries_size(); at < requests.size(); ++at) {
+            auto* error = out.add_entries()->mutable_error();
+            error->set_code(wasCancelled ? qlpb::Error::CANCELLED
+                                         : qlpb::Error::CALCULATION_FAILED);
+            error->set_field_path("batch.requests[" + std::to_string(at) + "]");
+            error->set_message(wasCancelled
+                                   ? "cancelled after " + std::to_string(out.abandoned_after()) +
+                                         " of " + std::to_string(requests.size()) + " trades"
+                                   : "not priced: an earlier trade in this batch left the graph "
+                                     "partly invalidated, and a price off it would not be one");
+        }
+
+        emit(frame.request_id(), true,
+             [&](qlpb::ServerFrame& o) { *o.mutable_batch_result() = out; });
+
+        // Dropped here rather than in the catch that usually does it: this one
+        // did not throw, so nothing else will notice.
+        if (session_->dirty())
+            session_.reset();
+    }
+
+
     void Worker::fillSeries(qlpb::Series& series,
                             const qlpb::ScenarioResult& scenario,
                             qlpb::ResultKind kind) {
@@ -481,6 +570,12 @@ namespace qlservice {
                     emit(requestId, true, [&](qlpb::ServerFrame& out) {
                         fillResult(*out.mutable_price_result(), frame.price(), outcome);
                     });
+                    break;
+                }
+
+                case qlpb::ClientFrame::kBatch: {
+                    requireSessionOpen();
+                    serveBatch(frame);
                     break;
                 }
 

@@ -11,7 +11,7 @@ more than the service builds, and everything in the schema that is not here is
 
 The wire schema itself is a submodule at [`proto/`](https://github.com/markccchiang/ql-protobuf).
 
-## The six frames
+## The seven frames
 
 One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly one,
 including for failures and for the cancel itself — a client that never sees a
@@ -22,6 +22,7 @@ terminal frame waits forever (DESIGN §9.5).
 | `open_session` | `Supervisor::dispatch` → `Worker::serve` | `SessionOpened` |
 | `update_market` | `Worker::serve`, under one `UpdateGuard` | `Ack` |
 | `price` | `Worker::serve` → `Session::price` | `PriceResult`, or `ScenarioResult` when `scenarios` is non-empty |
+| `batch` | `Worker::serveBatch` → `Session::price`, once per entry | `BatchResult` |
 | `cancel` | `Gateway`, which answers it itself | `Ack` |
 | `hello` | `Gateway`, which answers it itself | `Capabilities` |
 | `close_session` | `Gateway` / `Supervisor` | `Ack` |
@@ -373,6 +374,39 @@ quantities are built:
 `LOCAL_VOLATILITY` need term structures this build does not construct, and
 sampling a surface across several strikes would be a matrix rather than a
 series, so all four are `UNSUPPORTED` naming the field.
+
+## Batches
+
+`PriceBatch` prices a book of trades against one graph in one frame, and
+`BatchResult` answers one entry per request **in order**, so a client matches
+by position and needs no ids of its own.
+
+A failing entry does not fail the batch. Refusing the whole book because trade
+seventeen names a curve that is not there would throw away sixteen prices that
+were computed correctly — the same argument that made an unsupplied result a
+named absence rather than a rejection. An entry carries either a `PriceResult`
+or the `Error` it would have been sent on its own, with `field_path` prefixed by
+`batch.requests[n]` so a blotter can put the complaint on the row it belongs to.
+
+Three things are refused rather than absorbed:
+
+| Refusal | Where it lands | Why |
+| --- | --- | --- |
+| an empty `requests` | the whole frame, on `batch.requests` | The request itself is wrong, not one of its rows |
+| a `scenarios` sweep inside an entry | that entry, `UNSUPPORTED` | Both shapes mean "price this many times", and nesting them is a product one `completed`/`total` pair cannot describe |
+| a failure that dirties the graph | the rest of the book | Every later price would be computed against a half-invalidated graph |
+
+`BatchResult.abandoned_after` is how many entries were attempted before a dirty
+graph or a cancel stopped the book, and zero when the whole of it priced. A
+count rather than an index, so "the first entry broke it" is 1 rather than
+indistinguishable from the ordinary case. The abandoned entries are still
+present, carrying the reason rather than a price.
+
+A batch reports `Progress` per entry and checks the stop flag between them, so
+it is cancellable at trade boundaries in exactly the way a sweep is cancellable
+at point boundaries. It also takes the placement decision over the whole book: a
+Monte Carlo eleven trades in moves the session to a sacrificial worker before
+the batch starts, because the batch runs to completion wherever it begins.
 
 ## Scenario sweeps
 

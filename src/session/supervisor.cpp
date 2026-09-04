@@ -198,6 +198,18 @@ namespace qlservice {
     }
 
 
+    Supervisor::Placement Supervisor::placementFor(const qlpb::PriceBatch& msg) {
+        // One long calculation in the book decides for the whole of it: the
+        // batch runs to completion on whichever seat it starts on, and a
+        // Monte Carlo eleven trades in would otherwise hold a shared worker
+        // for as long as it takes.
+        for (const auto& request : msg.requests())
+            if (placementFor(request) == Placement::Sacrificial)
+                return Placement::Sacrificial;
+        return Placement::Shared;
+    }
+
+
     void Supervisor::openSession(const std::string& sessionId, const qlpb::ClientFrame& frame) {
         QL_REQUIRE(frame.has_open_session(), "expected an OpenSession frame");
         QL_REQUIRE(sessions_.find(sessionId) == sessions_.end(),
@@ -232,8 +244,9 @@ namespace qlservice {
             return;
         }
 
-        if (frame.has_price()) {
-            const auto wanted = placementFor(frame.price());
+        if (frame.has_price() || frame.has_batch()) {
+            const auto wanted =
+                frame.has_batch() ? placementFor(frame.batch()) : placementFor(frame.price());
             if (wanted != state.placement) {
                 // Moving a session between processes is a replay, not a
                 // migration: the graph is thread-bound and cannot be handed
