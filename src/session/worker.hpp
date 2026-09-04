@@ -83,6 +83,15 @@ namespace qlservice {
                                const quantlib::v2::ScenarioResult& scenario,
                                quantlib::v2::ResultKind kind);
 
+        //! Two axes as a matrix, row-major with the axis values as its labels.
+        static void fillSurface(quantlib::v2::DoubleMatrix& surface,
+                                const quantlib::v2::ScenarioResult& scenario,
+                                quantlib::v2::ResultKind kind);
+
+        //! One plotted result at one point, NaN where the engine had none.
+        static double pointValue(const quantlib::v2::PriceResult& price,
+                                 quantlib::v2::ResultKind kind);
+
         //! Rejects a frame that needs a graph this worker does not hold.
         /*! SESSION_NOT_FOUND rather than a calculation failure: the client
             addressed a session that is not here, which it recovers from by

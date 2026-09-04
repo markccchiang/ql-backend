@@ -3,6 +3,7 @@
 #include "worker.hpp"
 #include <limits>
 #include <vector>
+#include "capabilities.hpp"
 #include "errors/fielderror.hpp"
 #include "session.hpp"
 #include <ql/errors.hpp>
@@ -201,85 +202,167 @@ namespace qlservice {
 
     void Worker::serveScenario(const qlpb::ClientFrame& frame,
                                const Session::ProgressSink& progress) {
-        const auto& scenario = frame.price().scenario();
-        const std::string path = "scenario";
+        const auto& requested = frame.price().scenarios();
+        const std::string base = "scenarios";
 
-        QLS_FIELD_REQUIRE(!scenario.quote_id().empty(), qlpb::Error::INVALID_ARGUMENT,
-                          path + ".quote_id", "a scenario sweeps one named quote");
+        // One axis resolved: the quote it writes, where that quote started, and
+        // the values it will take. Resolved for every axis before the first
+        // write, so a malformed second axis costs no prices and leaves nothing
+        // to put back.
+        struct Axis {
+            std::string quoteId;
+            std::string path;
+            double original;
+            std::vector<double> points;
+            bool keepFinal;
+        };
 
-        const double original = session_->quoteValue(scenario.quote_id(), path + ".quote_id");
+        std::vector<Axis> plan;
+        std::size_t total = 1;
+        for (int a = 0; a < requested.size(); ++a) {
+            const auto& axis = requested[a];
+            const std::string path = base + "[" + std::to_string(a) + "]";
 
-        std::vector<double> points;
-        switch (scenario.points_case()) {
-            case qlpb::Scenario::kExplicit:
-                points.assign(scenario.explicit_().values().begin(),
-                              scenario.explicit_().values().end());
-                break;
-            case qlpb::Scenario::kLinear: {
-                const auto& lin = scenario.linear();
-                QLS_FIELD_REQUIRE(lin.steps() >= 2, qlpb::Error::INVALID_ARGUMENT,
-                                  path + ".linear.steps",
-                                  "a linear sweep needs at least two steps");
-                for (std::uint32_t i = 0; i < lin.steps(); ++i)
-                    points.push_back(lin.begin() + (lin.end() - lin.begin()) * i /
-                                                      static_cast<double>(lin.steps() - 1));
-                break;
+            QLS_FIELD_REQUIRE(!axis.quote_id().empty(), qlpb::Error::INVALID_ARGUMENT,
+                              path + ".quote_id", "a scenario axis sweeps one named quote");
+            for (const auto& earlier : plan)
+                QLS_FIELD_REQUIRE(earlier.quoteId != axis.quote_id(),
+                                  qlpb::Error::INVALID_ARGUMENT, path + ".quote_id",
+                                  "'" + axis.quote_id() +
+                                      "' is already an axis of this sweep: the later write "
+                                      "would win at every point and the earlier axis would "
+                                      "move nothing");
+            // The plot belongs to the sweep. Reading it off whichever axis
+            // happened to set it would draw a plot of something the client did
+            // not ask for, so only the first axis may carry it.
+            QLS_FIELD_REQUIRE(a == 0 || axis.plot() == qlpb::RESULT_KIND_UNSPECIFIED,
+                              qlpb::Error::INVALID_ARGUMENT, path + ".plot",
+                              "plot is a property of the sweep rather than of an axis; set "
+                              "it on the first one");
+
+            const double original = session_->quoteValue(axis.quote_id(), path + ".quote_id");
+
+            std::vector<double> points;
+            switch (axis.points_case()) {
+                case qlpb::Scenario::kExplicit:
+                    points.assign(axis.explicit_().values().begin(),
+                                  axis.explicit_().values().end());
+                    break;
+                case qlpb::Scenario::kLinear: {
+                    const auto& lin = axis.linear();
+                    QLS_FIELD_REQUIRE(lin.steps() >= 2, qlpb::Error::INVALID_ARGUMENT,
+                                      path + ".linear.steps",
+                                      "a linear sweep needs at least two steps");
+                    for (std::uint32_t i = 0; i < lin.steps(); ++i)
+                        points.push_back(lin.begin() + (lin.end() - lin.begin()) * i /
+                                                          static_cast<double>(lin.steps() - 1));
+                    break;
+                }
+                case qlpb::Scenario::kRelative:
+                    for (double f : axis.relative().factors())
+                        points.push_back(original * f);
+                    break;
+                default:
+                    QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, path,
+                                   "a scenario needs explicit, linear or relative points");
             }
-            case qlpb::Scenario::kRelative:
-                for (double f : scenario.relative().factors())
-                    points.push_back(original * f);
-                break;
-            default:
-                QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, path,
-                               "a scenario needs explicit, linear or relative points");
+            QLS_FIELD_REQUIRE(!points.empty(), qlpb::Error::INVALID_ARGUMENT, path,
+                              "a scenario needs at least one point");
+
+            // Checked as the product grows rather than at the end, so the
+            // multiplication cannot overflow into a number that looks small.
+            total *= points.size();
+            QLS_FIELD_REQUIRE(total <= kMaxScenarioPoints, qlpb::Error::INVALID_ARGUMENT, base,
+                              "this grid is " + std::to_string(total) + " points across " +
+                                  std::to_string(plan.size() + 1) + " axes, over the limit of " +
+                                  std::to_string(kMaxScenarioPoints) + "; a product multiplies, "
+                                  "so a step count one digit too long is a session-length "
+                                  "request rather than a slow one");
+
+            plan.push_back({axis.quote_id(), path, original, std::move(points),
+                            axis.keep_final_value()});
         }
-        QLS_FIELD_REQUIRE(!points.empty(), qlpb::Error::INVALID_ARGUMENT, path,
-                          "a scenario needs at least one point");
+        QLS_FIELD_REQUIRE(!plan.empty(), qlpb::Error::INVALID_ARGUMENT, base,
+                          "a sweep needs at least one axis");
 
         qlpb::ScenarioResult out;
-        out.set_quote_id(scenario.quote_id());
+        for (const auto& axis : plan) {
+            auto* wired = out.add_axes();
+            wired->set_quote_id(axis.quoteId);
+            for (double point : axis.points)
+                wired->add_values(wire(point));
+        }
+
+        // Row-major over the axes, last varying fastest: the flat index of a
+        // point decomposes into one coordinate per axis by dividing through the
+        // strides. Same order DoubleMatrix uses, so the surface needs no
+        // rearranging afterwards.
+        std::vector<std::size_t> stride(plan.size(), 1);
+        for (std::size_t a = plan.size(); a-- > 1;)
+            stride[a - 1] = stride[a] * plan[a].points.size();
+
+        std::vector<std::size_t> at(plan.size(), 0);
+
+        const auto restore = [&] {
+            for (const auto& axis : plan)
+                if (!axis.keepFinal)
+                    session_->writeQuote(axis.quoteId, axis.original, axis.path + ".quote_id");
+        };
 
         // Restoring on the way out, including when a point throws. A sweep is
         // a question rather than an edit: the session log never saw these
         // writes, so leaving one in place would put the live graph out of step
         // with what a replay would rebuild (DESIGN §2.1).
         try {
-            for (std::size_t i = 0; i < points.size(); ++i) {
-                session_->writeQuote(scenario.quote_id(), points[i], path + ".quote_id");
-                const auto outcome = session_->price(frame.price(), nullptr);
+            for (std::size_t i = 0; i < total; ++i) {
+                // Only the coordinates that moved are written. The outermost
+                // axis changes once per row, and a write it does not need is a
+                // notification the whole graph would answer.
+                for (std::size_t a = 0; a < plan.size(); ++a) {
+                    const std::size_t k = (i / stride[a]) % plan[a].points.size();
+                    if (i == 0 || k != at[a]) {
+                        at[a] = k;
+                        session_->writeQuote(plan[a].quoteId, plan[a].points[k],
+                                             plan[a].path + ".quote_id");
+                    }
+                }
 
-                out.add_values(points[i]);
+                const auto outcome = session_->price(frame.price(), nullptr);
                 fillResult(*out.add_prices(), frame.price(), outcome);
 
                 emit(frame.request_id(), false, [&](qlpb::ServerFrame& o) {
                     auto* p = o.mutable_progress();
                     p->set_completed(i + 1);
-                    p->set_total(points.size());
+                    p->set_total(total);
                     p->set_running_npv(wire(outcome.npv));
                     p->set_scenario_point(static_cast<std::uint32_t>(i));
                 });
 
                 if (stopRequested_.load(std::memory_order_relaxed))
-                    QL_FAIL("cancelled after " << i + 1 << " of " << points.size()
+                    QL_FAIL("cancelled after " << i + 1 << " of " << total
                                                << " scenario points");
             }
         } catch (...) {
-            if (!scenario.keep_final_value())
-                session_->writeQuote(scenario.quote_id(), original, path + ".quote_id");
+            restore();
             throw;
         }
 
-        if (!scenario.keep_final_value())
-            session_->writeQuote(scenario.quote_id(), original, path + ".quote_id");
+        restore();
 
-        if (scenario.plot() != qlpb::RESULT_KIND_UNSPECIFIED) {
-            // Checked after the sweep rather than before, so the quote has
+        const auto plot = plan.empty() ? qlpb::RESULT_KIND_UNSPECIFIED : requested[0].plot();
+        if (plot != qlpb::RESULT_KIND_UNSPECIFIED) {
+            // Checked after the sweep rather than before, so the quotes have
             // already been restored; the prices are still returned, only the
-            // series is refused.
-            QLS_FIELD_REQUIRE(!resultName(scenario.plot()).empty(), qlpb::Error::UNSUPPORTED,
-                              path + ".plot",
+            // plot is refused.
+            QLS_FIELD_REQUIRE(!resultName(plot).empty(), qlpb::Error::UNSUPPORTED,
+                              base + "[0].plot",
                               "this result kind has no single value to plot per point");
-            fillSeries(*out.mutable_series(), out, scenario.plot());
+            // A line for one axis, a surface for two. Past that a plot would
+            // have to choose which axes to show, and prices is the answer.
+            if (plan.size() == 1)
+                fillSeries(*out.mutable_series(), out, plot);
+            else if (plan.size() == 2)
+                fillSurface(*out.mutable_surface(), out, plot);
         }
 
         emit(frame.request_id(), true,
@@ -300,19 +383,42 @@ namespace qlservice {
         series.set_y_axis(kind == qlpb::RESULT_KIND_NPV ? qlpb::Series::AXIS_NPV
                                                         : qlpb::Series::AXIS_GREEK);
         for (int i = 0; i < scenario.prices_size(); ++i) {
-            series.add_x(scenario.values(i));
-            if (kind == qlpb::RESULT_KIND_NPV) {
-                series.add_y(scenario.prices(i).npv());
-                continue;
-            }
-            const auto& results = scenario.prices(i).results();
-            auto it = results.find(resultName(kind));
-            // A point the engine could not supply breaks the line rather than
-            // shifting it: NaN is what a plotting library renders as a gap,
-            // and dropping the point would silently misalign x and y.
-            series.add_y(it == results.end() ? std::numeric_limits<double>::quiet_NaN()
-                                             : it->second.scalar());
+            series.add_x(scenario.axes(0).values(i));
+            series.add_y(pointValue(scenario.prices(i), kind));
         }
+    }
+
+
+    double Worker::pointValue(const qlpb::PriceResult& price, qlpb::ResultKind kind) {
+        if (kind == qlpb::RESULT_KIND_NPV)
+            return price.npv();
+        const auto& results = price.results();
+        auto it = results.find(resultName(kind));
+        // A point the engine could not supply breaks the line rather than
+        // shifting it: NaN is what a plotting library renders as a gap, and
+        // dropping the point would silently misalign the value with its axis.
+        return it == results.end() ? std::numeric_limits<double>::quiet_NaN()
+                                   : it->second.scalar();
+    }
+
+
+    void Worker::fillSurface(qlpb::DoubleMatrix& surface,
+                             const qlpb::ScenarioResult& scenario,
+                             qlpb::ResultKind kind) {
+        const auto& rows = scenario.axes(0).values();
+        const auto& columns = scenario.axes(1).values();
+        surface.set_rows(static_cast<std::uint32_t>(rows.size()));
+        surface.set_columns(static_cast<std::uint32_t>(columns.size()));
+        // The axis values travel as the labels, so a heat map or a family of
+        // lines can place every cell without being told the axes separately.
+        for (double value : rows)
+            surface.add_row_labels(value);
+        for (double value : columns)
+            surface.add_column_labels(value);
+        // prices is already row-major over the axes, which is the order
+        // DoubleMatrix documents, so this is a copy rather than a transpose.
+        for (int i = 0; i < scenario.prices_size(); ++i)
+            surface.add_values(pointValue(scenario.prices(i), kind));
     }
 
 
@@ -365,7 +471,7 @@ namespace qlservice {
                         return !stopRequested_.load(std::memory_order_relaxed);
                     };
 
-                    if (frame.price().has_scenario()) {
+                    if (!frame.price().scenarios().empty()) {
                         serveScenario(frame, progress);
                         break;
                     }

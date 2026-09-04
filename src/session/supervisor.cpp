@@ -259,40 +259,48 @@ namespace qlservice {
             state.pendingUpdates[frame.request_id()] = frame.update_market();
         }
 
-        if (frame.has_price() && frame.price().has_scenario() &&
-            frame.price().scenario().keep_final_value()) {
+        if (frame.has_price() && !frame.price().scenarios().empty()) {
             // A sweep that keeps its last value is an UpdateMarket the client
             // did not spell as one. Without this the live graph and the log
             // diverge: the worker holds the swept value, a replay after its
             // death rebuilds the old one, and the client's price silently
             // reverts. Parked like an UpdateMarket and folded in the same
             // place, on the sweep's own terminal frame.
-            const auto& sc = frame.price().scenario();
-            std::optional<double> last;
-            switch (sc.points_case()) {
-                case qlpb::Scenario::kExplicit:
-                    if (sc.explicit_().values_size() > 0)
-                        last = sc.explicit_().values(sc.explicit_().values_size() - 1);
-                    break;
-                case qlpb::Scenario::kLinear:
-                    last = sc.linear().end();
-                    break;
-                case qlpb::Scenario::kRelative:
-                    if (sc.relative().factors_size() > 0)
-                        if (auto base = state.log.quoteValue(sc.quote_id()))
-                            last = *base * sc.relative().factors(sc.relative().factors_size() - 1);
-                    break;
-                default:
-                    break;
+            //
+            // Per axis, because keep_final_value is per axis: a grid can leave
+            // spot where it ended and put vol back.
+            qlpb::UpdateMarket update;
+            for (const auto& sc : frame.price().scenarios()) {
+                if (!sc.keep_final_value())
+                    continue;
+                std::optional<double> last;
+                switch (sc.points_case()) {
+                    case qlpb::Scenario::kExplicit:
+                        if (sc.explicit_().values_size() > 0)
+                            last = sc.explicit_().values(sc.explicit_().values_size() - 1);
+                        break;
+                    case qlpb::Scenario::kLinear:
+                        last = sc.linear().end();
+                        break;
+                    case qlpb::Scenario::kRelative:
+                        if (sc.relative().factors_size() > 0)
+                            if (auto base = state.log.quoteValue(sc.quote_id()))
+                                last = *base *
+                                       sc.relative().factors(sc.relative().factors_size() - 1);
+                        break;
+                    default:
+                        break;
+                }
+                // A malformed axis is left for the worker to reject; nothing is
+                // parked for it, so nothing can be recorded.
+                if (last) {
+                    auto* quote = update.add_quotes();
+                    quote->set_quote_id(sc.quote_id());
+                    quote->set_value(*last);
+                }
             }
-            // A malformed sweep is left for the worker to reject; nothing is
-            // parked, so nothing can be recorded.
-            if (last) {
-                qlpb::UpdateMarket update;
-                update.add_quotes()->set_quote_id(sc.quote_id());
-                update.mutable_quotes(0)->set_value(*last);
+            if (update.quotes_size() > 0)
                 state.pendingUpdates[frame.request_id()] = update;
-            }
         }
 
         host_.send(state.workerId, frame);

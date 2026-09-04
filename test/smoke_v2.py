@@ -334,6 +334,9 @@ async def main():
               bool(caps.option_styles) and bool(caps.engine_methods) and bool(caps.result_kinds),
               f"{len(caps.option_styles)} styles, {len(caps.engine_methods)} methods, "
               f"{len(caps.result_kinds)} result kinds")
+        check("it advertises the sweep ceiling a grid has to fit under",
+              caps.max_scenario_points > 0,
+              f"max_scenario_points={caps.max_scenario_points}")
         check("it names the build it is",
               bool(caps.build) and bool(caps.quantlib_version),
               f"{caps.build!r} on QuantLib {caps.quantlib_version!r}")
@@ -472,11 +475,12 @@ async def main():
         print("\n  -- scenario sweep --")
         f = vanilla_frame(sid, row)
         f.price.results.append(R.RESULT_KIND_DELTA)
-        f.price.scenario.quote_id = "S"
-        f.price.scenario.linear.begin = 80.0
-        f.price.scenario.linear.end = 120.0
-        f.price.scenario.linear.steps = 41
-        f.price.scenario.plot = R.RESULT_KIND_NPV
+        axis = f.price.scenarios.add()
+        axis.quote_id = "S"
+        axis.linear.begin = 80.0
+        axis.linear.end = 120.0
+        axis.linear.steps = 41
+        axis.plot = R.RESULT_KIND_NPV
         reply = await send(ws, f)
         ok = reply.HasField("scenario_result")
         check("sweep returns a ScenarioResult", ok,
@@ -496,6 +500,55 @@ async def main():
                   len(sweep.series.x) == 41 and len(sweep.series.y) == 41
                   and sweep.series.x_axis == R.Series.AXIS_SPOT)
 
+        # -- and the same sweep in two dimensions ------------------------------
+        # The reason this exists: spot x vol used to be five separate sweeps,
+        # five round trips and five progress streams against a graph that was
+        # already warm.
+        f = vanilla_frame(sid, row)
+        spot = f.price.scenarios.add()
+        spot.quote_id = "S"
+        spot.linear.begin = 90.0
+        spot.linear.end = 110.0
+        spot.linear.steps = 5
+        spot.plot = R.RESULT_KIND_NPV
+        vol = f.price.scenarios.add()
+        vol.quote_id = "V"
+        vol.explicit.values.extend([0.1, 0.2, 0.3])
+        reply = await send(ws, f)
+        grid_ok = reply.HasField("scenario_result")
+        check("a grid returns a ScenarioResult", grid_ok,
+              "" if grid_ok else f"{E.Error.Code.Name(reply.error.code)} {reply.error.message!r}")
+        if grid_ok:
+            grid = reply.scenario_result
+            check("a grid prices the product of its axes", len(grid.prices) == 15,
+                  f"points={len(grid.prices)}")
+            check("a grid names both axes",
+                  [a.quote_id for a in grid.axes] == ["S", "V"]
+                  and len(grid.axes[0].values) == 5 and len(grid.axes[1].values) == 3)
+            # Row-major, last axis fastest: prices[i * 3 + j] is spot i at vol j.
+            # The point at spot 100 and vol 0.2 is the market the session holds,
+            # so it has to reproduce the single-shot price exactly.
+            check("a grid is row-major with the last axis fastest",
+                  abs(grid.prices[2 * 3 + 1].npv - analytic) < 1.0e-12,
+                  f"direct={analytic:.10f} grid={grid.prices[7].npv:.10f}")
+            check("a grid rises in vol at every spot",
+                  all(grid.prices[i * 3 + j].npv < grid.prices[i * 3 + j + 1].npv
+                      for i in range(5) for j in range(2)))
+            check("a grid carries a surface, labelled by its axes",
+                  grid.surface.rows == 5 and grid.surface.columns == 3
+                  and len(grid.surface.values) == 15
+                  and list(grid.surface.column_labels) == [0.1, 0.2, 0.3]
+                  and abs(grid.surface.values[7] - analytic) < 1.0e-12,
+                  f"{grid.surface.rows}x{grid.surface.columns}")
+            check("a grid draws no line, having no single x axis",
+                  not grid.HasField("series"))
+
+        # Both axes are put back, not only the last one written.
+        reply = await send(ws, vanilla_frame(sid, row))
+        check("a grid restored every quote it wrote",
+              abs(reply.price_result.npv - analytic) < 1.0e-12,
+              f"before={analytic:.10f} after={reply.price_result.npv:.10f}")
+
         # A sweep is a question, not an edit: the quote must be where it was.
         reply = await send(ws, vanilla_frame(sid, row))
         check("sweep restored the quote it wrote",
@@ -510,9 +563,10 @@ async def main():
         # (DESIGN §2.1), so the price that comes back afterwards is the log's
         # opinion of the spot, not the worker's.
         f = vanilla_frame(sid, row)
-        f.price.scenario.quote_id = "S"
-        f.price.scenario.explicit.values.extend([90.0, 110.0])
-        f.price.scenario.keep_final_value = True
+        axis = f.price.scenarios.add()
+        axis.quote_id = "S"
+        axis.explicit.values.extend([90.0, 110.0])
+        axis.keep_final_value = True
         reply = await send(ws, f)
         check("a kept sweep returns", reply.HasField("scenario_result"))
         kept = (await send(ws, vanilla_frame(sid, row))).price_result.npv
@@ -714,11 +768,43 @@ async def main():
                        E.Error.UNSUPPORTED)
 
         f = vanilla_frame(sid, row)
-        f.price.scenario.quote_id = "S"
-        f.price.scenario.explicit.values.append(100.0)
-        f.price.scenario.plot = R.RESULT_KIND_LEG_NPV
-        await rejected("a sweep plotting a result with no single value", f, "scenario.plot",
+        axis = f.price.scenarios.add()
+        axis.quote_id = "S"
+        axis.explicit.values.append(100.0)
+        axis.plot = R.RESULT_KIND_LEG_NPV
+        await rejected("a sweep plotting a result with no single value", f, "scenarios[0].plot",
                        E.Error.UNSUPPORTED)
+
+        # A quote on two axes: the later write wins at every point and the
+        # earlier axis moves nothing, which would look like a flat dimension.
+        f = vanilla_frame(sid, row)
+        for _ in range(2):
+            axis = f.price.scenarios.add()
+            axis.quote_id = "S"
+            axis.explicit.values.extend([95.0, 105.0])
+        await rejected("a grid sweeping one quote on two axes", f, "scenarios[1].quote_id")
+
+        # The plot belongs to the sweep, not to an axis.
+        f = vanilla_frame(sid, row)
+        first = f.price.scenarios.add()
+        first.quote_id = "S"
+        first.explicit.values.append(100.0)
+        second = f.price.scenarios.add()
+        second.quote_id = "V"
+        second.explicit.values.append(0.2)
+        second.plot = R.RESULT_KIND_NPV
+        await rejected("a grid asking a later axis to choose the plot", f, "scenarios[1].plot")
+
+        # A product multiplies: three innocent-looking axes are 8 million
+        # points, and the ceiling is advertised so a client need not find out.
+        f = vanilla_frame(sid, row)
+        for quote, mid in (("S", 100.0), ("V", 0.2), ("R", 0.05)):
+            axis = f.price.scenarios.add()
+            axis.quote_id = quote
+            axis.linear.begin = mid * 0.9
+            axis.linear.end = mid * 1.1
+            axis.linear.steps = 200
+        await rejected("a grid larger than the advertised ceiling", f, "scenarios")
 
         # A quanto lookback was priced as a plain one: the lookback arm builds
         # its engines on the bare process and nothing there consulted the

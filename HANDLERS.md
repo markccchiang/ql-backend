@@ -21,7 +21,7 @@ terminal frame waits forever (DESIGN §9.5).
 | --- | --- | --- |
 | `open_session` | `Supervisor::dispatch` → `Worker::serve` | `SessionOpened` |
 | `update_market` | `Worker::serve`, under one `UpdateGuard` | `Ack` |
-| `price` | `Worker::serve` → `Session::price` | `PriceResult`, or `ScenarioResult` when `scenario` is set |
+| `price` | `Worker::serve` → `Session::price` | `PriceResult`, or `ScenarioResult` when `scenarios` is non-empty |
 | `cancel` | `Gateway`, which answers it itself | `Ack` |
 | `hello` | `Gateway`, which answers it itself | `Capabilities` |
 | `close_session` | `Gateway` / `Supervisor` | `Ack` |
@@ -376,7 +376,7 @@ series, so all four are `UNSUPPORTED` naming the field.
 
 ## Scenario sweeps
 
-`PriceRequest.scenario` prices N times off one live graph and replies with a
+`PriceRequest.scenarios` prices N times off one live graph and replies with a
 `ScenarioResult` instead of a `PriceResult`. Points come three ways — exactly
 one of:
 
@@ -386,12 +386,36 @@ one of:
 | `linear` | `begin`, `end`, `steps` (named `begin`/`end` because `from` is a Python keyword) |
 | `relative` | multipliers of the quote's current value |
 
-`plot` names the single `ResultKind` to shape into `ScenarioResult.series`;
-leave it unset to get a full `PriceResult` per point and no series. A kind with
-no single value there is `UNSUPPORTED` on `scenario.plot`.
+### More than one axis
 
-The swept quote is **restored by default**. `keep_final_value` leaves it at the
-last swept value — phrased that way round because proto3 defaults it to false
+`scenarios` is repeated, and several axes sweep **as a product**: spot at 21
+points against vol at 5 is 105 prices, in row-major order with the last axis
+varying fastest. `ScenarioResult.axes` names them outermost first, so
+`prices[i * len(axes[1].values) + j]` is `axes[0].values[i]` against
+`axes[1].values[j]`.
+
+The rules a grid adds, each rejected by its own `scenarios[n]` path:
+
+| Rule | Why |
+| --- | --- |
+| A quote may appear on one axis only | The later write would win at every point and the earlier axis would move nothing, which reads as a flat dimension rather than as a mistake |
+| Only `scenarios[0]` may set `plot` | The plot is a property of the sweep. Taking it from whichever axis happened to set one would draw something the client did not ask for |
+| The product must fit `Capabilities.max_scenario_points` | A grid multiplies, so a step count one digit too long is a session-length request rather than a slow one. The ceiling is advertised so a client can refuse it before spending the round trip |
+
+What this is *not* is a lockstep shift — move these three quotes together.
+That is a market edit with an undo, which `UpdateMarket` already does.
+
+`plot` names the single `ResultKind` to shape for drawing; leave it unset to get
+a full `PriceResult` per point and no plot. One axis fills
+`ScenarioResult.series`, two fill `ScenarioResult.surface` — a `DoubleMatrix`
+whose `row_labels` and `column_labels` are the axis values, so nothing else has
+to be sent to place a cell — and beyond two axes neither is filled and `prices`
+is the answer. A kind with no single value per point is `UNSUPPORTED` on
+`scenarios[0].plot`.
+
+Every swept quote is **restored by default**, on the way out of a failure as
+well as a success. `keep_final_value` is per axis — a grid can leave spot where
+it ended and put vol back — and leaves that quote at its last swept value — phrased that way round because proto3 defaults it to false
 and the default has to be the safe one: a sweep is a question, not an edit. A
 kept sweep is folded into the session log as a synthetic `UpdateMarket`, so it
 survives a replay.

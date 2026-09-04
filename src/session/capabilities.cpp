@@ -14,6 +14,7 @@ namespace qlservice {
     namespace qlpb = quantlib::v2;
 
     void fillCapabilities(qlpb::Capabilities& out) {
+        out.set_max_scenario_points(kMaxScenarioPoints);
         out.set_build("ql-backend");
         out.set_quantlib_version(QL_VERSION);
 
