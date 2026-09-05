@@ -4,12 +4,18 @@ A stateful C++ pricing backend driving a TypeScript frontend over WebSocket,
 with Protobuf as the wire format.
 
 This document records the design decisions and, more importantly, the QuantLib
-constraints that force them. Every claim about the library is cited to a file
-and line in this repository so it can be re-checked when QuantLib changes.
-Source comments cite back to it by section, as `DESIGN §2.1`.
+constraints that force them. Claims about the library are cited against
+`third_party/QuantLib`, the submodule this repository pins at v1.43, so the
+line numbers hold against a fixed tree rather than against whichever QuantLib
+happens to be installed. Most carry a line or a range; the rest name a file or
+a whole directory, which is all a claim about an *absence* can be cited to —
+§3 rests on one of those. Source comments cite back to this document by
+section, as `DESIGN §2.1`.
 
-Build instructions, current status and the file map are in
-[`README.md`](README.md).
+Build instructions are in [`INSTALL.md`](INSTALL.md); current status and the
+file map are in [`README.md`](README.md). Where the design and the code differ,
+the section says so — today that is §3: workers are threads in the gateway
+process, so the kill half of a cancel is a disown rather than a kill.
 
 | Section | What it settles |
 | --- | --- |
@@ -18,7 +24,7 @@ Build instructions, current status and the file map are in
 | [2. Global state forces session pinning](#2-global-state-forces-session-pinning) | `QL_ENABLE_SESSIONS`, one session per thread |
 | [2.1 How many sessions per process](#21-how-many-sessions-per-process) | Shared vs. sacrificial workers, replay, placement |
 | [2.2 QuantLib does not parallelise for you](#22-quantlib-does-not-parallelise-for-you) | No OpenMP in workers |
-| [3. No cancellation](#3-no-cancellation--hence-processes-not-threads) | Cancel-by-kill, the stop grace, and the three shapes that stop politely |
+| [3. QuantLib has no cancel hook](#3-no-cancellation--hence-processes-not-threads) | Cancel-by-kill, the stop grace, the three shapes that stop politely, and the host that cannot honour a kill |
 | [4. Determinism is not free](#4-determinism-is-not-free) | Required seeds, and why progress changes the price |
 | [5. The lazy graph is why the backend is stateful](#5-the-lazy-graph-is-why-the-backend-is-stateful) | Observables and batched updates |
 | [6. Protobuf: the schema is the work](#6-protobuf-the-schema-is-the-work-the-wire-format-is-not) | The hand-written registry, enum hazards |
