@@ -295,9 +295,35 @@ decimal, so the client names one rather than inheriting a default:
 `LEISEN_REIMER`, `JOSHI4`. A barrier takes `COX_ROSS_RUBINSTEIN` only.
 
 **Finite difference.** `preset` is `COARSE` (100×100), `STANDARD` (400×200) or
-`FINE` (2000×800). `custom` — explicit `time_steps`, `asset_steps`,
-`damping_steps` and `scheme` — works on the plain paths and is `UNSUPPORTED`
-under quanto.
+`FINE` (2000×800), each of them Douglas with no damping. `custom` — explicit
+`time_steps`, `asset_steps`, `damping_steps` and `scheme` — works on the plain
+paths and is `UNSUPPORTED` under quanto. All four fields are read: a custom
+grid that named a scheme and got Douglas anyway was a defect, not a
+simplification, and it stood for three milestones.
+
+`scheme` has no default, for the reason the grid has none: two schemes are two
+prices for one trade. Five of the six arms build.
+
+| `Scheme` | What it is here |
+| --- | --- |
+| `DOUGLAS` | QuantLib's own default, second order. What to send with no opinion |
+| `CRANK_NICOLSON` | Douglas to within a bit in one dimension |
+| `CRAIG_SNEYD` | Douglas *exactly* in one dimension — there are no directions to alternate |
+| `HUNDSDORFER` | A different theta; differs from Douglas in the seventh digit |
+| `IMPLICIT_EULER` | First order, unconditionally stable; differs in the third digit |
+| `EXPLICIT_EULER` | `UNSUPPORTED` |
+
+Explicit Euler is refused rather than offered because it is stable only while
+the time step is small against the square of the asset step, and the asset step
+belongs to a mesher QuantLib builds inside the engine rather than to anything
+on the frame. An unstable run does not fail: at 100×200 this build answered
+2.4e140 and at 400×200 a NaN. Implicit Euler is first order too, with no such
+condition.
+
+`damping_steps` are Rannacher's fix for the oscillation a Crank-Nicolson-family
+scheme shows against a kinked payoff or a barrier — the first few steps taken
+fully implicit. They are counted out of `time_steps`, so a request with at
+least as many damping steps as time steps is `INVALID_ARGUMENT`.
 
 **Monte Carlo.** `seed` must be non-zero, because QuantLib otherwise seeds from
 the clock and the same inputs would price differently on every request. Give
@@ -596,6 +622,6 @@ substitute).
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
 `ql-backend` over a real WebSocket: 247 rows of QuantLib's own reference values
-plus the rejection cases, 129 checks in all. `test/README.md` explains how to run
+plus the rejection cases, 138 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

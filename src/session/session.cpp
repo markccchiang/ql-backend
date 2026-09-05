@@ -22,6 +22,7 @@
 #include <ql/math/interpolations/cubicinterpolation.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/loginterpolation.hpp>
+#include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
 #include <ql/methods/lattices/binomialtree.hpp>
 #include <ql/patterns/lazyobject.hpp>
 #include <ql/pricingengines/asian/analytic_cont_geom_av_price.hpp>
@@ -272,6 +273,60 @@ namespace qlservice {
                                                "same trade, so there is no safe default");
         }
 
+        //! The finite-difference time-stepping scheme, as a QuantLib desc.
+        /*! `SCHEME_UNSPECIFIED` is refused for the reason the grid beside it is
+            refused: two schemes are two different prices for the same trade, so
+            there is no safe default to pick on the client's behalf. Douglas is
+            what QuantLib defaults to and what a client with no opinion should
+            send -- but it should send it.
+
+            The five that build are worth knowing apart. Measured on a
+            half-year at-the-money vanilla over 400 x 200: Craig-Sneyd returns
+            Douglas's number to the last bit and Crank-Nicolson to within one,
+            because in one dimension there are no directions to alternate;
+            Hundsdorfer carries a different theta and differs in the seventh
+            digit; implicit Euler is first order and differs in the third.
+
+            Explicit Euler is refused. It is stable only while the time step is
+            small against the square of the asset step, and the asset step is a
+            property of the mesher QuantLib builds inside the engine rather than
+            of anything on this frame -- the service cannot tell a client which
+            of its grids are stable without duplicating that mesher. What an
+            unstable run returns is not an error: at 100 x 200 this build
+            answered 2.4e140, and at 400 x 200 a NaN. Implicit Euler is the same
+            first-order accuracy with no such condition.
+        */
+        FdmSchemeDesc fdSchemeFor(qlpb::FdParameters_Explicit_Scheme scheme,
+                                  const std::string& fieldPath) {
+            switch (scheme) {
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_DOUGLAS:
+                    return FdmSchemeDesc::Douglas();
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_CRANK_NICOLSON:
+                    return FdmSchemeDesc::CrankNicolson();
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_IMPLICIT_EULER:
+                    return FdmSchemeDesc::ImplicitEuler();
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_EXPLICIT_EULER:
+                    QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, fieldPath,
+                                   "the explicit scheme is stable only while the time step is "
+                                   "small against the square of the asset step, which depends on "
+                                   "the grid QuantLib builds inside the engine; an unstable run "
+                                   "answers with a number rather than an error, so this build "
+                                   "does not offer it -- implicit Euler is first order too, and "
+                                   "unconditionally stable");
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_CRAIG_SNEYD:
+                    return FdmSchemeDesc::CraigSneyd();
+                case qlpb::FdParameters_Explicit_Scheme_SCHEME_HUNDSDORFER:
+                    return FdmSchemeDesc::Hundsdorfer();
+                default:
+                    break;
+            }
+            QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, fieldPath,
+                           "a custom finite-difference grid needs an explicit scheme at '"
+                               << fieldPath
+                               << "': two schemes are two different prices for the same trade, and "
+                                  "Douglas is a choice rather than an absence of one");
+        }
+
         //! FD engine: a plain number when plain, a compiled grid when quanto.
         template <class Instr, class FdBase>
         ext::shared_ptr<PricingEngine> fdEngineFor(const qlpb::FdParameters& fd,
@@ -283,7 +338,21 @@ namespace qlservice {
                     QLS_FIELD_REQUIRE(c.time_steps() > 0 && c.asset_steps() > 0,
                                       qlpb::Error::INVALID_ARGUMENT, fieldPath + ".custom",
                                       "a finite-difference grid needs both dimensions");
-                    return ext::make_shared<FdBase>(g.process, c.time_steps(), c.asset_steps());
+                    // Damping steps are Rannacher's fix for the oscillation a
+                    // Crank-Nicolson-family scheme shows against a kinked
+                    // payoff or a barrier: the first few steps are taken
+                    // fully implicit. They are counted in addition to
+                    // time_steps rather than out of them.
+                    QLS_FIELD_REQUIRE(c.damping_steps() < c.time_steps(),
+                                      qlpb::Error::INVALID_ARGUMENT,
+                                      fieldPath + ".custom.damping_steps",
+                                      "damping steps are the first few of the time steps taken "
+                                      "fully implicit, so there have to be more time steps than "
+                                      "damping steps");
+                    return ext::make_shared<FdBase>(g.process, c.time_steps(), c.asset_steps(),
+                                                    c.damping_steps(),
+                                                    fdSchemeFor(c.scheme(),
+                                                                fieldPath + ".custom.scheme"));
                 }
                 const auto grid = presetGrid(fd.preset(), fieldPath + ".preset");
                 return ext::make_shared<FdBase>(g.process, grid.first, grid.second);

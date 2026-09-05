@@ -443,6 +443,58 @@ async def main():
             check(label, err < tol,
                   f"analytic={analytic:.6f} got={reply.price_result.npv:.6f} err={err:.2e}")
 
+        # The custom grid is not just a pair of numbers: the scheme and the
+        # damping steps beside them reach the engine too. Both were carried by
+        # the schema and read by nothing for three milestones, which is the
+        # defect this section exists to keep out.
+        print("\n  -- the custom FD grid, its scheme and its damping steps --")
+
+        def fd_custom(t_steps, x_steps, scheme, damping=0):
+            f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+            c = f.price.engine.fd.custom
+            c.time_steps, c.asset_steps = t_steps, x_steps
+            c.damping_steps, c.scheme = damping, scheme
+            return f
+
+        SCHEME = EN.FdParameters.Explicit
+        douglas = (await send(ws, fd_custom(400, 200, SCHEME.SCHEME_DOUGLAS))).price_result
+        check("custom grid prices", abs(douglas.npv - analytic) < 5.0e-3,
+              f"analytic={analytic:.6f} douglas={douglas.npv:.6f}")
+        check("and echoes the grid it ran on",
+              douglas.engine.fd.custom.time_steps == 400
+              and douglas.engine.fd.custom.asset_steps == 200
+              and douglas.engine.fd.custom.scheme == SCHEME.SCHEME_DOUGLAS,
+              str(douglas.engine.fd.custom).replace("\n", " "))
+
+        # Craig-Sneyd splits a multi-factor operator by direction and this one
+        # has a single direction, so it is Douglas here -- which is worth
+        # asserting rather than assuming, since it is why the two are both
+        # offered.
+        craig = (await send(ws, fd_custom(400, 200, SCHEME.SCHEME_CRAIG_SNEYD))).price_result.npv
+        check("Craig-Sneyd is Douglas in one dimension", craig == douglas.npv,
+              f"douglas={douglas.npv:.12f} craig_sneyd={craig:.12f}")
+
+        # Implicit Euler is first order where Douglas is second, so it has to
+        # differ -- and by more than rounding, or the field is still being
+        # dropped somewhere.
+        implicit = (await send(ws, fd_custom(400, 200,
+                                             SCHEME.SCHEME_IMPLICIT_EULER))).price_result.npv
+        check("implicit Euler is a different scheme, not a different name",
+              abs(implicit - douglas.npv) > 1.0e-4 and abs(implicit - analytic) < 5.0e-3,
+              f"douglas={douglas.npv:.6f} implicit={implicit:.6f} "
+              f"gap={abs(implicit - douglas.npv):.2e}")
+
+        # Rannacher damping: the first few steps taken fully implicit. It moves
+        # the price, which is the whole point of asking for it.
+        damped = (await send(ws, fd_custom(400, 200, SCHEME.SCHEME_DOUGLAS,
+                                           damping=20))).price_result
+        check("damping steps reach the engine",
+              abs(damped.npv - douglas.npv) > 1.0e-6 and abs(damped.npv - analytic) < 5.0e-3,
+              f"undamped={douglas.npv:.8f} damped={damped.npv:.8f} "
+              f"gap={abs(damped.npv - douglas.npv):.2e}")
+        check("and are echoed back", damped.engine.fd.custom.damping_steps == 20,
+              f"echo={damped.engine.fd.custom.damping_steps}")
+
         # The engine is echoed whole, so a client can tell two prices apart by
         # what produced them and not by remembering what it asked for.
         reply = await send(ws, vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO,
@@ -700,6 +752,31 @@ async def main():
         f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
         await rejected("finite difference with no grid", f, "engine.fd.preset",
                        E.Error.UNSPECIFIED_ENUM)
+
+        # A custom grid names its scheme. Two schemes are two prices for one
+        # trade, so an unset one is a question rather than a default.
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+        f.price.engine.fd.custom.time_steps = 400
+        f.price.engine.fd.custom.asset_steps = 200
+        await rejected("custom FD grid with no scheme", f, "engine.fd.custom.scheme",
+                       E.Error.UNSPECIFIED_ENUM)
+
+        # Explicit Euler is conditionally stable and QuantLib does not enforce
+        # the condition: at 100 x 200 it answers 2.4e140 and at 400 x 200 a
+        # NaN. A number that wrong is worse than a rejection.
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+        f.price.engine.fd.custom.time_steps = 400
+        f.price.engine.fd.custom.asset_steps = 200
+        f.price.engine.fd.custom.scheme = EN.FdParameters.Explicit.SCHEME_EXPLICIT_EULER
+        await rejected("explicit Euler", f, "engine.fd.custom.scheme", E.Error.UNSUPPORTED)
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+        f.price.engine.fd.custom.time_steps = 20
+        f.price.engine.fd.custom.asset_steps = 200
+        f.price.engine.fd.custom.damping_steps = 20
+        f.price.engine.fd.custom.scheme = EN.FdParameters.Explicit.SCHEME_DOUGLAS
+        await rejected("more damping steps than time steps", f,
+                       "engine.fd.custom.damping_steps", E.Error.INVALID_ARGUMENT)
 
         # The quanto FD path can only take one of the compiled presets, and
         # says so rather than rounding a custom grid to the nearest one.
