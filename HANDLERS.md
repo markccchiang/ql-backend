@@ -312,7 +312,7 @@ echoes the whole `Engine` message back.
 ## Results
 
 `PriceResult.npv` always. `results` is a `map<string, Value>` keyed by the name
-of each `ResultKind` you asked for in `PriceRequest.results`; sixteen are
+of each `ResultKind` you asked for in `PriceRequest.results`; nineteen are
 mapped:
 
 `NPV`, `DELTA`, `GAMMA`, `THETA`, `VEGA`, `RHO`, `DIVIDEND_RHO`,
@@ -377,10 +377,12 @@ quantities are built:
 | `DISCOUNT_FACTOR` | a yield curve | nothing; a `compounding` set beside one is rejected rather than ignored |
 | `BLACK_VOLATILITY` | a volatility surface | exactly one `strikes` entry |
 
-`dates` or `times`, one of the two. `SURVIVAL_PROBABILITY`, `HAZARD_RATE` and
+`dates` or `times`, one of the two. The other four quantities in the enum are
+`UNSUPPORTED` naming the field: `SURVIVAL_PROBABILITY`, `HAZARD_RATE` and
 `LOCAL_VOLATILITY` need term structures this build does not construct, and
-sampling a surface across several strikes would be a matrix rather than a
-series, so all four are `UNSUPPORTED` naming the field.
+`VARIANCE` is the same surface `BLACK_VOLATILITY` samples, reported twice.
+Sampling a surface across several strikes is refused for a different reason —
+it would be a matrix rather than a series.
 
 ## Batches
 
@@ -593,7 +595,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 209 rows of QuantLib's own reference values
-plus the rejection cases, 73 checks in all. `test/README.md` explains how to run
+`ql-backend` over a real WebSocket: 247 rows of QuantLib's own reference values
+plus the rejection cases, 129 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

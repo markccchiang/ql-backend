@@ -18,14 +18,22 @@ Build instructions, current status and the file map are in
 | [2. Global state forces session pinning](#2-global-state-forces-session-pinning) | `QL_ENABLE_SESSIONS`, one session per thread |
 | [2.1 How many sessions per process](#21-how-many-sessions-per-process) | Shared vs. sacrificial workers, replay, placement |
 | [2.2 QuantLib does not parallelise for you](#22-quantlib-does-not-parallelise-for-you) | No OpenMP in workers |
-| [3. No cancellation](#3-no-cancellation--hence-processes-not-threads) | Cancel-by-kill, the stop grace, opt-in progress |
+| [3. No cancellation](#3-no-cancellation--hence-processes-not-threads) | Cancel-by-kill, the stop grace, and the three shapes that stop politely |
 | [4. Determinism is not free](#4-determinism-is-not-free) | Required seeds, and why progress changes the price |
 | [5. The lazy graph is why the backend is stateful](#5-the-lazy-graph-is-why-the-backend-is-stateful) | Observables and batched updates |
 | [6. Protobuf: the schema is the work](#6-protobuf-the-schema-is-the-work-the-wire-format-is-not) | The hand-written registry, enum hazards |
 | [6.1 Where the registry pattern stops working](#61-where-the-registry-pattern-stops-working) | Templates: the explicit instantiation table |
+| [6.2 Why the schema lives under a version segment](#62-why-the-schema-lives-under-a-version-segment) | What a version buys, and when to open the next one |
+| [6.3 The general schema](#63-the-general-schema) | Payoff x exercise x style, the market namespace, what is served |
 | [7. Prior art](#7-prior-art) | ORE |
 | [8. Open decisions](#8-open-decisions) | What is still undecided |
 | [9. The gateway](#9-the-gateway) | The loop, the worker channel, backpressure, disconnects |
+| [9.1 One loop, and everything on it](#91-one-loop-and-everything-on-it) | Why nothing calls the supervisor off the loop |
+| [9.2 The worker channel](#92-the-worker-channel) | How frames reach a worker and come back |
+| [9.3 Backpressure](#93-backpressure-shed-progress-never-a-terminal-frame) | Shed `Progress`, never a terminal frame |
+| [9.4 A disconnect closes the session](#94-a-disconnect-closes-the-session) | `session_id` is connection-scoped |
+| [9.5 What the gateway tracks](#95-what-the-gateway-tracks-that-nothing-else-does) | Outstanding ids, routing, the cancel's own Ack |
+| [9.6 The door](#96-the-door-in-place-of-authentication) | Origin, the two caps, and `/healthz` |
 
 ## 1. Shape
 
@@ -47,13 +55,16 @@ supervisor ──── worker placement (§2.1), cancel-by-kill with replay (§
 every worker: QL_ENABLE_SESSIONS, one client session per thread,
               live QuantLib object graph cached between requests
 
-cancel: ask the worker to stop at a batch boundary; kill it only if the
+cancel: ask the worker to stop at its next step; kill it only if the
         request outlives the grace, then replay the session log into a fresh
-        worker — session_id survives either path
+        worker — session_id survives either path, and every request is
+        cancellable: what differs is whether it keeps its partial results
 ```
 
 The gateway owns sockets, correlation ids, and backpressure. Workers own
-QuantLib. They are separate processes, for the reason in §3.
+QuantLib. They are separate processes, for the reason in §3 — in the design.
+What runs today is `ThreadProcessHost`, which makes them thread groups in the
+gateway process and therefore cannot honour a kill; §3 says what that costs.
 
 The gateway also owns the clock. The supervisor has no thread and no timer of
 its own — every entry point is called from the gateway's loop — so the deferred
@@ -193,10 +204,11 @@ single-session process that can be killed freely. Process-per-session is then
 paid only for the calculations that need it.
 
 Isolation is what makes the kill affordable, and the kill is what a cancel
-mostly comes down to: the polite batch-boundary stop in §3 exists only for a
-Monte Carlo the client asked progress for, and cannot touch a single engine
-call. Sizing the grace short is therefore right — on everything else it is pure
-added latency before the kill that was always going to happen.
+comes down to for any request that is a single engine call. The polite stop in
+§3 covers the three shapes with a loop of our own to check a flag in — a batched
+Monte Carlo, a sweep and a batch — and cannot touch the rest. Sizing the grace
+short is therefore right: on everything else it is pure added latency before the
+kill that was always going to happen.
 
 **Placement is a property of the request, not of the session.** A session opens
 in the shared pool and moves when `placementFor()` disagrees with where it is:
@@ -317,20 +329,48 @@ reason.
 ## 3. No cancellation — hence processes, not threads
 
 QuantLib exposes no progress, interrupt, or cancel hook: there is none in
-`ql/methods/montecarlo/` or `ql/pricingengines/mcsimulation.hpp`. A long Monte
-Carlo or calibration runs to completion and cannot be stopped from the socket.
+`ql/methods/montecarlo/` or `ql/pricingengines/mcsimulation.hpp`. A single
+engine call runs to completion and cannot be stopped from inside. Everything
+below follows from that, including the three exceptions — they are ours, not
+QuantLib's, and they exist only where this service drives the engine in a loop
+it wrote.
 
 **Decision: workers are processes, supervised.** `CancelRequest` first asks the
-worker to stop at a batch boundary and gives it a short grace (250 ms by
-default); a Monte Carlo running with progress enabled can take that and keep
-its worker, and nothing else can. When the grace expires with the request still
-running, the worker is killed and respawned. Either half terminates the
-outstanding `request_id` with `Error{code: CANCELLED}` — exactly once, which is
-why the gateway reports terminal frames back to the supervisor — and the
-killing half then replays the session definition into a fresh worker per §2.1,
-so the `session_id` stays valid and the client sees latency rather than loss.
-The kill is the honest part; the grace only buys the cheaper outcome on the
-rare engine that can offer it.
+worker to stop at its next step and gives it a short grace (250 ms by default).
+When the grace expires with the request still running, the worker is killed and
+respawned. Either half terminates the outstanding `request_id` with
+`Error{code: CANCELLED}` — exactly once, which is why the gateway reports
+terminal frames back to the supervisor — and the killing half then replays the
+session definition into a fresh worker per §2.1, so the `session_id` stays valid
+and the client sees latency rather than loss.
+
+**Which requests can take the grace, and what it means that the rest cannot.**
+This section long said a batched Monte Carlo could stop politely and nothing
+else could. Three shapes can, and they are the three that have an *outer* loop
+this service wrote: a batched Monte Carlo between path batches, a scenario sweep
+between points, and a `PriceBatch` between entries. Each checks the stop flag,
+keeps what it computed, and answers with a partial result rather than nothing.
+Everything else is one engine call with no seam to check a flag in, and there
+the kill is the whole mechanism.
+
+That distinction is worth stating positively, because stating it negatively is
+what misled the frontend for a milestone: **every request is cancellable**, and
+what differs is the cost — the three shapes above give the session back with
+their partial results, and everything else gives the session back after a
+rebuild. A client that reads "cannot be interrupted" as "cannot be cancelled"
+will offer a stop button on a third of its requests, which is what happened.
+
+**What actually runs is a thread host, and it cannot honour a kill.**
+`ThreadProcessHost` (`src/gateway/threadhost.hpp`) runs workers as thread groups
+in the gateway process, so everything above except process control is exercised
+end to end in one binary. Its `kill()` is a *disown*: it asks the worker to
+stop, drops every frame the seat emits afterwards, and detaches the thread,
+which runs its Monte Carlo to completion against nothing while the supervisor
+replays the session elsewhere. The client sees the designed behaviour — one
+`CANCELLED`, a live `session_id`, a rebuilt graph — and the machine keeps
+burning a core until the abandoned call finishes. The decision above stands; a
+fork-based host is what makes it real, and it is the one piece of this design
+that is specified and not yet built.
 
 **Decision: progress is opt-in and computed by us.** A `PriceRequest` may set
 `engine.mc.progress_every_paths` — on the Monte Carlo parameter block, because
@@ -443,7 +483,7 @@ Related: `DayCounter` and `Calendar` are messages rather than enums, because
 constructor and requires a `Market` (`ql/time/calendars/unitedstates.hpp:206`),
 and joint calendars nest (`ql/time/calendars/jointcalendar.hpp:84`).
 
-### 6.2 Why the schema lives under `v1`
+### 6.2 Why the schema lives under a version segment
 
 The version is not decoration on a directory name. It appears in four places
 that have to agree, and only one of them is a free choice:
@@ -503,10 +543,9 @@ tree where `v1` still has to keep working.
 ### 6.3 The general schema
 
 `proto/quantlib/v2/` is `v1` re-derived from QuantLib's own decomposition
-instead of from the two instruments that happened to be needed first. Nothing
-serves it yet — it is built so protoc and the compiler check it, which is the
-only verification this repository has — and `v1` remains the schema `ql-backend`
-speaks.
+instead of from the two instruments that happened to be needed first. It is what
+the service speaks; the paragraph below on what is implemented says how much of
+it is served.
 
 **Where it comes from.** QuantLib's `test-suite/` is 188 `.cpp` files, and its
 test-data structs are an inventory of what a pricing request has to carry.
@@ -588,15 +627,30 @@ a flag that changes the number is a `Flag`, a flag that changes the reply is a
 **`Scenario` is the session model's payoff, made explicit.** A spot ladder is
 one frame, one graph, and N lazy recomputes of only what the bumped quote
 invalidated — against N round trips that each rebuild everything. That is the
-entire argument for a stateful backend (§5), and until now nothing in the
-schema let a client ask for it in one request.
+entire argument for a stateful backend (§5), and until this schema nothing let a
+client ask for it in one request. It is `repeated Scenario scenarios` on the
+same field number the singular one had, because a message field and a
+one-element repeated field are the same bytes: the grid arrived without a
+version. Several axes multiply into one row-major surface, still one frame and
+still one graph, which is the same argument with a dimension added.
 
-**It is what the service speaks.** `ql-backend` was ported to `v2` in the same
-pass: `Session` is rebuilt around the market namespace and the payoff x
-exercise x style decomposition, and the transport above it — worker,
-supervisor, gateway — carries `v2` frames. `v1` remains in the tree because
-`v2` imports its conventions and because §6.2 is about it, but nothing serves
-it and its three client scripts are gone.
+**What arrived after this section was first written.** Five additions, each
+because a client could not otherwise ask a question the service could answer:
+`Hello`/`Capabilities`, so the support matrix is served rather than copied into
+every client; `PriceResult.unavailable_results`, so an engine that cannot supply
+a greek names the absence instead of returning a map the client has to diff;
+`ImpliedVolatility`, the one result computed from an input the request carries
+rather than from the market; `PriceBatch`/`BatchResult`, a book against one
+graph in one frame with a failing entry costing one row; and `CurveSample`, so a
+panel draws the term structure the engine priced against rather than one it
+rebuilt. Each is additive, which is what kept them inside `v2` under the rule in
+§6.2.
+
+**The port.** `ql-backend` moved to `v2` in the same pass: `Session` is rebuilt
+around the market namespace and the payoff x exercise x style decomposition, and
+the transport above it — worker, supervisor, gateway — carries `v2` frames.
+`v1` remains in the tree because `v2` imports its conventions and because §6.2
+is about it, but nothing serves it and its three client scripts are gone.
 
 **What is implemented, and what is only in the schema.** The one-asset option
 family is live: eight payoffs, three exercises, and the vanilla, barrier,
@@ -619,7 +673,7 @@ instantiation table where a template is involved (§6.1), and a test row with a
 reference value — and the schema is now the part that does not have to be
 redesigned each time.
 
-**How it is checked.** `test/smoke_v2.py` prices 209 rows of QuantLib's own
+**How it is checked.** `test/smoke_v2.py` prices 247 rows of QuantLib's own
 published reference values over the wire and compares each against the value
 its test suite records, at the tolerance that test uses. The rows are not
 transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`,
@@ -668,8 +722,8 @@ loop, the worker channel, backpressure, and what a dropped connection means —
 and states what the gateway has to track that nothing else does.
 
 Authentication, TLS termination, multi-tenancy and persistence are out of
-scope. The single point of failure in §1.1 stands: this section does not
-mitigate it.
+scope, and §9.6 is what stands in for the first of them. The single point of
+failure in §1.1 stands: this section does not mitigate it.
 
 Claims about uWebSockets below are cited against `third_party/uWebSockets`,
 the submodule this repository pins at v20.66.0, so every line number holds for
@@ -821,7 +875,56 @@ above, its sessions — in the middle of the Monte Carlo it was waiting for.
   outcomes it already knows, and feeding them back is a re-entrant call into a
   class with no re-entrancy.
 
+- **How much one client is holding.** Connections open, and sessions per
+  connection. The supervisor packs sessions onto workers and has no idea which
+  socket asked for them; the count that has to be capped is per client, so it
+  can only be kept here (§9.6).
+
 The `SessionLog`s themselves are not gateway members: they live in
 `Supervisor::SessionState`, in the gateway's process and on its behalf. The
 failure domain in §1.1 is drawn around the process, so the argument there is
 unaffected either way.
+
+### 9.6 The door, in place of authentication
+
+Binding to loopback was taken as the boundary, and against a browser it is not
+one. **A WebSocket upgrade is not subject to the same-origin policy**: any page
+in any tab can open `ws://127.0.0.1:9111` and drive this service. Nothing here
+is worth stealing and a great deal is worth spending — one `PriceBatch` or one
+grid can commit a hundred thousand engine calls on somebody else's cores.
+
+**Decision: check `Origin` when it is present, and let it through when it is
+not.** Only browsers send the header, so the check closes exactly the path that
+was open and leaves `test/smoke_v2.py`, a CLI and a proxy that has already
+authenticated untouched. A present-and-wrong origin is refused at the upgrade
+with `403` and a reason, rather than accepted and dropped, because a client that
+is refused should be able to say so — the frontend asks `/healthz` on a failed
+connect for precisely this and can then tell "nothing there" from "there and
+refusing you". The defaults are the frontend's dev and preview origins;
+`--allow-origin` replaces them and `--any-origin` disables the check for a
+deployment that terminates it upstream.
+
+This is not authentication and does not pretend to be. It is a bet that the
+attacker is a page rather than a process, which is the correct bet for a service
+on a developer's machine and the wrong one anywhere else — where the answer
+stays a reverse proxy that terminates TLS, authenticates, and leaves this
+process on loopback behind it.
+
+**Decision: cap connections per process and sessions per connection.** The other
+half of having no authentication is that nothing else stops one client taking
+everything: 32 sockets, refused at the upgrade with `503`, and 16 sessions per
+socket, refused with `OVERLOADED`. The session limit is the one that matters,
+because a session is a worker seat holding a live graph (§2.1) while a socket is
+almost free — and it is per connection rather than per process so that one
+client cannot starve the others. Both are refusals rather than failures: close a
+session and the next one opens, which is why `OVERLOADED` is its own error code
+and the frontend's remedy for it is "close a tab" rather than "retry".
+
+**Liveness is not a frame.** `GET /healthz` answers over plain HTTP, because a
+proxy or a container runtime cannot be asked to speak Protobuf over WebSocket to
+find out whether to restart something. What a reply proves is that the loop is
+turning — which is the honest scope, and the right one: everything that can go
+wrong inside a graph happens on a worker thread and must not restart the
+process. It carries the live connection and session counts, and deliberately no
+`Access-Control-Allow-Origin`, so the tab that was just refused an upgrade
+cannot read them either.

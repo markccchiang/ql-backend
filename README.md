@@ -20,7 +20,7 @@ multiplying them into their own messages. Eight payoffs, three exercises and
 six styles reach 39 distinct compiled engines — analytic, lattice,
 finite-difference, integral and Monte Carlo.
 
-`test/smoke_v2.py` prices **209 rows of QuantLib's published reference values**
+`test/smoke_v2.py` prices **247 rows of QuantLib's published reference values**
 over the wire, each within the tolerance its own test uses. The rows are not
 transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`.
 It also cross-checks the analytic quanto barriers against a PDE, which answers
