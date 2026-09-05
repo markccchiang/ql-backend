@@ -11,7 +11,7 @@ more than the service builds, and everything in the schema that is not here is
 
 The wire schema itself is a submodule at [`proto/`](https://github.com/markccchiang/ql-protobuf).
 
-## The seven frames
+## The eight frames
 
 One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly one,
 including for failures and for the cancel itself — a client that never sees a
@@ -26,6 +26,7 @@ terminal frame waits forever (DESIGN §9.5).
 | `cancel` | `Gateway`, which answers it itself | `Ack` |
 | `hello` | `Gateway`, which answers it itself | `Capabilities` |
 | `close_session` | `Gateway` / `Supervisor` | `Ack` |
+| `resume_session` | `Gateway`, which answers it itself | `SessionOpened` with `resumed` set |
 
 There is one thing that is not a frame at all: `GET /healthz` answers over
 plain HTTP, for a proxy or an orchestrator that cannot speak this protocol.
@@ -596,6 +597,49 @@ a different and wrong statement. A sweep and a batch each terminate with their
 own result message carrying `abandoned_after`, not with an error, because the
 part they finished is worth having.
 
+## Resuming a session
+
+A socket that dies takes nothing with it for `resume_grace_seconds` — 60 by
+default, `--session-grace 0` to turn it off. Inside that window the session
+keeps its graph, its worker seat **and its running requests**, which is the
+point of it: the bootstrap it saves costs 0.009 ms on this market, and the
+Monte Carlo it saves can cost a minute.
+
+`SessionOpened` carries what a resume needs:
+
+| Field | What it is |
+| --- | --- |
+| `resume_token` | 128 bits, minted per session, empty when the window is off |
+| `resume_grace_seconds` | How long the session outlives its socket |
+| `resumed` | True when this frame answers a `ResumeSession` rather than an `OpenSession` |
+
+`ResumeSession{session_id, resume_token}` needs no session of its own —
+the socket it arrives on has none yet. The reply is the *original*
+`SessionOpened`, replayed with `resumed` set: the same id, the same
+`market_ids`, and the `bootstrap_seconds` that bootstrap actually cost, then.
+A resume does not build anything, and reporting a second bootstrap that never
+happened would make the field a lie.
+
+Then whatever finished while nobody was attached arrives, in the order it
+finished. `Progress` frames from that period are gone — shed for the reason
+§9.3 sheds them under backpressure — so a client that resumes into a running
+calculation sees progress resume mid-stream, and one that resumes after it
+finished gets the terminal frame straight away.
+
+Three refusals, one answer. A wrong token, an expired window and a session
+closed with `CloseSession` all come back `SESSION_NOT_FOUND`, because telling
+them apart would let a guess be a probe. The client's move is the same in every
+case: `OpenSession` and replay the market.
+
+The token is a bearer secret. A WebSocket upgrade is not subject to the
+same-origin policy (DESIGN §9.6), so any page on the machine can reach this
+socket; the token is the only thing that stops one adopting another's session.
+Hold it in memory, keep it out of logs and out of URLs.
+
+Held sessions are seats nobody is sitting in, so there is a cap on them — 16 by
+default. Past it the longest-waiting session is closed rather than the newest
+refused. `GET /healthz` reports the count as `detached`.
+
 ## Errors
 
 Every rejection carries a `Code` and, where it is attributable to a wire field,
@@ -622,6 +666,6 @@ substitute).
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
 `ql-backend` over a real WebSocket: 247 rows of QuantLib's own reference values
-plus the rejection cases, 138 checks in all. `test/README.md` explains how to run
+plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

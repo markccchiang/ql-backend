@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
+#include <chrono>
 #include <cstring>
 #include <exception>
 #include <string>
@@ -40,10 +41,20 @@ int main(int argc, char** argv) {
             options.maxConnections = static_cast<std::size_t>(std::atoi(argv[++i]));
         } else if (arg == "--max-sessions" && i + 1 < argc) {
             options.maxSessionsPerConnection = static_cast<std::size_t>(std::atoi(argv[++i]));
+        } else if (arg == "--session-grace" && i + 1 < argc) {
+            // Zero restores the rule this service had until now: a dropped
+            // socket closes its sessions on the spot.
+            options.resumeGrace = std::chrono::seconds(std::atoi(argv[++i]));
         } else if (arg == "--help" || arg == "-h") {
             std::printf("usage: ql-backend [--host ADDR] [--port N]\n"
                         "                  [--allow-origin URL]... | [--any-origin]\n"
                         "                  [--max-connections N] [--max-sessions N]\n"
+                        "                  [--session-grace SECONDS]\n"
+                        "\n"
+                        "A session outlives its socket by --session-grace seconds (60 by\n"
+                        "default, 0 to turn it off), so a client that loses its connection can\n"
+                        "take the session back with ResumeSession and the token it was given.\n"
+                        "Whatever was running keeps running, and its result is held.\n"
                         "\n"
                         "A browser is not bound by the same-origin policy when it opens a\n"
                         "WebSocket, so an Origin that is present must be on the allowed list.\n"

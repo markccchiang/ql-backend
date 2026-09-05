@@ -63,3 +63,14 @@ touch /tmp/qlpb2/quantlib/__init__.py /tmp/qlpb2/quantlib/v{1,2}/__init__.py
 ```
 
 It prints one line per check and exits non-zero if any failed.
+
+One check only runs when the daemon is started with a short resume window:
+
+```bash
+./build/ql-backend --port 9111 --session-grace 2
+```
+
+The resume section otherwise proves that a session, and the calculation running
+in it, survive a dropped socket — but the window *expiring* is a wall-clock
+wait, and sixty seconds of it does not belong in a test run. With a two-second
+window it is one more check.

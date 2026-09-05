@@ -14,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <string_view>
@@ -34,6 +35,38 @@ namespace qlservice {
 
         void logf(const char* what, const std::string& detail) {
             std::fprintf(stderr, "[qlservice] %s: %s\n", what, detail.c_str());
+        }
+
+        //! Terminal frames held for one absent client before we start dropping.
+        constexpr std::size_t kMaxHeldFrames = 64;
+
+        //! 128 bits from the platform's entropy source, as hex.
+        /*! std::random_device and not a seeded generator: this is the only
+            thing between a session and any other page on the machine, since a
+            WebSocket upgrade is not subject to the same-origin policy
+            (DESIGN §9.6), and a guessable token would make the resume window
+            an attack surface rather than a convenience.
+        */
+        std::string mintToken() {
+            static std::random_device entropy;
+            std::string out;
+            out.reserve(32);
+            for (int i = 0; i < 4; ++i) {
+                char buf[9];
+                std::snprintf(buf, sizeof buf, "%08x", static_cast<unsigned>(entropy()));
+                out += buf;
+            }
+            return out;
+        }
+
+        //! Compares in time independent of where the first difference is.
+        bool sameToken(const std::string& a, const std::string& b) {
+            if (a.size() != b.size() || a.empty())
+                return false;
+            unsigned char diff = 0;
+            for (std::size_t i = 0; i < a.size(); ++i)
+                diff |= static_cast<unsigned char>(a[i] ^ b[i]);
+            return diff == 0;
         }
 
     }
@@ -58,6 +91,30 @@ namespace qlservice {
         };
 
         std::map<std::uint64_t, Conn> conns;
+
+        //! Every session that exists, attached to a socket or not.
+        /*! The token is the bearer secret a ResumeSession has to present, and
+            `opened` is what the original SessionOpened reported, kept so a
+            resume can answer with the same frame rather than inventing a
+            second bootstrap that never happened (DESIGN §9.4).
+        */
+        struct SessionMeta {
+            std::string token;
+            qlpb::SessionOpened opened;
+        };
+        std::map<std::string, SessionMeta> sessions;
+
+        //! A session whose socket has gone, waiting for its client to return.
+        /*! Its requests are still running, and the frames they produce are
+            held here rather than dropped: the point of the window is that a
+            calculation survives the blink, and a result nobody could deliver
+            would be the same loss by a quieter route.
+        */
+        struct Detached {
+            std::chrono::steady_clock::time_point deadline;
+            std::vector<qlpb::ServerFrame> held;
+        };
+        std::map<std::string, Detached> detached;
 
         //! session_id -> the connection its frames go out on.
         /*! Outlives the session itself: a CloseSession still has an Ack to
@@ -148,8 +205,29 @@ namespace qlservice {
                 // own, or none at all. It still has to reach whoever asked.
                 ws = inbound;
             }
-            if (ws == nullptr)
-                return; // the socket that asked for this is gone
+            if (ws == nullptr) {
+                // Nobody is listening. If the session is inside its resume
+                // window, the client is expected back and this frame is what
+                // it will come back for; anything else is a socket that asked
+                // and left.
+                auto waiting = detached.find(frame.session_id());
+                if (waiting == detached.end())
+                    return;
+
+                // Progress is shed here for the same reason it is shed under
+                // backpressure (DESIGN §9.3): it is a report on work in
+                // progress, and by the time anyone reads it the work has
+                // moved on. Terminal frames are the ones worth keeping.
+                if (!frame.terminal())
+                    return;
+
+                if (waiting->second.held.size() >= kMaxHeldFrames) {
+                    logf("held frames overflowed", frame.session_id());
+                    return;
+                }
+                waiting->second.held.push_back(frame);
+                return;
+            }
 
             // Progress is the only frame class we may drop, and dropping it
             // ourselves is what stops uWebSockets from dropping a terminal one
@@ -190,6 +268,24 @@ namespace qlservice {
             // to it (DESIGN §9.5).
             if (frame.terminal())
                 supervisor->onRequestTerminated(frame.session_id(), frame);
+
+            if (frame.has_session_opened()) {
+                // The token is minted and kept here rather than in the
+                // worker: which socket a session belongs to, and therefore
+                // what it takes to claim it back, is the gateway's business
+                // and nothing below it has an opinion (DESIGN §9.5).
+                auto meta = sessions.find(frame.session_id());
+                if (meta != sessions.end()) {
+                    qlpb::ServerFrame out = frame;
+                    auto* opened = out.mutable_session_opened();
+                    opened->set_resume_token(meta->second.token);
+                    opened->set_resume_grace_seconds(
+                        static_cast<std::uint32_t>(options.resumeGrace.count()));
+                    meta->second.opened = *opened;
+                    deliver(out);
+                    return;
+                }
+            }
 
             deliver(frame);
         }
@@ -242,6 +338,8 @@ namespace qlservice {
                 frame.set_session_id(sessionId);
                 sessionConn[sessionId] = connId;
                 conn.openSessions.insert(sessionId);
+                sessions[sessionId].token =
+                    options.resumeGrace.count() > 0 ? mintToken() : std::string();
                 track(sessionId, frame.request_id());
 
                 try {
@@ -249,6 +347,54 @@ namespace qlservice {
                 } catch (const std::exception& e) {
                     fail(sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT, e.what());
                 }
+                return;
+            }
+
+            if (frame.has_resume_session()) {
+                const auto& ask = frame.resume_session();
+                auto waiting = detached.find(ask.session_id());
+                auto meta = sessions.find(ask.session_id());
+                if (waiting == detached.end() || meta == sessions.end() ||
+                    !sameToken(meta->second.token, ask.resume_token())) {
+                    // One answer for a wrong token, an expired window and a
+                    // session that was closed rather than dropped: telling
+                    // them apart would turn a guess into a probe, and the
+                    // client's move is the same for all three.
+                    fail(ask.session_id(), frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
+                         "no session '" + ask.session_id() +
+                             "' to resume: it was closed, its window has expired, or the token "
+                             "does not match. Open a session and replay the market");
+                    return;
+                }
+
+                if (conn.openSessions.size() >= options.maxSessionsPerConnection) {
+                    fail(ask.session_id(), frame.request_id(), qlpb::Error::OVERLOADED,
+                         "this connection already holds " +
+                             std::to_string(conn.openSessions.size()) +
+                             " sessions, which is the limit; close one before taking another back");
+                    return;
+                }
+
+                sessionConn[ask.session_id()] = connId;
+                conn.openSessions.insert(ask.session_id());
+                auto held = std::move(waiting->second.held);
+                detached.erase(waiting);
+
+                // The original SessionOpened, replayed: same id, same graph,
+                // and the bootstrap seconds it actually cost, then. A resume
+                // does not bootstrap anything.
+                emit(ask.session_id(), frame.request_id(), [&](qlpb::ServerFrame& out) {
+                    *out.mutable_session_opened() = meta->second.opened;
+                    out.mutable_session_opened()->set_resumed(true);
+                });
+
+                // Then what finished while nobody was attached, in the order
+                // it finished. This is the whole point of the window.
+                for (const auto& frameHeld : held)
+                    deliver(frameHeld);
+
+                logf("session resumed", ask.session_id() + " with " +
+                                            std::to_string(held.size()) + " held frames");
                 return;
             }
 
@@ -286,8 +432,13 @@ namespace qlservice {
                 return;
             }
 
-            if (frame.has_close_session())
+            if (frame.has_close_session()) {
+                // Closed on purpose, so there is nothing to come back for:
+                // the token dies with it and a later resume is refused like
+                // any other unknown session.
                 conn.openSessions.erase(sessionId);
+                sessions.erase(sessionId);
+            }
 
             track(sessionId, frame.request_id());
             try {
@@ -297,25 +448,64 @@ namespace qlservice {
             }
         }
 
+        //! Closes a session for good: its worker seat, its route, its token.
+        void closeSession(const std::string& sessionId, const char* why) {
+            qlpb::ClientFrame close;
+            close.set_session_id(sessionId);
+            close.mutable_close_session();
+            try {
+                supervisor->dispatch(sessionId, close);
+            } catch (const std::exception& e) {
+                logf(why, e.what());
+            }
+            outstanding.erase(sessionId);
+            detached.erase(sessionId);
+            sessions.erase(sessionId);
+        }
+
+        //! Holds a session for the client that has just lost its socket.
+        void detach(const std::string& sessionId) {
+            if (detached.size() >= options.maxDetachedSessions) {
+                // Every one of these is a worker seat nobody is sitting in.
+                // The one that has been waiting longest is the likeliest to
+                // have been abandoned, so it pays rather than this one.
+                auto oldest = std::min_element(
+                    detached.begin(), detached.end(),
+                    [](const auto& a, const auto& b) { return a.second.deadline < b.second.deadline; });
+                if (oldest != detached.end()) {
+                    logf("resume window given up", oldest->first + " (too many detached)");
+                    closeSession(oldest->first, "close on eviction failed");
+                }
+            }
+
+            const auto deadline = std::chrono::steady_clock::now() + options.resumeGrace;
+            detached[sessionId].deadline = deadline;
+            deadlines.emplace(deadline, [this, sessionId, deadline] {
+                auto waiting = detached.find(sessionId);
+                // A session that was resumed and dropped again has a later
+                // deadline and a callback of its own; this one is stale.
+                if (waiting == detached.end() || waiting->second.deadline > deadline)
+                    return;
+                logf("resume window expired", sessionId);
+                closeSession(sessionId, "close on expiry failed");
+            });
+        }
+
         void onClose(std::uint64_t connId) {
             auto conn = conns.find(connId);
             if (conn == conns.end())
                 return;
 
-            // A closed socket closes every session on it (DESIGN §9.4). The
-            // definition lives only here, and the client holds results rather
-            // than definitions, so there is nothing to resume into.
-            const auto sessions = conn->second.openSessions;
-            for (const auto& sessionId : sessions) {
-                qlpb::ClientFrame close;
-                close.set_session_id(sessionId);
-                close.mutable_close_session();
-                try {
-                    supervisor->dispatch(sessionId, close);
-                } catch (const std::exception& e) {
-                    logf("close on disconnect failed", e.what());
-                }
-                outstanding.erase(sessionId);
+            // A dropped socket no longer closes the sessions on it. They are
+            // held, with whatever is running in them, until the client comes
+            // back with ResumeSession or the window expires (DESIGN §9.4).
+            // Turning the window off restores the old rule exactly.
+            const auto open = conn->second.openSessions;
+            for (const auto& sessionId : open) {
+                if (options.resumeGrace.count() > 0 && sessions.count(sessionId) > 0)
+                    detach(sessionId);
+                else
+                    closeSession(sessionId, "close on disconnect failed");
             }
 
             for (auto it = sessionConn.begin(); it != sessionConn.end();)
@@ -457,6 +647,7 @@ namespace qlservice {
                               ",\"uptimeSeconds\":" + std::to_string(uptime) +
                               ",\"connections\":" + std::to_string(impl.conns.size()) +
                               ",\"sessions\":" + std::to_string(impl.sessionConn.size()) +
+                              ",\"detached\":" + std::to_string(impl.detached.size()) +
                               ",\"maxConnections\":" + std::to_string(impl.options.maxConnections) +
                               "}");
                 })

@@ -91,6 +91,27 @@ namespace qlservice {
                 it arms is 250 ms, so this resolution is ample.
             */
             std::chrono::milliseconds deadlineTick{25};
+
+            //! How long a session outlives the socket it was opened on.
+            /*! A dropped socket used to close every session on it, which
+                also threw away whatever was running: a network blink half way
+                through a long Monte Carlo cost the calculation, not the
+                bootstrap. Within this window the session, its seat and its
+                running requests are kept, and the client takes them back with
+                ResumeSession and the token it was given (DESIGN §9.4).
+
+                Zero turns it off, which is the old behaviour exactly, and a
+                SessionOpened with an empty resume_token is how a client is
+                told so.
+            */
+            std::chrono::seconds resumeGrace{60};
+
+            //! Sessions held for absent clients at once.
+            /*! Each is a worker seat nobody is sitting in. Past this the
+                longest-waiting one is closed rather than the newest refused:
+                the oldest is the likeliest to be abandoned.
+            */
+            std::size_t maxDetachedSessions = 16;
         };
 
         explicit Gateway(Options options);

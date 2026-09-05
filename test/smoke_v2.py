@@ -1522,6 +1522,109 @@ async def main():
         check("pricing a closed session fails as SESSION_NOT_FOUND",
               reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND)
 
+        # -- resume: a session, and the work in it, outliving the socket ------
+        #
+        # The socket used to take the session with it, and whatever was running
+        # in it: a blink half way through a long Monte Carlo cost the
+        # calculation. The bootstrap was never the expensive part -- 0.009 ms
+        # for this market -- so what the window is for is the work.
+        print("\n  -- resume --")
+
+        async with websockets.connect(URL, max_size=None) as doomed:
+            opened = await send(doomed, open_session())
+            resume_id = opened.session_opened.session_id
+            token = opened.session_opened.resume_token
+            grace = opened.session_opened.resume_grace_seconds
+            check("SessionOpened carries a resume token and a window",
+                  len(token) >= 32 and grace > 0,
+                  f"token {len(token)} chars, grace {grace}s")
+            check("and says it is not itself a resume", not opened.session_opened.resumed)
+
+            # Forty million paths in batches: long enough to still be running
+            # when the socket goes, and reporting so we know it started.
+            mc = vanilla_frame(resume_id, dict(type="call", strike=100.0, t=1.0),
+                               EN.Engine.METHOD_MONTE_CARLO, mc=(42, 40_000_000))
+            mc.price.engine.mc.progress_every_paths = 200_000
+            await doomed.send(mc.SerializeToString())
+            started = False
+            for _ in range(50):
+                frame = E.ServerFrame()
+                frame.ParseFromString(await asyncio.wait_for(doomed.recv(), 30))
+                if frame.HasField("progress"):
+                    started = True
+                    break
+            check("a batched Monte Carlo reports before the socket dies", started)
+
+        # The socket is gone. Come back for the session, and for the answer.
+        async with websockets.connect(URL, max_size=None) as returning:
+            back = E.ClientFrame(request_id=next_id())
+            back.resume_session.session_id = resume_id
+            back.resume_session.resume_token = token
+            reply = await send(returning, back)
+            resumed = reply.HasField("session_opened") and reply.session_opened.resumed
+            check("ResumeSession gives the same session back",
+                  resumed and reply.session_opened.session_id == resume_id,
+                  reply.session_opened.session_id if resumed
+                  else E.Error.Code.Name(reply.error.code))
+
+            outcome = None
+            for _ in range(400):
+                frame = E.ServerFrame()
+                frame.ParseFromString(await asyncio.wait_for(returning.recv(), 120))
+                if frame.request_id == mc.request_id and frame.terminal:
+                    outcome = frame
+                    break
+            check("and the calculation that was running survived the drop",
+                  outcome is not None and outcome.HasField("price_result")
+                  and outcome.price_result.npv > 0.0,
+                  f"npv={outcome.price_result.npv:.6f}" if outcome is not None
+                  and outcome.HasField("price_result") else "no terminal frame came back")
+
+            # A token is a bearer secret, so a wrong one is refused -- and it
+            # is refused with the same answer as a session that never existed,
+            # which is what stops a guess from being a probe.
+            wrong = E.ClientFrame(request_id=next_id())
+            wrong.resume_session.session_id = resume_id
+            wrong.resume_session.resume_token = "0" * len(token)
+            reply = await send(returning, wrong)
+            check("a wrong token is refused",
+                  reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND,
+                  E.Error.Code.Name(reply.error.code) if reply.HasField("error") else "resumed it")
+
+            await send(returning, E.ClientFrame(request_id=next_id(), session_id=resume_id,
+                                                close_session=E.CloseSession()))
+
+        # Closed on purpose is not dropped by accident: there is nothing to
+        # come back for, and the token dies with the session.
+        async with websockets.connect(URL, max_size=None) as after:
+            back = E.ClientFrame(request_id=next_id())
+            back.resume_session.session_id = resume_id
+            back.resume_session.resume_token = token
+            reply = await send(after, back)
+            check("a session closed on purpose cannot be resumed",
+                  reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND,
+                  E.Error.Code.Name(reply.error.code) if reply.HasField("error") else "resumed it")
+
+            # Expiry is a wall-clock wait, so it is only exercised when the
+            # daemon was started with a window short enough to sit through:
+            #     ./build/ql-backend --port 9111 --session-grace 2
+            if grace <= 5:
+                # On a socket of its own, which then goes: a session still
+                # held by a live connection is not detached at all, and
+                # checking that would prove nothing about the window.
+                async with websockets.connect(URL, max_size=None) as brief:
+                    opened = await send(brief, open_session())
+                    short_id = opened.session_opened.session_id
+                    short_token = opened.session_opened.resume_token
+                await asyncio.sleep(grace + 1.5)
+                back = E.ClientFrame(request_id=next_id())
+                back.resume_session.session_id = short_id
+                back.resume_session.resume_token = short_token
+                reply = await send(after, back)
+                check("and a window that has expired is gone",
+                      reply.HasField("error") and reply.error.code == E.Error.SESSION_NOT_FOUND,
+                      E.Error.Code.Name(reply.error.code) if reply.HasField("error") else "resumed it")
+
         # -- liveness ---------------------------------------------------------
         #
         # The socket connecting used to be the only liveness signal, which a

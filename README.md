@@ -35,6 +35,11 @@ warning-free under `QLSERVICE_WERROR=ON` on both routes — the vendored
 QuantLib v1.43 and a 1.44-dev install — with AppleClang 21 at C++17, schema
 clean under `protoc 34.0`.
 
+A session now outlives its socket by a minute, and so does the work in it: a
+client that loses its connection takes the session back with `ResumeSession`
+and the token it was given, and the Monte Carlo that was running is still
+running (DESIGN §9.4). The bootstrap was never what a dropped socket cost.
+
 What is missing is the process boundary. Workers are threads in the gateway
 process for now, so a cancel that has to kill cannot (DESIGN §3), and
 replay-after-death is never exercised.

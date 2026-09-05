@@ -37,7 +37,7 @@ process, so the kill half of a cancel is a disown rather than a kill.
 | [9.1 One loop, and everything on it](#91-one-loop-and-everything-on-it) | Why nothing calls the supervisor off the loop |
 | [9.2 The worker channel](#92-the-worker-channel) | How frames reach a worker and come back |
 | [9.3 Backpressure](#93-backpressure-shed-progress-never-a-terminal-frame) | Shed `Progress`, never a terminal frame |
-| [9.4 A disconnect closes the session](#94-a-disconnect-closes-the-session) | `session_id` is connection-scoped |
+| [9.4 A disconnect holds the session](#94-a-disconnect-holds-the-session-briefly) | The resume window, the token, and what a held seat costs |
 | [9.5 What the gateway tracks](#95-what-the-gateway-tracks-that-nothing-else-does) | Outstanding ids, routing, the cancel's own Ack |
 | [9.6 The door](#96-the-door-in-place-of-authentication) | Origin, the two caps, and `/healthz` |
 
@@ -713,10 +713,13 @@ convention registry — is worth reading before extending `conventions.proto`.
   a real request before it earns its place.
 - Whether `Progress` also carries a running NPV estimate, which is cheap for
   Monte Carlo and meaningless for calibration.
-- Whether a reconnecting client may resume its sessions rather than reopen
-  them (§9.4). It needs a client identity the protocol does not have, and it
-  holds worker seats for absent clients — the same trade as the warm-spare
-  question above, and worth settling with the same measurement.
+- ~~Whether a reconnecting client may resume its sessions rather than reopen
+  them (§9.4).~~ **Settled, and not the way this list expected.** The
+  measurement it asked for says a rebuild costs single-digit milliseconds, so
+  resuming to save a bootstrap would not have been worth a held seat. Resuming
+  to save the *work in flight* is: `ResumeSession` and a 60-second window are
+  in §9.4, and the client identity the protocol did not have is a token minted
+  per session rather than per client.
 - Whether the gateway persists session logs. Today it does not, which is what
   makes it the single point of failure §1.1 admits to.
 
@@ -829,23 +832,54 @@ against a field — a session too large should come back as `INVALID_ARGUMENT`
 naming what was too big, not as a transport-level close with no frame to
 attribute it to.
 
-### 9.4 A disconnect closes the session
+### 9.4 A disconnect holds the session, briefly
 
-§2.1 establishes that session state is cheap and derivable, but only the
-*gateway* holds the definition; clients hold results. So a reconnecting client
-cannot rebuild its session, and any resume story means the gateway keeping
-logs, and worker seats, for a client that may never come back.
+This section used to say that closing a socket closed every session on it, and
+argued it from the cost of a rebuild: a session is a bootstrap, not a document,
+and §2.1 prices a rebuild at exactly one. §8 said the question should be
+settled by that measurement rather than by preference, so it was.
 
-**Decision: closing a socket closes every session on it.** Each gets a
-`CloseSession` to its worker and its seat is released (§2.1), which retires the
-process once it holds nothing. A session is a bootstrap, not a document, and
-§2.1 already prices a rebuild at exactly one — `SessionOpened.bootstrap_seconds`
-is the measurement. Holding seats warm for absent clients is the same trade as
-the warm-spare question in §8 and should not be settled by accident here.
+**The measurement, taken here against this build.** A bootstrap costs 0.009 ms
+for the seven-object market `HANDLERS.md` opens with, 1.5 ms for a curve
+stripped from thirty swap pillars, and 3.6 ms for one stripped from
+forty-eight. The rebuild was never the expensive part of a dropped socket.
+What was expensive is what was *running*: a request in flight died with the
+session, so a network blink half way through a twenty-million-path Monte Carlo
+cost the calculation, and the client had to start it again.
 
-**Consequence for the frontend: `session_id` is connection-scoped.** A client
-that reconnects reopens its sessions and gets new ids. This is worth saying in
-the protocol rather than leaving clients to discover it.
+**Decision: a session outlives its socket by a grace window, and so does the
+work in it.** The default is 60 seconds; `--session-grace 0` restores the old
+rule exactly. Within the window the session keeps its graph, its worker seat
+and its running requests, and the client takes it back with `ResumeSession`,
+naming the session and presenting the token `SessionOpened` minted for it. A
+terminal frame produced while nobody was attached is held and delivered on the
+way back in; `Progress` is shed, for the reason §9.3 sheds it under
+backpressure — by the time anyone reads it the work has moved on.
+
+**The token is what makes this safe to offer at all.** A WebSocket upgrade is
+not subject to the same-origin policy (§9.6), so any page on the machine can
+reach this socket; without a secret, a resumable session id would be a session
+any page could adopt. It is 128 bits from `std::random_device`, minted by the
+gateway — which owns connection-scoped identity (§9.5) and is the only part of
+this service that should have an opinion about who a socket belongs to. Every
+refusal is `SESSION_NOT_FOUND`: a wrong token, an expired window and a session
+that was closed on purpose are one answer, so a guess learns nothing from the
+difference, and the client's move is the same for all three.
+
+**What it costs, and what bounds it.** Every held session is a worker seat
+nobody is sitting in. Two limits keep that from becoming the failure mode the
+old rule avoided: the window itself, and a cap on how many sessions may be
+held at once (16 by default). Past the cap the *longest-waiting* one is closed
+rather than the newest refused — the oldest is the likeliest to have been
+abandoned. `/healthz` reports the count as `detached`, so the seats being held
+for absent clients are visible rather than inferred.
+
+**Consequence for the frontend: `session_id` survives a reconnect, if the
+client asks for it.** A client that resumes keeps its id, its graph and its
+in-flight work; a client that does not — or that comes back too late, or to a
+service that has been restarted — opens a session and replays, exactly as
+before. Replay is still the fallback and still has to work: this window is an
+optimisation over it, not a replacement for it.
 
 A related default: uWebSockets closes an idle connection after 120 seconds
 (`src/App.h:240`) but sends pings first (`sendPingsAutomatically`,

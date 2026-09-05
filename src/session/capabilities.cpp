@@ -123,7 +123,7 @@ namespace qlservice {
         // batch is a frame rather than a PriceRequest option, and a client
         // should not have to send one to find out whether it is served.
         for (const char* frame : {"open_session", "close_session", "update_market", "price",
-                                  "cancel", "hello", "batch"})
+                                  "cancel", "hello", "batch", "resume_session"})
             out.add_frames(frame);
 
         out.add_price_request_options("include_additional_results");
