@@ -28,7 +28,7 @@ endif()
 #
 # That prefix has to be a QuantLib built with QL_ENABLE_SESSIONS (DESIGN §2) and
 # without OpenMP (DESIGN §2.2), which nothing in this build can check: the wrong
-# one links and prices, and only test/smoke_sessions.py notices. Vendoring turns
+# one links and prices, and only test/smoke_v2.py notices. Vendoring turns
 # both of those from environmental facts into build settings.
 
 option(QLSERVICE_VENDOR_QUANTLIB
@@ -102,9 +102,9 @@ add_library(qlservice_proto OBJECT
     proto/quantlib/v1/conventions.proto
     proto/quantlib/v1/envelope.proto
 
-    # v2 is the generalized schema (DESIGN 6.3). No handler serves it yet;
-    # it is built so that protoc and the C++ compiler check it, which is the
-    # only verification this repository has.
+    # v2 is the schema the service speaks (DESIGN §6.3). v1 above is still
+    # built: quantlib/v1/conventions.proto carries the convention enums both
+    # versions import.
     proto/quantlib/v2/market.proto
     proto/quantlib/v2/instrument.proto
     proto/quantlib/v2/engine.proto
@@ -129,9 +129,10 @@ target_compile_options(qlservice_proto PRIVATE -w)
 # The service library
 # ---------------------------------------------------------------------------
 #
-# A library rather than an executable: the gateway that drives it, the process
-# host that forks workers, and the worker main() are not written yet
-# (README §1.1). Building this compiles every translation unit that is.
+# A library rather than an executable: the gateway that drives it is a target
+# of its own below, and the process host that forks workers is not written yet
+# (DESIGN §3 — ThreadProcessHost stands in). Building this compiles the
+# QuantLib half on its own, which is the half that does not need a socket.
 
 add_library(qlservice STATIC
     src/conventions/registry.cpp

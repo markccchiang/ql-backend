@@ -24,6 +24,7 @@ spelled `QLSERVICE_*`, after the library.
 | `protoc` | 34.0 | Invoked by the build, not by hand |
 | git | | Both routes use submodules; the wire schema is one of them |
 | Python 3 with `venv` | 3.14 | Only for `test/`, not for the build |
+| A QuantLib, on Route B only | 1.44-dev, in a prefix of its own | Must be built with `QL_ENABLE_SESSIONS`; Route A builds the pinned v1.43 instead |
 
 On macOS with Homebrew: `brew install cmake boost protobuf`.
 
@@ -139,7 +140,10 @@ that agree exactly mean the wrong QuantLib is linked.**
 
 Warnings are `-Wall -Wextra -Wpedantic -Wno-switch`, and only on this project's
 own targets: generated protobuf code and uSockets build with `-w`, and a
-vendored QuantLib's headers are marked as system includes.
+vendored QuantLib's headers are marked as system includes. The `ql-backend`
+target drops `-Wpedantic` alone — uWebSockets' templates are instantiated there
+and were not written to it — and `QLSERVICE_WERROR` reaches `qlservice` only,
+so the three gateway translation units are warned about but never fail on it.
 
 ## Things that will bite
 
@@ -156,6 +160,14 @@ vendored QuantLib's headers are marked as system includes.
   `cmake` before `git submodule update`, this is why there is no binary.
 - **`--recursive` matters for uWebSockets**, which nests uSockets inside itself.
   Without it uSockets is empty and the executable is skipped as above.
+- **A browser is refused where a script is not.** An upgrade whose `Origin`
+  header is present and not on the allowed list is answered `403 Forbidden`
+  (DESIGN §9.6). The default list is the Vite dev server's ports —
+  `localhost` and `127.0.0.1` on 5173 and 4173 — so a frontend served from
+  anywhere else needs `--allow-origin URL`, and until it gets one the failure
+  looks exactly like a backend that is not running. A client that sends no
+  `Origin` at all, `test/smoke_v2.py` included, is unaffected. `--help` lists
+  that flag and the rest.
 - **`QLSERVICE_VENDOR_QUANTLIB=ON` with an empty submodule** stops the configure
   with a `FATAL_ERROR` naming the checkout command. That one is deliberate: a
   vendored build that silently fell back to `find_package` would defeat the
@@ -170,3 +182,9 @@ to run it.
 Run it at least once after any change to which QuantLib you are linking. Its
 two-session check is the only thing in the repository that distinguishes a
 *wrong* QuantLib from a missing one.
+
+`GET /healthz` on the same port is the cheaper check either side of it: it
+answers JSON carrying the QuantLib version the binary linked, its uptime, and
+how many connections and sessions are open. It says which QuantLib you got —
+not whether that one has sessions enabled, which is what the paragraph above is
+for.

@@ -5,7 +5,7 @@ the service works; there is no unit-test target yet.
 
 It checks two different kinds of thing, and the distinction matters.
 
-**Numbers.** 209 rows of QuantLib's own published reference values — European
+**Numbers.** 247 rows of QuantLib's own published reference values — European
 and American vanillas, barriers, forward-start options and the four quanto
 shapes — each priced through the wire and compared against the value the C++
 test suite records, at the tolerance that test uses. Neither the values nor the

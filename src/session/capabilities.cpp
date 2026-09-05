@@ -28,8 +28,8 @@ namespace qlservice {
              {"vanilla", "barrier", "double_barrier", "asian", "lookback", "forward_start"})
             out.add_option_styles(style);
 
-        // Seven payoffs build. `floating` is valid on a lookback only, which is
-        // a combination rule and therefore the client's to know.
+        // All eight payoffs build. `floating` is valid on a lookback only,
+        // which is a combination rule and therefore the client's to know.
         for (const char* payoff : {"plain", "percentage_strike", "asset_or_nothing",
                                    "cash_or_nothing", "gap", "super_fund", "super_share",
                                    "floating"})
@@ -74,7 +74,7 @@ namespace qlservice {
                                   qlpb::FdParameters_Preset_PRESET_FINE})
             out.add_fd_presets(preset);
 
-        // The sixteen kinds Worker::fillResult and Session::priceSwap map.
+        // The nineteen kinds Worker::fillResult and Session::priceSwap map.
         for (const auto kind :
              {qlpb::RESULT_KIND_NPV, qlpb::RESULT_KIND_DELTA, qlpb::RESULT_KIND_GAMMA,
               qlpb::RESULT_KIND_THETA, qlpb::RESULT_KIND_VEGA, qlpb::RESULT_KIND_RHO,
