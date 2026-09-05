@@ -21,6 +21,7 @@ process, so the kill half of a cancel is a disown rather than a kill.
 | --- | --- |
 | [1. Shape](#1-shape) | The components and what each owns |
 | [1.1 Process topology](#11-process-topology) | Why the supervisor is a class, not a service |
+| [1.2 Where state lives](#12-where-state-lives-and-what-it-survives) | The graph is the service's, the definition is the client's, and nothing is on a disk |
 | [2. Global state forces session pinning](#2-global-state-forces-session-pinning) | `QL_ENABLE_SESSIONS`, one session per thread |
 | [2.1 How many sessions per process](#21-how-many-sessions-per-process) | Shared vs. sacrificial workers, replay, placement |
 | [2.2 QuantLib does not parallelise for you](#22-quantlib-does-not-parallelise-for-you) | No OpenMP in workers |
@@ -122,11 +123,50 @@ exists as an interface separate from frame delivery.
 A worker is disposable: whatever kills it, the supervisor replays its sessions
 into another one and the client keeps its `session_id`. The gateway is not:
 it holds the only copy of every session definition, so losing it loses every
-session on the box, and no client can reconstruct one because clients hold
-results, not definitions. That asymmetry is the design working as intended —
+session on the box. That asymmetry is the design working as intended —
 expensive state where it can be thrown away, cheap state where it cannot — but
 it does mean the gateway is a single point of failure that nothing here
-mitigates.
+mitigates. What makes that survivable is not in this process at all: the client
+holds the definition and replays it, which §1.2 sets out.
+
+### 1.2 Where state lives, and what it survives
+
+A session is two things kept apart on purpose: a **graph**, which is expensive
+and derivable, and a **definition**, which is cheap and is not. The service
+owns the first and the client owns the second, and every recovery path in this
+document falls out of that split.
+
+| State | Where it lives | What it outlives |
+| --- | --- | --- |
+| The QuantLib object graph — quotes, curves, surfaces, indices, instruments | Worker thread memory, one session per thread (§2) | Every request in the session; a dropped socket, for the resume window (§9.4) |
+| The `SessionLog` — the `OpenSession`, plus every `UpdateMarket` that was accepted, plus a kept sweep as a synthetic write | `Supervisor::sessions_`, in the gateway process (§2.1) | A killed or dead worker: it is what a replay is made of |
+| The resume token, and the `SessionOpened` a resume answers with | The gateway, per session (§9.4) | The socket, for the window. Nothing else |
+| Outstanding `request_id`s | The gateway, per session (§9.5) | Nothing: they are what a disrupted session has to fail |
+| The market definition and the trade — the *document* | The client. In `ql-frontend` it is a Redux slice, saved to one `localStorage` key as canonical Protobuf JSON | Everything on this side, including the process |
+| Prices and greeks | The client, in memory | They are results, not state: the service keeps none |
+
+**Nothing here touches a disk.** There is no database, no file, no journal:
+`grep` the service for a write and the only one is the socket. That is a
+decision rather than an omission — a session is a graph built from a message
+the client still has, so the copy worth keeping is the client's — and its price
+is the row in §1.1: the gateway is the single point of failure, and a process
+that dies takes every graph, every log and every in-flight calculation with it.
+
+What follows from the split, in the order a client meets it:
+
+| The event | What the service still has | What the client does |
+| --- | --- | --- |
+| A request finishes | The graph, moved on by whatever the request wrote | Reads the result |
+| A worker dies or is killed for a cancel | The `SessionLog` | Nothing: the session is replayed under it and keeps its id (§2.1) |
+| The socket drops, and comes back inside the window | The graph, the seat, the running requests | `ResumeSession` (§9.4) |
+| The socket drops for longer, or the client reloads | Nothing after the window expires | Opens a session and replays the document |
+| The gateway restarts | Nothing | The same replay, which is why this path must not rot |
+| The client's browser storage is cleared | Nothing that helps | Starts from the seed document. This is the one loss with no recovery |
+
+The last two rows are the reason the resume in §9.4 is described as an
+optimisation over replay rather than a replacement for it. Replay is the only
+path that works when the service remembers nothing, and it works because the
+definition was never the service's to keep.
 
 ## 2. Global state forces session pinning
 
@@ -837,7 +877,9 @@ attribute it to.
 This section used to say that closing a socket closed every session on it, and
 argued it from the cost of a rebuild: a session is a bootstrap, not a document,
 and §2.1 prices a rebuild at exactly one. §8 said the question should be
-settled by that measurement rather than by preference, so it was.
+settled by that measurement rather than by preference, so it was. §1.2 is the
+split it rests on — the graph is this service's, the definition is the
+client's.
 
 **The measurement, taken here against this build.** A bootstrap costs 0.009 ms
 for the seven-object market `HANDLERS.md` opens with, 1.5 ms for a curve
