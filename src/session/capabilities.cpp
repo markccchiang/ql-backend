@@ -86,8 +86,15 @@ namespace qlservice {
               qlpb::RESULT_KIND_LEG_BPS})
             out.add_result_kinds(kind);
 
-        // Five of the eight MarketObject.kind arms are built.
-        for (const char* kind : {"quote", "yield_curve", "volatility", "index", "fixings"})
+        // Six of the eight MarketObject.kind arms are built. `correlation` is
+        // one of them -- the basket needs it and Session::buildCorrelation
+        // builds it -- and it was missing from this list while it was, which
+        // is the failure this handshake exists to prevent: a client that
+        // trusted the advertisement would refuse to author a matrix this
+        // service prices. `default_curve` and `inflation_curve` are the two
+        // that are not built.
+        for (const char* kind : {"quote", "yield_curve", "volatility", "index", "fixings",
+                                 "correlation"})
             out.add_market_kinds(kind);
 
         // Four of the six curve shapes; zero and discount take fixed nodes only,
