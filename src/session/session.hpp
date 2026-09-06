@@ -12,6 +12,7 @@
 #include <ql/exercise.hpp>
 #include <ql/handle.hpp>
 #include <ql/instruments/payoffs.hpp>
+#include <ql/math/matrix.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/shared_ptr.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvoltermstructure.hpp>
@@ -174,6 +175,16 @@ namespace qlservice {
         void buildIndex(const std::string& id,
                         const quantlib::v2::Index& def,
                         const std::string& fieldPath);
+        void buildCorrelation(const std::string& id,
+                              const quantlib::v2::CorrelationMatrix& msg,
+                              const std::string& fieldPath);
+
+        //! Everything that makes a square of numbers a correlation matrix.
+        /*! Called when the object is built and again on every request that
+            uses one, because the entries are live quotes: a matrix that was
+            legal when the session opened can be dragged into one that is not.
+        */
+        void checkCorrelation(const QuantLib::Matrix& m, const std::string& fieldPath) const;
         void applyFixings(const quantlib::v2::FixingSeries& msg, const std::string& fieldPath);
 
         //! One bootstrap helper from one pillar quote.
@@ -298,6 +309,22 @@ namespace qlservice {
         std::map<std::string, QuantLib::Handle<QuantLib::YieldTermStructure>> curves_;
         std::map<std::string, QuantLib::Handle<QuantLib::BlackVolTermStructure>> vols_;
         std::map<std::string, QuantLib::ext::shared_ptr<QuantLib::IborIndex>> indices_;
+
+        //! A correlation matrix, as the labels it indexes on and live entries.
+        /*! Entries are `Handle<Quote>` rather than numbers so a correlation
+            can be dragged like anything else in the quote bar. Nothing
+            observes the handles, though, because the object QuantLib wants is
+            a plain `Matrix`: `StochasticProcessArray` takes one by value and
+            factorises it in its constructor
+            (ql/processes/stochasticprocessarray.cpp). So the matrix is read
+            out afresh on every price request, which is the only way a moved
+            correlation reaches the answer (DESIGN §5).
+        */
+        struct Correlation {
+            std::vector<std::string> labels;
+            std::vector<QuantLib::Handle<QuantLib::Quote>> entries;  // row-major
+        };
+        std::map<std::string, Correlation> correlations_;
 
         //! The forwarding handle each index was built on, by index id.
         /*! Relinkable, because an index and the curve it forecasts off

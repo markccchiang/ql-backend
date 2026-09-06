@@ -83,6 +83,10 @@ QUOTES = {
     "FXR": 0.05,  # foreign risk-free, quanto only
     "FXV": 0.20,  # FX volatility
     "CORR": 0.30,
+    "S2": 100.0,  # the second asset, basket only
+    "Q2": 0.0,
+    "V2": 0.20,
+    "RHO": 0.30,  # the off-diagonal of CORRM, live so a row can write it
 }
 
 
@@ -119,11 +123,33 @@ def open_session():
     m.yield_curve.flat.compounding = C.CONTINUOUS
     m.yield_curve.flat.frequency = C.ANNUAL
 
-    for vid, qid in [("VOL", "V"), ("FXVOL", "FXV")]:
+    for vid, qid in [("VOL", "V"), ("FXVOL", "FXV"), ("VOL2", "V2")]:
         m = o.market.add()
         m.id = vid
         act360(m.volatility.day_counter)
         m.volatility.constant.volatility.quote_id = qid
+
+    # The second asset's dividend curve, and the correlation matrix the two
+    # index on by label. The off-diagonal is a quote id so a reference row can
+    # write it like any other number; the diagonal is fixed, because a
+    # correlation matrix whose diagonal could be dragged off 1 is not one.
+    m = o.market.add()
+    m.id = "QC2"
+    act360(m.yield_curve.day_counter)
+    m.yield_curve.flat.rate.quote_id = "Q2"
+    m.yield_curve.flat.compounding = C.CONTINUOUS
+    m.yield_curve.flat.frequency = C.ANNUAL
+
+    m = o.market.add()
+    m.id = "CORRM"
+    m.correlation.labels.extend(["A", "B"])
+    for i in range(2):
+        for j in range(2):
+            v = m.correlation.values.add()
+            if i == j:
+                v.fixed = 1.0
+            else:
+                v.quote_id = "RHO"
 
     return f
 
@@ -137,6 +163,12 @@ def set_market(sid, **values):
 
 def row_market(row):
     """The quote writes one reference row implies."""
+    if "s1" in row:
+        # A two-asset row: two spots, two dividend yields, two volatilities and
+        # the correlation between them, against one shared risk-free curve --
+        # which is how basketoption.cpp builds it.
+        return {"S": row["s1"], "S2": row["s2"], "Q": row["q1"], "Q2": row["q2"],
+                "R": row["r"], "V": row["v1"], "V2": row["v2"], "RHO": row["rho"]}
     out = {"S": row["s"], "R": row["r"], "V": row["v"]}
     if "q" in row:
         out["Q"] = row["q"]
@@ -375,6 +407,57 @@ def complex_chooser_frame(sid, row, call_days=None, put_days=None):
     return f
 
 
+BASKET_KIND = {
+    "min": I.Basket.KIND_MIN,
+    "max": I.Basket.KIND_MAX,
+    "spread": I.Basket.KIND_SPREAD,
+    "average": I.Basket.KIND_AVERAGE,
+}
+
+
+def basket_frame(sid, row, method=EN.Engine.METHOD_ANALYTIC, kind=None, samples=0,
+                 weights=None, labels=("A", "B"), correlation_id="CORRM",
+                 assets=2, exercise="european"):
+    """Two assets, one correlation matrix, one plain payoff underneath.
+
+    basketoption.cpp prices the minimum and maximum off BlackScholesMertonProcess
+    and the spread off BlackProcess -- Kirk is a formula on futures -- so the
+    process each underlying asks for follows the basket kind.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.plain.strike = row["strike"]
+    set_exercise(opt, exercise, row["t"])
+
+    basketType = kind if kind is not None else row["basketType"]
+    black = basketType == "spread"
+    for n in range(assets):
+        u = opt.underlyings.add()
+        u.label = labels[n] if n < len(labels) else f"U{n}"
+        u.spot_quote_id = "S" if n == 0 else "S2"
+        u.discount_curve_id = "RC"
+        u.volatility_id = "VOL" if n == 0 else "VOL2"
+        if black:
+            u.process = I.Underlying.PROCESS_BLACK
+        else:
+            u.process = I.Underlying.PROCESS_BLACK_SCHOLES_MERTON
+            u.dividend_curve_id = "QC" if n == 0 else "QC2"
+
+    b = opt.basket
+    b.kind = BASKET_KIND[basketType]
+    b.correlation_id = correlation_id
+    if weights:
+        b.weights.extend(weights)
+
+    f.price.engine.method = method
+    if method == EN.Engine.METHOD_MONTE_CARLO:
+        f.price.engine.mc.seed = 42
+        f.price.engine.mc.samples = samples or 10000
+        f.price.engine.mc.rng = EN.McParameters.RNG_PSEUDO_RANDOM
+        f.price.engine.mc.time_steps_per_year = 1
+    return f
+
+
 def cliquet_frame(sid, row, performance=False, method=EN.Engine.METHOD_ANALYTIC,
                   resets=None, caps=None, samples=0):
     """A ratchet: a series of forward starts, each struck at the spot when it
@@ -536,7 +619,8 @@ async def main():
               f"bootstrap={r.session_opened.bootstrap_seconds:.4f}s")
         check("SessionOpened lists what it built",
               list(r.session_opened.market_ids) ==
-              list(QUOTES) + ["RC", "QC", "FXRC", "QC365", "VOL", "FXVOL"])
+              list(QUOTES)
+              + ["RC", "QC", "FXRC", "QC365", "VOL", "FXVOL", "VOL2", "QC2", "CORRM"])
 
         # -- the reference tables --------------------------------------------
         print("\n  -- QuantLib's published values --")
@@ -607,6 +691,12 @@ async def main():
         # body the same way the chooser's two are.
         await table(ws, sid, "cliquet", T.CLIQUET,
                     lambda s, row: cliquet_frame(s, row))
+
+        # Two assets and a correlation matrix. The minimum and maximum go to
+        # StulzEngine and the spread to Kirk, which is the split the table's
+        # own basketType column makes.
+        await table(ws, sid, "basket, two-asset closed form", T.BASKET,
+                    lambda s, row: basket_frame(s, row))
 
         await table(ws, sid, "quanto vanilla", T.QUANTO,
                     lambda s, row: vanilla_frame(s, row, quanto=True))
@@ -1330,6 +1420,97 @@ async def main():
               reply.HasField("price_result") and R.RESULT_KIND_GAMMA in absent
               and "delta" in got and "vega" in got,
               f"got={sorted(got)} absent={[R.ResultKind.Name(k) for k in absent]}")
+
+        # The basket's refusals. Two are the schema being narrower than the
+        # build, two are QuantLib being permissive where it should not be.
+        brow2 = next(r for r in T.BASKET if r["basketType"] == "min")
+        await send(ws, set_market(sid, **row_market(brow2)))
+
+        await rejected("a basket with one underlying",
+                       basket_frame(sid, brow2, assets=1),
+                       "instrument.option.underlyings", E.Error.INVALID_ARGUMENT)
+        await rejected("a basket on an American exercise",
+                       basket_frame(sid, brow2, exercise="american"),
+                       "instrument.option.exercise.type", E.Error.UNSUPPORTED)
+        await rejected("weights on a basket that is not an average",
+                       basket_frame(sid, brow2, weights=[0.5, 0.5]),
+                       "instrument.option.basket.weights", E.Error.UNSUPPORTED)
+        await rejected("an average basket asked for a closed form",
+                       basket_frame(sid, brow2, kind="average"),
+                       "instrument.option.basket.kind", E.Error.UNSUPPORTED)
+        await rejected("a two-asset finite-difference grid the schema cannot describe",
+                       basket_frame(sid, brow2, method=EN.Engine.METHOD_FINITE_DIFFERENCE),
+                       "engine.fd", E.Error.UNSUPPORTED)
+        await rejected("an underlying with no label for the correlation to index on",
+                       basket_frame(sid, brow2, labels=("", "B")),
+                       "instrument.option.underlyings[0].label", E.Error.INVALID_ARGUMENT)
+        await rejected("a correlation matrix that is not in this market",
+                       basket_frame(sid, brow2, correlation_id="NOPE"),
+                       "instrument.option.basket.correlation_id", E.Error.UNKNOWN_ID)
+
+        # The one QuantLib would not have raised: StochasticProcessArray
+        # factorises with SalvagingAlgorithm::Spectral, which repairs an
+        # impossible correlation rather than refusing it, so a matrix dragged
+        # out of range between requests would have been quietly replaced.
+        await send(ws, set_market(sid, RHO=1.5))
+        await rejected("a correlation dragged outside [-1, 1] after the session opened",
+                       basket_frame(sid, brow2),
+                       "instrument.option.basket.correlation_id", E.Error.INVALID_ARGUMENT)
+        await send(ws, set_market(sid, RHO=brow2["rho"]))
+
+        # The third engine the C++ test runs over the same table, at the 1%
+        # relative tolerance it uses: one Monte Carlo price per basket kind,
+        # against the closed form rather than against a published number.
+        for kind in ["min", "max", "spread"]:
+            mrow = next(r for r in T.BASKET if r["basketType"] == kind)
+            await send(ws, set_market(sid, **row_market(mrow)))
+            closed = await send(ws, basket_frame(sid, mrow))
+            sampled = await send(ws, basket_frame(sid, mrow,
+                                                  method=EN.Engine.METHOD_MONTE_CARLO))
+            ok = closed.HasField("price_result") and sampled.HasField("price_result")
+            gap = (abs(closed.price_result.npv - sampled.price_result.npv) / mrow["s1"]
+                   if ok else 1.0)
+            check(f"Monte Carlo agrees with the closed form on a {kind} basket",
+                  ok and gap < 1.0e-2,
+                  f"analytic={closed.price_result.npv:.6f} mc={sampled.price_result.npv:.6f} "
+                  f"relative gap={gap:.2e}" if ok else "did not price")
+
+        # And the kind with no closed form at all, which is why Monte Carlo is
+        # the only method open on it.
+        arow = next(r for r in T.BASKET if r["basketType"] == "min")
+        await send(ws, set_market(sid, **row_market(arow)))
+        reply = await send(ws, basket_frame(sid, arow, kind="average",
+                                            method=EN.Engine.METHOD_MONTE_CARLO,
+                                            weights=[0.7, 0.3]))
+        check("a weighted average basket prices on Monte Carlo",
+              reply.HasField("price_result") and reply.price_result.npv > 0,
+              f"npv={reply.price_result.npv:.6f}" if reply.HasField("price_result")
+              else f"{reply.error.field_path!r} {reply.error.message!r}")
+
+        # Three pairwise correlations, each legal on its own and jointly
+        # impossible. StochasticProcessArray would have repaired this one and
+        # priced the nearest possible market without a word.
+        f = E.ClientFrame(request_id=next_id())
+        f.open_session.evaluation_date.iso = TODAY.isoformat()
+        m = f.open_session.market.add()
+        m.id = "BAD"
+        m.correlation.labels.extend(["A", "B", "C"])
+        for a, b, c in [(1.0, 0.9, 0.9), (0.9, 1.0, -0.9), (0.9, -0.9, 1.0)]:
+            for v in (a, b, c):
+                m.correlation.values.add().fixed = v
+        await rejected("a correlation matrix no set of assets could have", f,
+                       "market[0].correlation.values", E.Error.INVALID_ARGUMENT)
+
+        # And the style arm that is no longer a product of its own.
+        f, opt = base_frame(sid)
+        opt.payoff.type = OPTION_TYPE[brow2["type"]]
+        opt.payoff.plain.strike = brow2["strike"]
+        set_exercise(opt, "european", brow2["t"])
+        underlying(opt)
+        opt.spread.SetInParent()
+        f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+        await rejected("the spread style, which QuantLib now prices as a basket", f,
+                       "instrument.option.spread", E.Error.UNSUPPORTED)
 
         # And the two performance engines, which the schema could not ask for
         # until `performance` was added to it. No published value: the C++ test

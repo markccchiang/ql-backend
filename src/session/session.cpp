@@ -11,6 +11,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/asianoption.hpp>
 #include <ql/instruments/barrieroption.hpp>
+#include <ql/instruments/basketoption.hpp>
 #include <ql/instruments/cliquetoption.hpp>
 #include <ql/instruments/complexchooseroption.hpp>
 #include <ql/instruments/compoundoption.hpp>
@@ -24,6 +25,7 @@
 #include <ql/instruments/swap.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
+#include <ql/math/matrixutilities/symmetricschurdecomposition.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/interpolations/loginterpolation.hpp>
 #include <ql/methods/finitedifferences/solvers/fdmbackwardsolver.hpp>
@@ -38,6 +40,9 @@
 #include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/basket/kirkengine.hpp>
+#include <ql/pricingengines/basket/mceuropeanbasketengine.hpp>
+#include <ql/pricingengines/basket/stulzengine.hpp>
 #include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
 #include <ql/pricingengines/cliquet/analyticperformanceengine.hpp>
 #include <ql/pricingengines/cliquet/mcperformanceengine.hpp>
@@ -60,6 +65,7 @@
 #include <ql/pricingengines/vanilla/juquadraticengine.hpp>
 #include <ql/pricingengines/vanilla/mceuropeanengine.hpp>
 #include <ql/processes/blackscholesprocess.hpp>
+#include <ql/processes/stochasticprocessarray.hpp>
 #include <ql/settings.hpp>
 #include <ql/termstructures/volatility/equityfx/blackconstantvol.hpp>
 #include <ql/termstructures/volatility/equityfx/blackvariancecurve.hpp>
@@ -458,6 +464,21 @@ namespace qlservice {
             std::void_t<decltype(std::declval<T&>().impliedVolatility(
                 Real(), ext::shared_ptr<GeneralizedBlackScholesProcess>()))>> : std::true_type {};
 
+        //! The five greeks a multi-asset option does not have.
+        /*! `OneAssetOption` declares deltaForward, elasticity, thetaPerDay,
+            strikeSensitivity and itmCashProbability together
+            (ql/instruments/oneassetoption.hpp:47-56); `MultiAssetOption` stops
+            at dividendRho and declares none of them. They arrive as a set, so
+            one trait covers all five, and without it `run<BasketOption>` does
+            not compile rather than merely reporting them absent.
+        */
+        template <class T, class = void>
+        struct HasMoreGreeks : std::false_type {};
+
+        template <class T>
+        struct HasMoreGreeks<T, std::void_t<decltype(std::declval<T&>().itmCashProbability())>>
+        : std::true_type {};
+
         //! Prices one instrument and collects the results asked for.
         template <class Instrument>
         Session::PriceOutcome run(const ext::shared_ptr<Instrument>& option,
@@ -548,7 +569,8 @@ namespace qlservice {
                             out.results["theta"] = option->theta();
                             break;
                         case qlpb::RESULT_KIND_THETA_PER_DAY:
-                            out.results["thetaPerDay"] = option->thetaPerDay();
+                            if constexpr (HasMoreGreeks<Instrument>::value)
+                                out.results["thetaPerDay"] = option->thetaPerDay();
                             break;
                         case qlpb::RESULT_KIND_RHO:
                             out.results["rho"] = option->rho();
@@ -557,16 +579,20 @@ namespace qlservice {
                             out.results["dividendRho"] = option->dividendRho();
                             break;
                         case qlpb::RESULT_KIND_DELTA_FORWARD:
-                            out.results["deltaForward"] = option->deltaForward();
+                            if constexpr (HasMoreGreeks<Instrument>::value)
+                                out.results["deltaForward"] = option->deltaForward();
                             break;
                         case qlpb::RESULT_KIND_ELASTICITY:
-                            out.results["elasticity"] = option->elasticity();
+                            if constexpr (HasMoreGreeks<Instrument>::value)
+                                out.results["elasticity"] = option->elasticity();
                             break;
                         case qlpb::RESULT_KIND_STRIKE_SENSITIVITY:
-                            out.results["strikeSensitivity"] = option->strikeSensitivity();
+                            if constexpr (HasMoreGreeks<Instrument>::value)
+                                out.results["strikeSensitivity"] = option->strikeSensitivity();
                             break;
                         case qlpb::RESULT_KIND_ITM_CASH_PROBABILITY:
-                            out.results["itmCashProbability"] = option->itmCashProbability();
+                            if constexpr (HasMoreGreeks<Instrument>::value)
+                                out.results["itmCashProbability"] = option->itmCashProbability();
                             break;
                         case qlpb::RESULT_KIND_QRHO:
                             if constexpr (HasQuantoGreeks<Instrument>::value)
@@ -705,7 +731,8 @@ namespace qlservice {
             // One namespace across every kind, so a curve and a quote cannot
             // share an id and leave a reference ambiguous.
             const bool taken = quotes_.count(obj.id()) != 0 || curves_.count(obj.id()) != 0 ||
-                               vols_.count(obj.id()) != 0 || indices_.count(obj.id()) != 0;
+                               vols_.count(obj.id()) != 0 || indices_.count(obj.id()) != 0 ||
+                               correlations_.count(obj.id()) != 0;
             QLS_FIELD_REQUIRE(!taken, qlpb::Error::INVALID_ARGUMENT, path + ".id",
                               "duplicate market id '" << obj.id() << "'");
 
@@ -721,6 +748,9 @@ namespace qlservice {
                     break;
                 case qlpb::MarketObject::kIndex:
                     buildIndex(obj.id(), obj.index(), path + ".index");
+                    break;
+                case qlpb::MarketObject::kCorrelation:
+                    buildCorrelation(obj.id(), obj.correlation(), path + ".correlation");
                     break;
                 case qlpb::MarketObject::kFixings:
                     applyFixings(obj.fixings(), path + ".fixings");
@@ -1142,6 +1172,98 @@ namespace qlservice {
     }
 
 
+    //! A correlation matrix, checked here because no engine checks it.
+    /*! `StulzEngine` takes rho as a bare `Real` and asks nothing of it, and
+        `StochasticProcessArray` is worse than permissive: it factorises with
+        `SalvagingAlgorithm::Spectral`
+        (ql/processes/stochasticprocessarray.cpp:31), which *repairs* a matrix
+        that is not positive semi-definite by zeroing the negative eigenvalues
+        and renormalising. An impossible market is therefore not refused and
+        not even mispriced -- it is quietly replaced with the nearest possible
+        one and priced correctly for that. Every property is checked here,
+        before an engine sees the matrix.
+    */
+    void Session::buildCorrelation(const std::string& id, const qlpb::CorrelationMatrix& msg,
+                                   const std::string& fieldPath) {
+        const int n = msg.labels_size();
+        QLS_FIELD_REQUIRE(n > 1, qlpb::Error::INVALID_ARGUMENT, fieldPath + ".labels",
+                          "a correlation matrix needs at least two labels, got " << n);
+        QLS_FIELD_REQUIRE(msg.values_size() == n * n, qlpb::Error::INVALID_ARGUMENT,
+                          fieldPath + ".values",
+                          "a " << n << "-label correlation matrix needs " << n * n
+                               << " row-major entries, got " << msg.values_size());
+
+        std::set<std::string> seen;
+        for (int i = 0; i < n; ++i) {
+            const std::string at = fieldPath + ".labels[" + std::to_string(i) + "]";
+            QLS_FIELD_REQUIRE(!msg.labels(i).empty(), qlpb::Error::INVALID_ARGUMENT, at,
+                              "a correlation label cannot be empty: it is what an underlying "
+                              "names to find its row");
+            QLS_FIELD_REQUIRE(seen.insert(msg.labels(i)).second, qlpb::Error::INVALID_ARGUMENT, at,
+                              "duplicate correlation label '" << msg.labels(i) << "'");
+        }
+
+        Correlation c;
+        c.labels.assign(msg.labels().begin(), msg.labels().end());
+        Matrix m(n, n);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                const std::string at =
+                    fieldPath + ".values[" + std::to_string(i * n + j) + "]";
+                auto entry = number(msg.values(i * n + j), at);
+                const Real v = entry->value();
+                QLS_FIELD_REQUIRE(v >= -1.0 && v <= 1.0, qlpb::Error::INVALID_ARGUMENT, at,
+                                  "correlation " << v << " at [" << i << "][" << j
+                                                 << "] is outside [-1, 1]");
+                if (i == j)
+                    QLS_FIELD_REQUIRE(close_enough(v, 1.0), qlpb::Error::INVALID_ARGUMENT, at,
+                                      "the diagonal of a correlation matrix is 1, and ["
+                                          << i << "][" << i << "] is " << v);
+                c.entries.push_back(entry);
+                m[i][j] = v;
+            }
+        }
+
+        checkCorrelation(m, fieldPath + ".values");
+        correlations_[id] = std::move(c);
+    }
+
+
+    void Session::checkCorrelation(const Matrix& m, const std::string& fieldPath) const {
+        const int n = static_cast<int>(m.rows());
+        for (int i = 0; i < n; ++i) {
+            QLS_FIELD_REQUIRE(close_enough(m[i][i], 1.0), qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                              "the diagonal of a correlation matrix is 1, and ["
+                                  << i << "][" << i << "] is " << m[i][i]);
+            for (int j = 0; j < n; ++j) {
+                QLS_FIELD_REQUIRE(m[i][j] >= -1.0 && m[i][j] <= 1.0,
+                                  qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                                  "correlation " << m[i][j] << " at [" << i << "][" << j
+                                                 << "] is outside [-1, 1]");
+                QLS_FIELD_REQUIRE(close_enough(m[i][j], m[j][i]), qlpb::Error::INVALID_ARGUMENT,
+                                  fieldPath,
+                                  "a correlation matrix is symmetric: ["
+                                      << i << "][" << j << "] is " << m[i][j] << " and [" << j
+                                      << "][" << i << "] is " << m[j][i]);
+            }
+        }
+
+        // Positive semi-definiteness is the one a client cannot check by eye
+        // past two assets. Three pairwise correlations can each be legal and
+        // jointly impossible -- 0.9, 0.9, -0.9 is the standard example -- and
+        // what comes back from an engine given one is a number, not an error:
+        // StochasticProcessArray repairs the matrix instead of refusing it.
+        const Array eigenvalues = SymmetricSchurDecomposition(m).eigenvalues();
+        const Real smallest = *std::min_element(eigenvalues.begin(), eigenvalues.end());
+        QLS_FIELD_REQUIRE(smallest > -1.0e-10, qlpb::Error::INVALID_ARGUMENT, fieldPath,
+                          "this correlation matrix is not positive semi-definite -- its smallest "
+                          "eigenvalue is "
+                              << smallest
+                              << " -- so no set of assets has it: some combination of them would "
+                                 "have negative variance");
+    }
+
+
     void Session::applyFixings(const qlpb::FixingSeries& msg, const std::string& fieldPath) {
         const auto index = indexById(msg.index_id(), fieldPath + ".index_id");
         for (int i = 0; i < msg.fixings_size(); ++i) {
@@ -1457,10 +1579,16 @@ namespace qlservice {
         const auto& eng = msg.engine();
         const std::string base = "instrument.option";
 
-        QLS_FIELD_REQUIRE(opt.underlyings_size() == 1, qlpb::Error::INVALID_ARGUMENT,
-                          base + ".underlyings",
+        // Basket is the one style that takes more than one, and it is the
+        // reason equityGraph is called per underlying rather than once.
+        const bool multiAsset = opt.style_case() == qlpb::Option::kBasket;
+        QLS_FIELD_REQUIRE(opt.underlyings_size() >= 1, qlpb::Error::INVALID_ARGUMENT,
+                          base + ".underlyings", "an option needs an underlying");
+        QLS_FIELD_REQUIRE(multiAsset || opt.underlyings_size() == 1,
+                          qlpb::Error::INVALID_ARGUMENT, base + ".underlyings",
                           "this option takes exactly one underlying, got "
-                              << opt.underlyings_size());
+                              << opt.underlyings_size()
+                              << "; basket is the style that takes more");
         QLS_FIELD_REQUIRE(opt.dividends_size() == 0, qlpb::Error::UNSUPPORTED, base + ".dividends",
                           "discrete dividends are in the schema but not implemented");
 
@@ -2046,6 +2174,214 @@ namespace qlservice {
             }
 
 
+
+            // -- basket ----------------------------------------------------
+            case qlpb::Option::kBasket: {
+                const std::string path = base + ".basket";
+                const auto& bk = opt.basket();
+                const int n = opt.underlyings_size();
+
+                QLS_FIELD_REQUIRE(n >= 2, qlpb::Error::INVALID_ARGUMENT, base + ".underlyings",
+                                  "a basket needs at least two underlyings, got "
+                                      << n << "; with one it is whatever style that one asset is");
+                QLS_FIELD_REQUIRE(!graph.quanto, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                  "there is no quanto basket engine in QuantLib");
+                QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
+                                  "the basket engines built here are European only: an American "
+                                  "basket is MCAmericanBasketEngine, which is Longstaff-Schwartz "
+                                  "and takes a basis-function choice this schema cannot carry");
+                QLS_FIELD_REQUIRE(opt.payoff().kind_case() == qlpb::Payoff::kPlain,
+                                  qlpb::Error::UNSUPPORTED, base + ".payoff",
+                                  "a basket wraps a plain payoff: BasketPayoff accumulates the "
+                                  "assets to one number and hands that to the payoff underneath");
+
+                // One graph per asset. equityGraph is per-underlying already,
+                // so this is the same construction the single-asset styles get,
+                // n times -- including the process each Underlying.process asks
+                // for, which a spread wants to be PROCESS_BLACK.
+                std::vector<Session::EquityGraph> graphs{graph};
+                std::vector<ext::shared_ptr<StochasticProcess1D>> processes{graph.process};
+                for (int i = 1; i < n; ++i) {
+                    graphs.push_back(equityGraph(opt.underlyings(i), opt,
+                                                 base + ".underlyings[" + std::to_string(i) + "]"));
+                    processes.push_back(graphs.back().process);
+                }
+
+                // The correlation matrix, indexed by the labels the underlyings
+                // carry. Read out afresh here rather than held: what QuantLib
+                // takes is a plain Matrix, factorised once at construction, so
+                // a correlation that moved between requests only reaches the
+                // price because this runs again (DESIGN §5).
+                QLS_FIELD_REQUIRE(!bk.correlation_id().empty(), qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".correlation_id",
+                                  "a basket needs a correlation matrix: with n assets there are "
+                                  "n(n-1)/2 numbers and no default for any of them");
+                const auto found = correlations_.find(bk.correlation_id());
+                QLS_FIELD_REQUIRE(found != correlations_.end(), qlpb::Error::UNKNOWN_ID,
+                                  path + ".correlation_id",
+                                  "unknown correlation matrix '" << bk.correlation_id() << "'");
+                const auto& cm = found->second;
+
+                std::vector<int> row;
+                for (int i = 0; i < n; ++i) {
+                    const std::string at =
+                        base + ".underlyings[" + std::to_string(i) + "].label";
+                    const std::string& label = opt.underlyings(i).label();
+                    QLS_FIELD_REQUIRE(!label.empty(), qlpb::Error::INVALID_ARGUMENT, at,
+                                      "every underlying in a basket needs a label: the "
+                                      "correlation matrix indexes on it, and position would be "
+                                      "a second answer to the same question");
+                    const auto it = std::find(cm.labels.begin(), cm.labels.end(), label);
+                    QLS_FIELD_REQUIRE(it != cm.labels.end(), qlpb::Error::UNKNOWN_ID, at,
+                                      "correlation matrix '"
+                                          << bk.correlation_id() << "' has no row for label '"
+                                          << label << "'");
+                    row.push_back(static_cast<int>(it - cm.labels.begin()));
+                }
+
+                const int size = static_cast<int>(cm.labels.size());
+                Matrix correlation(n, n);
+                for (int i = 0; i < n; ++i)
+                    for (int j = 0; j < n; ++j)
+                        correlation[i][j] = cm.entries[row[i] * size + row[j]]->value();
+
+                // Checked again, not only when the object was built: the
+                // entries are quotes, so a matrix that was a correlation
+                // matrix when the session opened can be dragged into one that
+                // is not, and the engines would take it.
+                checkCorrelation(correlation, path + ".correlation_id");
+
+                // Weights are read by AverageBasketPayoff and by nothing else
+                // (ql/instruments/basketoption.hpp:71), so on any other kind
+                // they would be taken and dropped.
+                const bool average = bk.kind() == qlpb::Basket_Kind_KIND_AVERAGE;
+                QLS_FIELD_REQUIRE(average || bk.weights_size() == 0, qlpb::Error::UNSUPPORTED,
+                                  path + ".weights",
+                                  "only KIND_AVERAGE reads weights: a minimum, a maximum and a "
+                                  "spread are not weighted sums, and AverageBasketPayoff is the "
+                                  "only payoff that looks at them");
+                QLS_FIELD_REQUIRE(bk.weights_size() == 0 || bk.weights_size() == n,
+                                  qlpb::Error::INVALID_ARGUMENT, path + ".weights",
+                                  "a weight per underlying, or none for equal weights: got "
+                                      << bk.weights_size() << " for " << n << " assets");
+
+                const auto plain = payoff(opt.payoff(), base + ".payoff");
+                ext::shared_ptr<BasketPayoff> basketPayoff;
+                switch (bk.kind()) {
+                    case qlpb::Basket_Kind_KIND_MIN:
+                        basketPayoff = ext::make_shared<MinBasketPayoff>(plain);
+                        break;
+                    case qlpb::Basket_Kind_KIND_MAX:
+                        basketPayoff = ext::make_shared<MaxBasketPayoff>(plain);
+                        break;
+                    case qlpb::Basket_Kind_KIND_SPREAD:
+                        QLS_FIELD_REQUIRE(n == 2, qlpb::Error::INVALID_ARGUMENT,
+                                          base + ".underlyings",
+                                          "a spread is the difference of two assets, and "
+                                          "SpreadBasketPayoff refuses any other count; got " << n);
+                        basketPayoff = ext::make_shared<SpreadBasketPayoff>(plain);
+                        break;
+                    case qlpb::Basket_Kind_KIND_AVERAGE:
+                        if (bk.weights_size() == 0) {
+                            basketPayoff = ext::make_shared<AverageBasketPayoff>(
+                                plain, static_cast<Size>(n));
+                        } else {
+                            Array weights(static_cast<Size>(n));
+                            for (int i = 0; i < n; ++i)
+                                weights[i] = bk.weights(i);
+                            basketPayoff = ext::make_shared<AverageBasketPayoff>(plain, weights);
+                        }
+                        break;
+                    default:
+                        QLS_FIELD_FAIL(qlpb::Error::UNSPECIFIED_ENUM, path + ".kind",
+                                       "unspecified basket kind at '" << path << ".kind'");
+                }
+
+                auto option = ext::make_shared<BasketOption>(basketPayoff, ex);
+
+                switch (eng.method()) {
+                    case qlpb::Engine_Method_METHOD_ANALYTIC: {
+                        QLS_FIELD_REQUIRE(n == 2, qlpb::Error::UNSUPPORTED, base + ".underlyings",
+                                          "the closed forms are two-asset: StulzEngine takes two "
+                                          "processes and a rho, and so does Kirk. Past two "
+                                          "assets a basket takes METHOD_MONTE_CARLO");
+                        if (bk.kind() == qlpb::Basket_Kind_KIND_SPREAD)
+                            return run(option,
+                                       ext::make_shared<KirkEngine>(graphs[0].process,
+                                                                    graphs[1].process,
+                                                                    correlation[0][1]),
+                                       msg);
+                        QLS_FIELD_REQUIRE(!average, qlpb::Error::UNSUPPORTED, path + ".kind",
+                                          "there is no closed form here for an average basket: "
+                                          "Stulz prices the minimum or the maximum of two assets "
+                                          "and Kirk the difference. An average takes "
+                                          "METHOD_MONTE_CARLO");
+                        return run(option,
+                                   ext::make_shared<StulzEngine>(graphs[0].process,
+                                                                 graphs[1].process,
+                                                                 correlation[0][1]),
+                                   msg);
+                    }
+
+                    case qlpb::Engine_Method_METHOD_MONTE_CARLO: {
+                        const auto& mc = eng.mc();
+                        QLS_FIELD_REQUIRE(mc.seed() != 0, qlpb::Error::INVALID_ARGUMENT,
+                                          "engine.mc.seed",
+                                          "a Monte Carlo request needs an explicit seed");
+                        QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
+                                          "engine.mc.samples",
+                                          "a Monte Carlo request needs samples");
+                        return run(option,
+                                   MakeMCEuropeanBasketEngine<PseudoRandom>(
+                                       ext::make_shared<StochasticProcessArray>(processes,
+                                                                                correlation))
+                                       .withStepsPerYear(mc.time_steps_per_year() > 0
+                                                             ? mc.time_steps_per_year()
+                                                             : 1)
+                                       .withSamples(mc.samples())
+                                       .withSeed(mc.seed())
+                                       .withBrownianBridge(mc.brownian_bridge())
+                                       .withAntitheticVariate(mc.antithetic_variate()),
+                                   msg);
+                    }
+
+                    case qlpb::Engine_Method_METHOD_FINITE_DIFFERENCE:
+                        // Fd2dBlackScholesVanillaEngine exists and would price
+                        // two assets, but it takes two space grids and a time
+                        // grid where FdParameters carries one space dimension
+                        // (market.proto). Picking the second here would be the
+                        // default nobody chose that every other grid in this
+                        // service refuses.
+                        QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, "engine.fd",
+                                       "a two-asset finite-difference grid needs a second space "
+                                       "dimension, and FdParameters describes one; send "
+                                       "METHOD_ANALYTIC or METHOD_MONTE_CARLO");
+
+                    default:
+                        break;
+                }
+                QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, "engine.method",
+                               "basket options take METHOD_ANALYTIC on two assets, or "
+                               "METHOD_MONTE_CARLO on any number");
+            }
+
+            // -- spread ----------------------------------------------------
+            case qlpb::Option::kSpread:
+                // Not built, and no longer a separate product. `message
+                // Spread`'s comment says it is kept apart from Basket because
+                // QuantLib prices it with Kirk rather than through the basket
+                // engines; that was true when it was written and is false
+                // against QuantLib 1.43. ql/experimental/exoticoptions/
+                // spreadoption.hpp and kirkspreadoptionengine.hpp are empty
+                // stubs that announce their own removal, and KirkEngine now
+                // derives from SpreadBlackScholesVanillaEngine, which is a
+                // BasketOption::engine. So a spread is a basket kind, and the
+                // basket arm above prices it.
+                QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, base + ".spread",
+                               "a spread is a basket in QuantLib 1.43: KirkEngine derives from "
+                               "BasketOption::engine and the standalone SpreadOption is an empty "
+                               "deprecated stub. Send instrument.option.basket with "
+                               "KIND_SPREAD and two underlyings");
 
             // -- cliquet ---------------------------------------------------
             case qlpb::Option::kCliquet: {

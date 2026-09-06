@@ -126,7 +126,8 @@ within the session and are what instruments name.
 | `volatility` | yes, three of four shapes |
 | `index` | yes, two of six families |
 | `fixings` | yes |
-| `default_curve`, `inflation_curve`, `correlation` | no — `UNSUPPORTED` |
+| `correlation` | yes — a basket names one |
+| `default_curve`, `inflation_curve` | no — `UNSUPPORTED` |
 
 **Objects must arrive in dependency order**, because the session resolves ids
 against its maps as it fills. One exception: `Index.forwarding_curve_id` may
@@ -134,6 +135,24 @@ name a curve defined *later*, since a bootstrapped curve's pillars name the
 index and the index names the curve. The index is built on a
 `RelinkableHandle` and linked when its curve appears; one that never appears is
 `UNKNOWN_ID` against `Index.forwarding_curve_id`.
+
+### Correlation matrices
+
+`labels` names the rows and columns, and an `Underlying.label` is what finds a
+row; `values` is row-major, `labels²` entries, each a `Number` so an
+off-diagonal can be a live `quote_id` and drag like anything else in the quote
+bar. The diagonal must be exactly 1, the matrix symmetric, every entry within
+[-1, 1] and the whole thing positive semi-definite.
+
+All four are checked **when the object is built and again on every request that
+uses it**, because the entries are quotes: a matrix that was a correlation
+matrix when the session opened can be dragged into one that is not. This is the
+one market object where QuantLib would not have complained. `StulzEngine` takes
+rho as a bare `Real`; `StochasticProcessArray` factorises with
+`SalvagingAlgorithm::Spectral`, which *repairs* a matrix that is not positive
+semi-definite by zeroing the negative eigenvalues and renormalising. An
+impossible market is therefore neither refused nor mispriced — it is silently
+replaced by the nearest possible one and priced correctly for that.
 
 ### Yield curves
 
@@ -190,7 +209,7 @@ The rest — `swaption`, `cap_floor`, `bond`, `credit_default_swap`, `fra`,
 ### Option
 
 An option is **payoff × exercise × underlying × style**, with quanto orthogonal
-to all four. Nine of twelve styles are built:
+to all four. Ten of twelve styles are built:
 
 | `Option.style` | Exercise | Engine methods | Quanto |
 | --- | --- | --- | --- |
@@ -203,7 +222,8 @@ to all four. Nine of twelve styles are built:
 | `compound` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto compound engine |
 | `chooser` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto chooser engine |
 | `cliquet` | European | `ANALYTIC`; `MONTE_CARLO` for the performance form | no — QuantLib has no quanto cliquet engine |
-| `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
+| `basket` | European, **two or more underlyings** | `ANALYTIC` on two assets; `MONTE_CARLO` on any number | no — QuantLib has no quanto basket engine |
+| `spread`, `digital` | — | not built — `UNSUPPORTED`; a spread is a `basket` with `KIND_SPREAD`, a knock digital a `barrier` with a binary payoff | |
 
 Style-specific rules worth knowing before you send one:
 
@@ -276,6 +296,19 @@ Style-specific rules worth knowing before you send one:
   closed forms write `results_.gamma += 0.0` — and the performance one does the
   same to delta — so those come back in `unavailable_results` rather than as a
   zero nobody computed.
+- **Basket.** The only style that takes more than one underlying, and the only
+  one that names a `correlation` market object. Every underlying needs a
+  **`label`**, because the matrix indexes on labels rather than on position.
+  `ANALYTIC` is two assets and closed-form: `StulzEngine` for `KIND_MIN` and
+  `KIND_MAX`, `KirkEngine` for `KIND_SPREAD` — Kirk is a formula on futures, so
+  the reference rows send `PROCESS_BLACK`. `KIND_AVERAGE` and any third asset
+  take `MONTE_CARLO`. `weights` are read by `AverageBasketPayoff` and by nothing
+  else, so they are `UNSUPPORTED` on the other three kinds rather than taken and
+  dropped. `FINITE_DIFFERENCE` is `UNSUPPORTED`: `Fd2dBlackScholesVanillaEngine`
+  wants two space grids and `FdParameters` describes one. The five greeks
+  `MultiAssetOption` does not declare — `thetaPerDay`, `deltaForward`,
+  `elasticity`, `strikeSensitivity`, `itmCashProbability` — come back named
+  absent.
 - **Vanilla.** A binary payoff on an American exercise is a one-touch and goes
   to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price **must** name
   an approximation (below).
@@ -719,7 +752,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 312 rows of QuantLib's own reference values
+`ql-backend` over a real WebSocket: 369 rows of QuantLib's own reference values
 plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

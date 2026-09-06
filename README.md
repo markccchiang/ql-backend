@@ -17,14 +17,14 @@ The wire schema is `v2` (DESIGN §6.3), derived from what QuantLib's own test
 suite shows a pricing request has to carry: an option is a payoff, an exercise,
 an underlying and a style, with quanto composing over the styles rather than
 multiplying them into their own messages. Eight payoffs, three exercises and
-nine of the schema's twelve styles are built, and they reach 46 distinct
+ten of the schema's twelve styles are built, and they reach 49 distinct
 compiled engines — analytic, lattice, finite-difference, integral and Monte
 Carlo, of which 11 are quanto wrappers around another engine on the list. A
 `Hello` frame answers with the whole of that as data, from
 `src/session/capabilities.cpp`, so a client never has to send a request to find
 out what this build prices.
 
-`test/smoke_v2.py` prices **312 rows of QuantLib's published reference values**
+`test/smoke_v2.py` prices **369 rows of QuantLib's published reference values**
 over the wire, each within the tolerance its own test uses. The rows are not
 transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`.
 It also cross-checks the analytic quanto barriers against a PDE, which answers

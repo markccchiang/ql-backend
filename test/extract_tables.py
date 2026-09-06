@@ -51,6 +51,13 @@ TABLES = [
      "barrierType barrier cash type strike s q r t v result tol", 0),
     ("BINARY_ASSET", "binaryoption.cpp", "BinaryOptionData values[]",
      "barrierType barrier cash type strike s q r t v result tol", 1),
+    # 56 rows over three engines: StulzEngine for the minimum and maximum,
+    # KirkEngine for the spread, and MCEuropeanBasketEngine for all of them.
+    # The other tables in the file are American (MCAmericanBasketEngine, which
+    # is Longstaff-Schwartz), largely commented out, or written in months
+    # rather than years -- so this is the one that extracts.
+    ("BASKET", "basketoption.cpp", "BasketOptionTwoData values[]",
+     "basketType type strike s1 s2 q1 q2 r t v1 v2 rho result tol"),
     # Occurrence 1: the first table in the file is the put-call parity one,
     # which carries no published price -- it checks a relation rather than a
     # number, so there is nothing in it to price against.
@@ -140,6 +147,10 @@ WORDS = {
     "american": "'american'",
     "Exercise::European": "'european'",
     "Exercise::American": "'american'",
+    "MinBasket": "'min'",
+    "MaxBasket": "'max'",
+    "SpreadBasket": "'spread'",
+    "AverageBasket": "'average'",
     "true": "True",
     "false": "False",
 }
