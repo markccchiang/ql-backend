@@ -296,6 +296,56 @@ QUANTO_DOUBLE_BARRIER = [
     dict(barrier_type='knock_in', barrier_lo=80.0, barrier_hi=120.0, rebate=0, type='call', s=100, strike=102.0, q=0.00, r=0.1, t=0.50, v=0.15, fxr=0.05, fxv=0.2, corr=0.3, result=1.9305, tol=1.0e-4),
 ]
 
+# binaryoption.cpp: BinaryOptionData values[]
+BINARY_CASH = [
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='call', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=4.9289, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='call', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=6.2150, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='call', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=5.8926, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='call', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=7.4519, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='put', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=4.4314, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='put', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=3.1454, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='put', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=5.3297, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='put', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=3.7704, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='call', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=4.8758, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='call', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=4.9081, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='call', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='call', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0407, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='put', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0323, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='put', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='put', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=3.0461, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='put', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=3.0054, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='call', strike=102.00, s=95.00, q=-0.14, r=0.10, t=0.5, v=0.20, result=8.6806, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='call', strike=102.00, s=95.00, q=0.03, r=0.10, t=0.5, v=0.20, result=5.3112, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='call', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=7.4926, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='call', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=11.1231, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=15.00, type='put', strike=102.00, s=98.00, q=0.00, r=0.10, t=0.5, v=0.20, result=7.1344, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=15.00, type='put', strike=102.00, s=101.00, q=0.00, r=0.10, t=0.5, v=0.20, result=5.9299, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='call', strike=98.00, s=99.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='call', strike=98.00, s=101.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=15.00, type='put', strike=98.00, s=99.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=15.00, type='put', strike=98.00, s=101.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+]
+
+# binaryoption.cpp: BinaryOptionData values[] [1]
+BINARY_ASSET = [
+    dict(barrierType='down_in', barrier=100.00, cash=0.00, type='call', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=37.2782, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=0.00, type='call', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=45.8530, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=0.00, type='call', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=44.5294, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=0.00, type='call', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=54.9262, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=0.00, type='put', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=27.5644, tol=1e-4),
+    dict(barrierType='down_in', barrier=100.00, cash=0.00, type='put', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=18.9896, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=0.00, type='put', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=33.1723, tol=1e-4),
+    dict(barrierType='up_in', barrier=100.00, cash=0.00, type='put', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=22.7755, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=0.00, type='call', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=39.9391, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=0.00, type='call', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=40.1574, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=0.00, type='call', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=0.00, type='call', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.2676, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=0.00, type='put', strike=102.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.2183, tol=1e-4),
+    dict(barrierType='down_out', barrier=100.00, cash=0.00, type='put', strike=98.00, s=105.00, q=0.00, r=0.10, t=0.5, v=0.20, result=0.0000, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=0.00, type='put', strike=102.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=17.2983, tol=1e-4),
+    dict(barrierType='up_out', barrier=100.00, cash=0.00, type='put', strike=98.00, s=95.00, q=0.00, r=0.10, t=0.5, v=0.20, result=17.0306, tol=1e-4),
+]
+
 # compoundoption.cpp: CompoundOptionData values[] [1]
 COMPOUND = [
     dict(typeMother='put', typeDaughter='call', strikeMother=50.0, strikeDaughter=520.0, s=500.0, q=0.03, r=0.08, tMother=0.25, tDaughter=0.5, v=0.35, npv=21.1965, tol=1.0e-3, delta=-0.1966, gamma=0.0007, vega=-32.1241, theta=-3.3837),
@@ -331,5 +381,7 @@ TABLES = {
     'QUANTO_FORWARD': QUANTO_FORWARD,
     'QUANTO_BARRIER': QUANTO_BARRIER,
     'QUANTO_DOUBLE_BARRIER': QUANTO_DOUBLE_BARRIER,
+    'BINARY_CASH': BINARY_CASH,
+    'BINARY_ASSET': BINARY_ASSET,
     'COMPOUND': COMPOUND,
 }

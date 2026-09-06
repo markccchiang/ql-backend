@@ -201,12 +201,13 @@ to all four. Seven of twelve styles are built:
 | `asian` | European | `ANALYTIC` (geometric), `MONTE_CARLO` (arithmetic) | no — QuantLib has no quanto Asian engine |
 | `lookback` | European | `ANALYTIC` | no |
 | `compound` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto compound engine |
-| `cliquet`, `digital`, `chooser`, `basket`, `spread` | — | not built — `UNSUPPORTED` | |
+| `cliquet`, `chooser`, `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
 
 Style-specific rules worth knowing before you send one:
 
-- **Barrier.** `ANALYTIC` is European only; an American barrier goes to
-  `LATTICE` or `FINITE_DIFFERENCE`. The barrier lattice is
+- **Barrier.** `ANALYTIC` is European only and takes a `plain` payoff; an
+  American barrier goes to `LATTICE` or `FINITE_DIFFERENCE`. The barrier lattice
+  is
   **Cox-Ross-Rubinstein only** (with the Derman-Kani correction) — the engine
   takes a second template argument for the discretisation, so a full menu would
   be trees × discretisations. `monitoring_dates` and `window_start` are
@@ -225,6 +226,14 @@ Style-specific rules worth knowing before you send one:
   `running_extremum` is required and must be positive — an option already
   running whose extremum is dropped prices as if it had just started. A
   `floating` payoff selects the floating-strike instrument.
+- **Knock digital.** A `barrier` carrying a `cash_or_nothing` or
+  `asset_or_nothing` payoff, priced by `AnalyticBinaryBarrierEngine`. It takes
+  `ANALYTIC`, an `AMERICAN` exercise with `payoff_at_expiry` **true**, no
+  `earliest_date` after the evaluation date, and **no rebate** — the engine
+  never reads one, so a rebate sent here would be taken and dropped. The
+  `digital` style arm is `UNSUPPORTED` and says this: its three fields
+  re-declare `Barrier.type`, `Barrier.level` and
+  `CashOrNothingPayoff.cash_payoff`, which the request already carries.
 - **Compound.** The mother option *is* the option's own `payoff` and
   `exercise` — `CompoundOption` hands those straight to `OneAssetOption` — so
   `Compound.mother_payoff` and `Compound.mother_exercise` re-declare fields the
@@ -238,7 +247,9 @@ Style-specific rules worth knowing before you send one:
 
 **Payoffs.** Seven build: `plain`, `percentage_strike`, `asset_or_nothing`,
 `cash_or_nothing`, `gap`, `super_fund`, `super_share`. `floating` is valid on a
-lookback only.
+lookback only, and the two binary payoffs select an engine rather than a
+formula: on a `vanilla` with an American exercise they give a one-touch, and on
+a `barrier` a knock digital.
 
 **Exercise.** `EUROPEAN`, `AMERICAN` and `BERMUDAN` all build.
 `Exercise.dates` carries one date for European and American and every exercise
@@ -673,7 +684,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 267 rows of QuantLib's own reference values
+`ql-backend` over a real WebSocket: 309 rows of QuantLib's own reference values
 plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

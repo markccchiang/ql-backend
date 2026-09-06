@@ -43,6 +43,14 @@ TABLES = [
      "barrier_type barrier rebate type s strike q r t v fxr fxv corr result tol"),
     ("QUANTO_DOUBLE_BARRIER", "quantooption.cpp", "QuantoDoubleBarrierOptionData values[]",
      "barrier_type barrier_lo barrier_hi rebate type s strike q r t v fxr fxv corr result tol"),
+    # Haug p.180, cases 13-28. Two tables, one per binary payoff: the engine
+    # reads the cash payoff off a CashOrNothingPayoff and the forward off an
+    # AssetOrNothingPayoff, so they are two products rather than one table with
+    # a flag. `cash` is 0.00 throughout the second and is not read there.
+    ("BINARY_CASH", "binaryoption.cpp", "BinaryOptionData values[]",
+     "barrierType barrier cash type strike s q r t v result tol", 0),
+    ("BINARY_ASSET", "binaryoption.cpp", "BinaryOptionData values[]",
+     "barrierType barrier cash type strike s q r t v result tol", 1),
     # Occurrence 1: the first table in the file is the put-call parity one,
     # which carries no published price -- it checks a relation rather than a
     # number, so there is nothing in it to price against.

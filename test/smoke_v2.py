@@ -222,6 +222,43 @@ def barrier_frame(sid, row, method=EN.Engine.METHOD_ANALYTIC, preset=None, steps
     return f
 
 
+def binary_frame(sid, row, payoff="cash_or_nothing", rebate=0.0,
+                 exercise="american", at_expiry=True,
+                 method=EN.Engine.METHOD_ANALYTIC):
+    """A knock digital: a barrier carrying a binary payoff.
+
+    There is no digital-knock instrument in QuantLib; this shape is the
+    product. AnalyticBinaryBarrierEngine casts the exercise to an
+    AmericanExercise and requires payoffAtExpiry, which is what
+    binaryoption.cpp builds.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    if payoff == "cash_or_nothing":
+        opt.payoff.cash_or_nothing.strike = row["strike"]
+        opt.payoff.cash_or_nothing.cash_payoff = row["cash"]
+    else:
+        opt.payoff.asset_or_nothing.strike = row["strike"]
+
+    opt.exercise.dates.add().iso = expiry(row["t"])
+    if exercise == "american":
+        opt.exercise.type = I.Exercise.TYPE_AMERICAN
+        opt.exercise.payoff_at_expiry = M.FLAG_TRUE if at_expiry else M.FLAG_FALSE
+    else:
+        opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+
+    underlying(opt)
+    opt.barrier.type = BARRIER_TYPE[row["barrierType"]]
+    opt.barrier.level = row["barrier"]
+    opt.barrier.rebate = rebate
+    f.price.engine.method = method
+    if method == EN.Engine.METHOD_LATTICE:
+        eng = f.price.engine
+        eng.lattice.tree = EN.LatticeParameters.TREE_COX_ROSS_RUBINSTEIN
+        eng.lattice.steps = 200
+    return f
+
+
 def double_barrier_frame(sid, row, quanto=False):
     f, opt = base_frame(sid)
     opt.payoff.type = OPTION_TYPE[row["type"]]
@@ -437,6 +474,14 @@ async def main():
                     lambda s, row: barrier_frame(
                         s, row, method=EN.Engine.METHOD_LATTICE, steps=400),
                     tol=4.0e-2)
+
+        # The knock digitals, Haug p.180 cases 13-28. Same instrument as the
+        # rows above and a different payoff on it, which is the whole of what
+        # `message Digital` describes.
+        await table(ws, sid, "binary barrier, cash-or-nothing", T.BINARY_CASH,
+                    lambda s, row: binary_frame(s, row))
+        await table(ws, sid, "binary barrier, asset-or-nothing", T.BINARY_ASSET,
+                    lambda s, row: binary_frame(s, row, "asset_or_nothing"))
 
         await table(ws, sid, "forward start", T.FORWARD,
                     lambda s, row: forward_frame(s, row))
@@ -1026,6 +1071,55 @@ async def main():
         reply = await send(ws, f)
         check("a plain lookback still prices", reply.HasField("price_result"),
               f"got {reply.WhichOneof('payload')}")
+
+        # The knock digital's five refusals. Four are things
+        # AnalyticBinaryBarrierEngine would throw on from the inside; the fifth
+        # is the one it would not -- a rebate it never reads, which would come
+        # back as a price for a different trade.
+        brow = T.BINARY_CASH[0]
+        await send(ws, set_market(sid, **row_market(brow)))
+
+        await rejected("a knock digital with a rebate the engine never reads",
+                       binary_frame(sid, brow, rebate=3.0),
+                       "instrument.option.barrier.rebate", E.Error.UNSUPPORTED)
+        await rejected("a knock digital on a European exercise",
+                       binary_frame(sid, brow, exercise="european"),
+                       "instrument.option.exercise.type", E.Error.UNSUPPORTED)
+        await rejected("a knock digital settled on touch rather than at expiry",
+                       binary_frame(sid, brow, at_expiry=False),
+                       "instrument.option.exercise.payoff_at_expiry",
+                       E.Error.INVALID_ARGUMENT)
+        await rejected("a knock digital on a lattice",
+                       binary_frame(sid, brow, method=EN.Engine.METHOD_LATTICE),
+                       "engine.method", E.Error.UNSUPPORTED)
+
+        # And the style arm the schema still carries, which says where to send
+        # the trade rather than implying an engine is missing.
+        f, opt = base_frame(sid)
+        opt.payoff.type = OPTION_TYPE[brow["type"]]
+        opt.payoff.plain.strike = brow["strike"]
+        set_exercise(opt, "european", brow["t"])
+        underlying(opt)
+        opt.digital.barrier = brow["barrier"]
+        opt.digital.cash_payoff = brow["cash"]
+        f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+        await rejected("the digital style, which is a barrier described twice", f,
+                       "instrument.option.digital", E.Error.UNSUPPORTED)
+
+        # The guard that came with it: a gap payoff used to reach
+        # AnalyticBarrierEngine and fail as "non-plain payoff given", with no
+        # field to blame.
+        f, opt = base_frame(sid)
+        opt.payoff.type = OPTION_TYPE[brow["type"]]
+        opt.payoff.gap.strike = brow["strike"]
+        opt.payoff.gap.second_strike = brow["strike"] + 5.0
+        set_exercise(opt, "european", brow["t"])
+        underlying(opt)
+        opt.barrier.type = BARRIER_TYPE[brow["barrierType"]]
+        opt.barrier.level = brow["barrier"]
+        f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+        await rejected("a gap payoff on an analytic barrier", f,
+                       "instrument.option.payoff", E.Error.UNSUPPORTED)
 
         # Three compound refusals. Each is something QuantLib would throw on
         # from inside the engine -- "non-plain payoff given", or the maturity

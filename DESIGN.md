@@ -711,15 +711,17 @@ overnight indices, and past fixings.
 Not implemented, and rejected by name as `UNSUPPORTED` rather than mispriced:
 bonds, credit, inflation, FX forwards, variance swaps, swaptions, caps and
 floors; the styles the schema carries and this build does not price (cliquet,
-digital, chooser, and the multi-asset basket and spread); discrete dividends,
-discretely monitored and partial-time barriers; the Heston, Bates and
-local-volatility processes; and the correlation matrix, which the schema
-carries for the basket case the engines do not yet cover. Each is the same work
-the quanto family was — a registry mapping, an explicit instantiation table
-where a template is involved (§6.1), and a test row with a reference value —
-and the schema is now the part that does not have to be redesigned each time.
+chooser, and the multi-asset basket and spread, plus `digital`, which is not a
+missing engine but a barrier carrying a binary payoff and prices as one);
+discrete dividends, discretely monitored and partial-time barriers; the Heston,
+Bates and local-volatility processes; and the correlation matrix, which the
+schema carries for the basket case the engines do not yet cover. Each is the
+same work the quanto family was — a registry mapping, an explicit instantiation
+table where a template is involved (§6.1), and a test row with a reference
+value — and the schema is now the part that does not have to be redesigned each
+time.
 
-**How it is checked.** `test/smoke_v2.py` prices 267 rows of QuantLib's own
+**How it is checked.** `test/smoke_v2.py` prices 309 rows of QuantLib's own
 published reference values over the wire and compares each against the value
 its test suite records, at the tolerance that test uses. The rows are not
 transcribed: `test/extract_tables.py` parses them out of `test-suite/*.cpp`,

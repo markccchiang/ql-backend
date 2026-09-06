@@ -30,6 +30,7 @@
 #include <ql/pricingengines/asian/analytic_discr_geom_av_price.hpp>
 #include <ql/pricingengines/asian/mc_discr_arith_av_price.hpp>
 #include <ql/pricingengines/barrier/analyticbarrierengine.hpp>
+#include <ql/pricingengines/barrier/analyticbinarybarrierengine.hpp>
 #include <ql/pricingengines/barrier/analyticdoublebarrierengine.hpp>
 #include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
@@ -1590,7 +1591,23 @@ namespace qlservice {
 
                 const auto type = barrierType(b.type(), path + ".type");
 
+                // A binary payoff on a barrier is a knock digital, and
+                // AnalyticBinaryBarrierEngine is what prices it. There is no
+                // QuantLib instrument for one -- this shape is the product --
+                // which is why `message Digital` is a description of a barrier
+                // rather than a style of its own, and why the arm below refuses
+                // it by pointing here.
+                const bool binaryPayoff =
+                    opt.payoff().kind_case() == qlpb::Payoff::kCashOrNothing ||
+                    opt.payoff().kind_case() == qlpb::Payoff::kAssetOrNothing;
+
                 if (graph.quanto) {
+                    // QuantoEngine would wrap AnalyticBarrierEngine, which
+                    // wants a plain payoff and would fail from inside the
+                    // engine. There is no quanto binary barrier engine to wrap
+                    // instead.
+                    QLS_FIELD_REQUIRE(!binaryPayoff, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                      "there is no quanto binary barrier engine in QuantLib");
                     QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
                                       "quanto barrier options are European only");
                     auto option =
@@ -1609,6 +1626,44 @@ namespace qlservice {
 
                 auto option = ext::make_shared<BarrierOption>(type, b.level(), b.rebate(), po, ex);
 
+                if (binaryPayoff) {
+                    // Every one of these is something the engine would throw on
+                    // from the inside, arriving as CALCULATION_FAILED with no
+                    // field on it -- or, for the rebate, not throw on at all.
+                    QLS_FIELD_REQUIRE(eng.method() == qlpb::Engine_Method_METHOD_ANALYTIC,
+                                      qlpb::Error::UNSUPPORTED, "engine.method",
+                                      "a binary payoff on a barrier takes METHOD_ANALYTIC: "
+                                      "AnalyticBinaryBarrierEngine is the only engine here that "
+                                      "reads one");
+                    QLS_FIELD_REQUIRE(opt.exercise().type() == qlpb::Exercise_Type_TYPE_AMERICAN,
+                                      qlpb::Error::UNSUPPORTED, base + ".exercise.type",
+                                      "a knock digital is written on an American exercise: "
+                                      "AnalyticBinaryBarrierEngine casts to one "
+                                      "(analyticbinarybarrierengine.cpp:65)");
+                    QLS_FIELD_REQUIRE(
+                        flag(opt.exercise().payoff_at_expiry(),
+                             base + ".exercise.payoff_at_expiry"),
+                        qlpb::Error::INVALID_ARGUMENT, base + ".exercise.payoff_at_expiry",
+                        "a knock digital settles at expiry rather than on touch, so "
+                        "payoff_at_expiry must be true (analyticbinarybarrierengine.cpp:66)");
+                    QLS_FIELD_REQUIRE(ex->dates().front() <= evaluationDate_,
+                                      qlpb::Error::UNSUPPORTED, base + ".exercise.earliest_date",
+                                      "the barrier is live from the evaluation date: QuantLib has "
+                                      "no window exercise here "
+                                      "(analyticbinarybarrierengine.cpp:67)");
+                    // The engine never reads arguments_.rebate. A rebate sent
+                    // here would be dropped and a number returned for a
+                    // different trade, which is the one failure this service
+                    // exists to make impossible.
+                    QLS_FIELD_REQUIRE(b.rebate() == 0.0, qlpb::Error::UNSUPPORTED,
+                                      path + ".rebate",
+                                      "AnalyticBinaryBarrierEngine has no rebate; it would be "
+                                      "taken and never read");
+                    return run(option,
+                               ext::make_shared<AnalyticBinaryBarrierEngine>(graph.process), msg,
+                               graph.process);
+                }
+
                 switch (eng.method()) {
                     case qlpb::Engine_Method_METHOD_ANALYTIC:
                         QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED,
@@ -1616,6 +1671,13 @@ namespace qlservice {
                                           "AnalyticBarrierEngine is European only; an American "
                                           "barrier takes METHOD_LATTICE or "
                                           "METHOD_FINITE_DIFFERENCE");
+                        // "non-plain payoff given" (analyticbarrierengine.cpp:40)
+                        // otherwise, from inside the engine and naming nothing.
+                        QLS_FIELD_REQUIRE(opt.payoff().kind_case() == qlpb::Payoff::kPlain,
+                                          qlpb::Error::UNSUPPORTED, base + ".payoff",
+                                          "AnalyticBarrierEngine takes a plain payoff; a binary "
+                                          "one is a knock digital and prices without an engine "
+                                          "method of its own");
                         return run(option, ext::make_shared<AnalyticBarrierEngine>(graph.process),
                                    msg, graph.process);
 
@@ -1960,6 +2022,23 @@ namespace qlservice {
                                payoff(c.daughter_payoff(), path + ".daughter_payoff"), daughterEx),
                            ext::make_shared<AnalyticCompoundOptionEngine>(graph.process), msg);
             }
+
+            // -- digital ---------------------------------------------------
+            case qlpb::Option::kDigital:
+                // Not built, and not a gap in the build. QuantLib has no
+                // digital-knock instrument: the product is a BarrierOption
+                // carrying a binary payoff, which the barrier arm above now
+                // prices. `message Digital`'s three fields re-declare
+                // Barrier.type, Barrier.level and CashOrNothingPayoff.cash_payoff,
+                // all of which this request could already carry, so the arm is
+                // a tag to reserve rather than a style to implement -- and this
+                // says where to send it instead of leaving the generic refusal
+                // to imply there is an engine missing.
+                QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, base + ".digital",
+                               "a knock digital is a barrier carrying a binary payoff, not a "
+                               "style of its own: send instrument.option.barrier with a "
+                               "cash_or_nothing or asset_or_nothing payoff on an American "
+                               "exercise");
 
             case qlpb::Option::STYLE_NOT_SET:
                 QLS_FIELD_FAIL(qlpb::Error::INVALID_ARGUMENT, base + ".style",
