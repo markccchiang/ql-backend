@@ -23,9 +23,9 @@ namespace qlservice {
         out.add_instruments("option");
         out.add_instruments("swap");
 
-        // Eight of the twelve Option.style arms are built.
+        // Nine of the twelve Option.style arms are built.
         for (const char* style : {"vanilla", "barrier", "double_barrier", "asian", "lookback",
-                                  "forward_start", "compound", "chooser"})
+                                  "forward_start", "compound", "chooser", "cliquet"})
             out.add_option_styles(style);
 
         // All eight payoffs build. `floating` is valid on a lookback only,

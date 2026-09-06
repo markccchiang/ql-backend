@@ -74,7 +74,10 @@ TABLES = [
 #
 # (module name, source file, test case, [(field, pattern with one group)])
 N = r"[-+0-9.eE]+"
-QUOTE = r"\b{}\s*=\s*ext::make_shared<SimpleQuote>\(\s*({})\s*\)"
+# Two spellings of the same line: `spot = ext::make_shared<SimpleQuote>(50.0)`
+# and the older `spot(new SimpleQuote(60.0))`. Both appear in the files below.
+QUOTE = (r"\b{}\s*(?:=\s*ext::make_shared<SimpleQuote>|\(\s*new\s+SimpleQuote)"
+         r"\(\s*({})\s*\)")
 REAL = r"\bReal\s+{}\s*=\s*({})\s*;"
 OFFSET = r"\bDate\s+{}\s*=\s*{}\s*\+\s*(\d+)\s*;"
 
@@ -87,6 +90,19 @@ SCALARS = [
         ("strike", REAL.format("strike", N)),
         ("choosing_days", OFFSET.format("choosingDate", "today")),
         ("exercise_days", OFFSET.format("exerciseDate", "today")),
+        ("result", REAL.format("expected", N)),
+        ("tol", REAL.format("tolerance", N)),
+    ]),
+    ("CLIQUET", "cliquetoption.cpp", "testValues", [
+        ("s", QUOTE.format("spot", N)),
+        ("q", QUOTE.format("qRate", N)),
+        ("r", QUOTE.format("rRate", N)),
+        ("v", QUOTE.format("vol", N)),
+        ("type", r"Option::Type\s+type\s*=\s*(Option::\w+)\s*;"),
+        ("moneyness", REAL.format("moneyness", N)),
+        # A push_back rather than a named Date, so it gets its own pattern.
+        ("reset_days", r"reset\.push_back\(\s*today\s*\+\s*(\d+)\s*\)"),
+        ("maturity_days", OFFSET.format("maturity", "today")),
         ("result", REAL.format("expected", N)),
         ("tol", REAL.format("tolerance", N)),
     ]),

@@ -377,6 +377,11 @@ SIMPLE_CHOOSER = [
     dict(s=50.0, q=0.0, r=0.08, v=0.25, strike=50.0, choosing_days=90, exercise_days=180, result=6.1071, tol=3e-5),
 ]
 
+# cliquetoption.cpp: testValues()
+CLIQUET = [
+    dict(s=60.0, q=0.04, r=0.08, v=0.30, type='call', moneyness=1.1, reset_days=90, maturity_days=360, result=4.4064, tol=1e-4),
+]
+
 # chooseroption.cpp: testAnalyticComplexChooserEngine()
 COMPLEX_CHOOSER = [
     dict(s=50.0, q=0.05, r=0.10, v=0.35, call_strike=55.0, put_strike=48.0, choosing_days=90, call_days=180, put_days=210, result=6.0508, tol=1e-4),
@@ -397,5 +402,6 @@ TABLES = {
     'BINARY_ASSET': BINARY_ASSET,
     'COMPOUND': COMPOUND,
     'SIMPLE_CHOOSER': SIMPLE_CHOOSER,
+    'CLIQUET': CLIQUET,
     'COMPLEX_CHOOSER': COMPLEX_CHOOSER,
 }

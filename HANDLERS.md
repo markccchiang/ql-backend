@@ -190,7 +190,7 @@ The rest — `swaption`, `cap_floor`, `bond`, `credit_default_swap`, `fra`,
 ### Option
 
 An option is **payoff × exercise × underlying × style**, with quanto orthogonal
-to all four. Eight of twelve styles are built:
+to all four. Nine of twelve styles are built:
 
 | `Option.style` | Exercise | Engine methods | Quanto |
 | --- | --- | --- | --- |
@@ -202,7 +202,8 @@ to all four. Eight of twelve styles are built:
 | `lookback` | European | `ANALYTIC` | no |
 | `compound` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto compound engine |
 | `chooser` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto chooser engine |
-| `cliquet`, `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
+| `cliquet` | European | `ANALYTIC`; `MONTE_CARLO` for the performance form | no — QuantLib has no quanto cliquet engine |
+| `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
 
 Style-specific rules worth knowing before you send one:
 
@@ -260,6 +261,21 @@ Style-specific rules worth knowing before you send one:
   and each complex leg must expire more than **twice** the choice time out —
   `AnalyticComplexChooserEngine` solves for the critical spot at
   `maturity - 2 × choice time`, which below that is a negative time.
+- **Cliquet.** A series of forward starts, so it takes a `percentage_strike`
+  payoff for the same reason one does, plus `reset_dates` — in order, distinct,
+  each on or after the evaluation date and before the expiry. `performance` is
+  a `Flag` and selects the engine, exactly as it does on a forward start:
+  false is `AnalyticCliquetEngine` (the ratchet), true is
+  `AnalyticPerformanceEngine`, and `MONTE_CARLO` reaches `MCPerformanceEngine`,
+  which is the only sampled cliquet engine QuantLib has — a `MONTE_CARLO`
+  ratchet is `UNSUPPORTED` and says so. **`local_cap`, `local_floor`,
+  `global_cap` and `global_floor` are `UNSUPPORTED`**, and not because one
+  engine is missing: `CliquetOption::setupArguments` copies the reset dates and
+  nothing else (`cliquetoption.cpp:32`), so a cap reaches no engine at all and
+  the price would be the uncapped ratchet under a capped description. Both
+  closed forms write `results_.gamma += 0.0` — and the performance one does the
+  same to delta — so those come back in `unavailable_results` rather than as a
+  zero nobody computed.
 - **Vanilla.** A binary payoff on an American exercise is a one-touch and goes
   to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price **must** name
   an approximation (below).
@@ -703,7 +719,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 311 rows of QuantLib's own reference values
+`ql-backend` over a real WebSocket: 312 rows of QuantLib's own reference values
 plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

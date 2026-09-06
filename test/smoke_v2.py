@@ -375,6 +375,37 @@ def complex_chooser_frame(sid, row, call_days=None, put_days=None):
     return f
 
 
+def cliquet_frame(sid, row, performance=False, method=EN.Engine.METHOD_ANALYTIC,
+                  resets=None, caps=None, samples=0):
+    """A ratchet: a series of forward starts, each struck at the spot when it
+    opens.
+
+    CliquetOption takes a PercentageStrikePayoff and a European exercise, and
+    the style block carries the reset dates. The four cap and floor fields are
+    in the schema and reach no engine, so they are refused rather than set.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["type"]]
+    opt.payoff.percentage_strike.moneyness = row["moneyness"]
+    opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+    opt.exercise.dates.add().iso = on_day(row["maturity_days"])
+    underlying(opt)
+
+    c = opt.cliquet
+    for n in resets if resets is not None else [row["reset_days"]]:
+        c.reset_dates.add().iso = on_day(n)
+    c.performance = M.FLAG_TRUE if performance else M.FLAG_FALSE
+    if caps:
+        setattr(c, caps, 0.05)
+
+    f.price.engine.method = method
+    if method == EN.Engine.METHOD_MONTE_CARLO:
+        f.price.engine.mc.seed = 42
+        f.price.engine.mc.samples = samples or 20000
+        f.price.engine.mc.rng = EN.McParameters.RNG_PSEUDO_RANDOM
+    return f
+
+
 def forward_frame(sid, row, performance=False, quanto=False):
     f, opt = base_frame(sid)
     opt.payoff.type = OPTION_TYPE[row["type"]]
@@ -571,6 +602,11 @@ async def main():
                     lambda s, row: simple_chooser_frame(s, row))
         await table(ws, sid, "complex chooser", T.COMPLEX_CHOOSER,
                     lambda s, row: complex_chooser_frame(s, row))
+
+        # Haug p.37, the one published cliquet value, read out of the test case
+        # body the same way the chooser's two are.
+        await table(ws, sid, "cliquet", T.CLIQUET,
+                    lambda s, row: cliquet_frame(s, row))
 
         await table(ws, sid, "quanto vanilla", T.QUANTO,
                     lambda s, row: vanilla_frame(s, row, quanto=True))
@@ -1259,6 +1295,59 @@ async def main():
         await rejected("a complex chooser expiring inside twice its choice time",
                        complex_chooser_frame(sid, xrow, call_days=60),
                        "instrument.option.exercise.dates", E.Error.UNSUPPORTED)
+
+        # The cliquet's four dead fields, plus the two rules the instrument
+        # itself enforces. The caps are the interesting ones: they are refused
+        # here because they reach no engine at all -- setupArguments copies the
+        # reset dates and stops -- so the price would be the uncapped ratchet
+        # under a capped description.
+        krow = T.CLIQUET[0]
+        await send(ws, set_market(sid, **row_market(krow)))
+
+        for field in ["local_cap", "local_floor", "global_cap", "global_floor"]:
+            await rejected(f"a cliquet with a {field} QuantLib never copies",
+                           cliquet_frame(sid, krow, caps=field),
+                           f"instrument.option.cliquet.{field}", E.Error.UNSUPPORTED)
+
+        await rejected("a cliquet resetting after it expires",
+                       cliquet_frame(sid, krow, resets=[krow["maturity_days"] + 30]),
+                       "instrument.option.cliquet.reset_dates[0]", E.Error.INVALID_ARGUMENT)
+        await rejected("a cliquet whose resets are out of order",
+                       cliquet_frame(sid, krow, resets=[180, 90]),
+                       "instrument.option.cliquet.reset_dates[1]", E.Error.INVALID_ARGUMENT)
+        await rejected("a ratchet on the Monte Carlo engine, which only does performance",
+                       cliquet_frame(sid, krow, method=EN.Engine.METHOD_MONTE_CARLO),
+                       "instrument.option.cliquet.performance", E.Error.UNSUPPORTED)
+
+        # The gamma both closed forms publish as a literal 0.0. Reported absent
+        # rather than as a zero a client could not tell from a computed one.
+        f = cliquet_frame(sid, krow)
+        f.price.results.extend([R.RESULT_KIND_DELTA, R.RESULT_KIND_GAMMA, R.RESULT_KIND_VEGA])
+        reply = await send(ws, f)
+        got = set(reply.price_result.results)
+        absent = set(reply.price_result.unavailable_results)
+        check("a cliquet reports the gamma its engine never computes as absent",
+              reply.HasField("price_result") and R.RESULT_KIND_GAMMA in absent
+              and "delta" in got and "vega" in got,
+              f"got={sorted(got)} absent={[R.ResultKind.Name(k) for k in absent]}")
+
+        # And the two performance engines, which the schema could not ask for
+        # until `performance` was added to it. No published value: the C++ test
+        # checks the Monte Carlo one against the closed form, which is the same
+        # cross-check the quanto barriers get.
+        closedForm = await send(ws, cliquet_frame(sid, krow, performance=True))
+        sampled = await send(ws, cliquet_frame(sid, krow, performance=True,
+                                               method=EN.Engine.METHOD_MONTE_CARLO))
+        if closedForm.HasField("price_result") and sampled.HasField("price_result"):
+            gap = abs(closedForm.price_result.npv - sampled.price_result.npv)
+            check("the Monte Carlo performance cliquet agrees with the closed form",
+                  gap < 1.5e-2,
+                  f"analytic={closedForm.price_result.npv:.6f} "
+                  f"mc={sampled.price_result.npv:.6f} gap={gap:.2e} "
+                  f"stderr={sampled.price_result.results['errorEstimate'].scalar:.2e}")
+        else:
+            check("the Monte Carlo performance cliquet agrees with the closed form", False,
+                  f"{closedForm.WhichOneof('payload')} / {sampled.WhichOneof('payload')}")
 
         # And one the build does serve: the engine's own additional results.
         f = vanilla_frame(sid, row)

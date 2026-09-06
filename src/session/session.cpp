@@ -11,6 +11,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/asianoption.hpp>
 #include <ql/instruments/barrieroption.hpp>
+#include <ql/instruments/cliquetoption.hpp>
 #include <ql/instruments/complexchooseroption.hpp>
 #include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
@@ -37,6 +38,9 @@
 #include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/cliquet/analyticcliquetengine.hpp>
+#include <ql/pricingengines/cliquet/analyticperformanceengine.hpp>
+#include <ql/pricingengines/cliquet/mcperformanceengine.hpp>
 #include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
 #include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
@@ -73,6 +77,7 @@
 #include <any>
 #include <chrono>
 #include <cmath>
+#include <set>
 #include <type_traits>
 #include <utility>
 
@@ -459,7 +464,8 @@ namespace qlservice {
                                   const ext::shared_ptr<PricingEngine>& engine,
                                   const qlpb::PriceRequest& msg,
                                   const ext::shared_ptr<GeneralizedBlackScholesProcess>& process =
-                                      nullptr) {
+                                      nullptr,
+                                  const std::set<int>& publishedAsZero = {}) {
             option->setPricingEngine(engine);
 
             const auto start = std::chrono::steady_clock::now();
@@ -495,6 +501,18 @@ namespace qlservice {
                 // both the same question. What it must not be is silent, so
                 // whatever this loop does not produce is named below.
                 const auto produced = out.results.size();
+
+                // A greek an engine fills with a literal 0.0 rather than
+                // computing. `results_.gamma += 0.0` in the cliquet engines
+                // (analyticcliquetengine.cpp:88) publishes a number the fetch
+                // below would find and report, and a client cannot tell that
+                // zero from a computed one -- which is the whole reason
+                // `unavailable` exists. Reported absent instead.
+                if (publishedAsZero.count(kind) != 0) {
+                    out.unavailable.push_back(static_cast<qlpb::ResultKind>(kind));
+                    continue;
+                }
+
                 try {
                     switch (kind) {
                         case qlpb::RESULT_KIND_IMPLIED_VOLATILITY:
@@ -2027,6 +2045,140 @@ namespace qlservice {
                            ext::make_shared<AnalyticCompoundOptionEngine>(graph.process), msg);
             }
 
+
+
+            // -- cliquet ---------------------------------------------------
+            case qlpb::Option::kCliquet: {
+                const std::string path = base + ".cliquet";
+                const auto& cl = opt.cliquet();
+
+                // The four fields QuantLib cannot carry. This is not one
+                // engine's limitation: CliquetOption::setupArguments copies the
+                // reset dates and stops -- the comment above the line says "set
+                // accrued coupon, last fixing, caps, floors" and the line does
+                // not (ql/instruments/cliquetoption.cpp:32) -- so a cap sent
+                // here reaches no engine at all. Every engine then finds the
+                // argument still Null and prices the uncapped ratchet
+                // (analyticcliquetengine.cpp:38-42). Refused by name, because
+                // the alternative is a price for a trade nobody described.
+                for (const auto& [set, field] :
+                     {std::pair{cl.local_cap() != 0.0, "local_cap"},
+                      std::pair{cl.local_floor() != 0.0, "local_floor"},
+                      std::pair{cl.global_cap() != 0.0, "global_cap"},
+                      std::pair{cl.global_floor() != 0.0, "global_floor"}}) {
+                    QLS_FIELD_REQUIRE(!set, qlpb::Error::UNSUPPORTED, path + "." + field,
+                                      "QuantLib carries no cap or floor on a cliquet: "
+                                      "CliquetOption::setupArguments never copies this field, so "
+                                      "the engine would price the uncapped ratchet and report "
+                                      "nothing amiss");
+                }
+
+                QLS_FIELD_REQUIRE(!graph.quanto, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                  "there is no quanto cliquet engine in QuantLib");
+                QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
+                                  "the cliquet engines are European only");
+
+                // Same payoff as a forward start, and for the same reason: each
+                // period is struck at a fraction of the spot when it opens.
+                // CliquetOption's constructor takes a PercentageStrikePayoff by
+                // type (ql/instruments/cliquetoption.cpp:26).
+                QLS_FIELD_REQUIRE(
+                    opt.payoff().kind_case() == qlpb::Payoff::kPercentageStrike,
+                    qlpb::Error::INVALID_ARGUMENT, base + ".payoff.percentage_strike",
+                    "a cliquet resets its strike to a fraction of the spot at each reset, so it "
+                    "takes a percentage_strike payoff");
+                const Real moneyness = opt.payoff().percentage_strike().moneyness();
+                QLS_FIELD_REQUIRE(moneyness > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  base + ".payoff.percentage_strike.moneyness",
+                                  "moneyness must be positive");
+
+                QLS_FIELD_REQUIRE(cl.reset_dates_size() > 0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".reset_dates",
+                                  "a cliquet needs the dates its strike resets on");
+                std::vector<Date> resets;
+                for (int i = 0; i < cl.reset_dates_size(); ++i) {
+                    const std::string at =
+                        path + ".reset_dates[" + std::to_string(i) + "]";
+                    const Date reset = registry_.date(cl.reset_dates(i), at);
+
+                    // The engines discount to each reset in turn
+                    // (analyticcliquetengine.cpp:70), and a curve throws rather
+                    // than extrapolates behind its reference date -- "date
+                    // before reference date", with no field on it.
+                    QLS_FIELD_REQUIRE(reset >= evaluationDate_, qlpb::Error::INVALID_ARGUMENT, at,
+                                      "reset " << reset << " is before the evaluation date "
+                                               << evaluationDate_);
+                    QLS_FIELD_REQUIRE(reset < ex->lastDate(), qlpb::Error::INVALID_ARGUMENT, at,
+                                      "reset " << reset << " is not before the expiry "
+                                               << ex->lastDate());
+                    QLS_FIELD_REQUIRE(resets.empty() || reset > resets.back(),
+                                      qlpb::Error::INVALID_ARGUMENT, at,
+                                      "reset dates must be in order and distinct: "
+                                          << reset << " does not follow " << resets.back());
+                    resets.push_back(reset);
+                }
+
+                // A different engine rather than a scaling of the same number,
+                // exactly as on a forward start -- hence a Flag with no default
+                // (DESIGN §6.3).
+                const bool performance = flag(cl.performance(), path + ".performance");
+
+                auto option = ext::make_shared<CliquetOption>(
+                    ext::make_shared<PercentageStrikePayoff>(
+                        optionType(opt.payoff().type(), base + ".payoff.type"), moneyness),
+                    ext::dynamic_pointer_cast<EuropeanExercise>(ex), resets);
+
+                // Both closed forms write `results_.gamma += 0.0` and the
+                // performance one does the same to delta
+                // (analyticperformanceengine.cpp:60). Those are placeholders,
+                // not values, and they are reported absent rather than as a
+                // zero a client would have no way to distinguish.
+                const std::set<int> zeroed =
+                    performance ? std::set<int>{qlpb::RESULT_KIND_DELTA, qlpb::RESULT_KIND_GAMMA}
+                                : std::set<int>{qlpb::RESULT_KIND_GAMMA};
+
+                switch (eng.method()) {
+                    case qlpb::Engine_Method_METHOD_ANALYTIC:
+                        if (performance)
+                            return run(option,
+                                       ext::make_shared<AnalyticPerformanceEngine>(graph.process),
+                                       msg, nullptr, zeroed);
+                        return run(option,
+                                   ext::make_shared<AnalyticCliquetEngine>(graph.process), msg,
+                                   nullptr, zeroed);
+
+                    case qlpb::Engine_Method_METHOD_MONTE_CARLO: {
+                        // The one Monte Carlo cliquet engine QuantLib has is
+                        // the performance one; there is no ratchet path pricer
+                        // to pair with it.
+                        QLS_FIELD_REQUIRE(performance, qlpb::Error::UNSUPPORTED,
+                                          path + ".performance",
+                                          "QuantLib's only Monte Carlo cliquet engine is the "
+                                          "performance one: send performance true, or price the "
+                                          "ratchet with METHOD_ANALYTIC");
+                        const auto& mc = eng.mc();
+                        QLS_FIELD_REQUIRE(mc.seed() != 0, qlpb::Error::INVALID_ARGUMENT,
+                                          "engine.mc.seed",
+                                          "a Monte Carlo request needs an explicit seed");
+                        QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
+                                          "engine.mc.samples",
+                                          "a Monte Carlo request needs samples");
+                        return run(option,
+                                   MakeMCPerformanceEngine<PseudoRandom>(graph.process)
+                                       .withSamples(mc.samples())
+                                       .withSeed(mc.seed())
+                                       .withBrownianBridge(mc.brownian_bridge())
+                                       .withAntitheticVariate(mc.antithetic_variate()),
+                                   msg, nullptr, zeroed);
+                    }
+
+                    default:
+                        break;
+                }
+                QLS_FIELD_FAIL(qlpb::Error::UNSUPPORTED, "engine.method",
+                               "cliquet options take METHOD_ANALYTIC, or METHOD_MONTE_CARLO for "
+                               "the performance form");
+            }
 
             // -- chooser ---------------------------------------------------
             case qlpb::Option::kChooser: {
