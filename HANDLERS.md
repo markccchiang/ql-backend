@@ -190,7 +190,7 @@ The rest — `swaption`, `cap_floor`, `bond`, `credit_default_swap`, `fra`,
 ### Option
 
 An option is **payoff × exercise × underlying × style**, with quanto orthogonal
-to all four. Six of twelve styles are built:
+to all four. Seven of twelve styles are built:
 
 | `Option.style` | Exercise | Engine methods | Quanto |
 | --- | --- | --- | --- |
@@ -200,7 +200,8 @@ to all four. Six of twelve styles are built:
 | `forward_start` | European | `ANALYTIC` | yes |
 | `asian` | European | `ANALYTIC` (geometric), `MONTE_CARLO` (arithmetic) | no — QuantLib has no quanto Asian engine |
 | `lookback` | European | `ANALYTIC` | no |
-| `cliquet`, `digital`, `compound`, `chooser`, `basket`, `spread` | — | not built — `UNSUPPORTED` | |
+| `compound` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto compound engine |
+| `cliquet`, `digital`, `chooser`, `basket`, `spread` | — | not built — `UNSUPPORTED` | |
 
 Style-specific rules worth knowing before you send one:
 
@@ -224,6 +225,13 @@ Style-specific rules worth knowing before you send one:
   `running_extremum` is required and must be positive — an option already
   running whose extremum is dropped prices as if it had just started. A
   `floating` payoff selects the floating-strike instrument.
+- **Compound.** The mother option *is* the option's own `payoff` and
+  `exercise` — `CompoundOption` hands those straight to `OneAssetOption` — so
+  `Compound.mother_payoff` and `Compound.mother_exercise` re-declare fields the
+  request already carries and are `UNSUPPORTED`; send the mother where every
+  other style takes it and put only `daughter_payoff` and `daughter_exercise`
+  in the style block. Both legs are `plain` and European, and the compound has
+  to expire **on or before** the option it is written on.
 - **Vanilla.** A binary payoff on an American exercise is a one-touch and goes
   to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price **must** name
   an approximation (below).
@@ -665,7 +673,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 247 rows of QuantLib's own reference values
+`ql-backend` over a real WebSocket: 267 rows of QuantLib's own reference values
 plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

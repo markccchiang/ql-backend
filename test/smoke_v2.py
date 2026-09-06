@@ -236,6 +236,36 @@ def double_barrier_frame(sid, row, quanto=False):
     return f
 
 
+def compound_frame(sid, row, daughter_payoff="plain", mother_fields=False):
+    """An option on an option.
+
+    The mother is the option's own payoff and exercise -- CompoundOption hands
+    those two straight to OneAssetOption -- so they go where every other style
+    puts them, and the style block carries only the option written on.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.type = OPTION_TYPE[row["typeMother"]]
+    opt.payoff.plain.strike = row["strikeMother"]
+    set_exercise(opt, "european", row["tMother"])
+    underlying(opt)
+
+    c = opt.compound
+    c.daughter_payoff.type = OPTION_TYPE[row["typeDaughter"]]
+    if daughter_payoff == "plain":
+        c.daughter_payoff.plain.strike = row["strikeDaughter"]
+    else:
+        c.daughter_payoff.cash_or_nothing.strike = row["strikeDaughter"]
+        c.daughter_payoff.cash_or_nothing.cash_payoff = 1.0
+    c.daughter_exercise.type = I.Exercise.TYPE_EUROPEAN
+    c.daughter_exercise.dates.add().iso = expiry(row["tDaughter"])
+    if mother_fields:
+        c.mother_payoff.type = OPTION_TYPE[row["typeMother"]]
+        c.mother_payoff.plain.strike = row["strikeMother"]
+
+    f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+    return f
+
+
 def forward_frame(sid, row, performance=False, quanto=False):
     f, opt = base_frame(sid)
     opt.payoff.type = OPTION_TYPE[row["type"]]
@@ -299,8 +329,14 @@ async def main():
         if not ok:
             failures.append(name)
 
-    async def table(ws, sid, label, rows, build, tol=None, price_of=None):
-        """Prices every row of a reference table and checks it against `result`."""
+    async def table(ws, sid, label, rows, build, tol=None, price_of=None, value="result"):
+        """Prices every row of a reference table and checks it against `value`.
+
+        `value` names the column, because the field names here are the C++
+        struct's own: compoundoption.cpp calls its published price `npv` where
+        the others call it `result`, and renaming it in the extractor would be
+        the transcription this benchmark exists to avoid.
+        """
         worst, worst_row = 0.0, None
         for n, row in enumerate(rows):
             await send(ws, set_market(sid, **row_market(row)))
@@ -311,11 +347,11 @@ async def main():
                       f"{reply.error.field_path!r} {reply.error.message!r}")
                 return
             got = price_of(reply.price_result) if price_of else reply.price_result.npv
-            err = abs(got - row["result"])
+            err = abs(got - row[value])
             limit = tol if tol is not None else row.get("tol", 1.0e-4)
             if err > limit:
                 check(f"{label}[{n}]", False,
-                      f"expected {row['result']} got {got:.6f} err={err:.2e} tol={limit:g}")
+                      f"expected {row[value]} got {got:.6f} err={err:.2e} tol={limit:g}")
                 return
             if err > worst:
                 worst, worst_row = err, n
@@ -404,6 +440,12 @@ async def main():
 
         await table(ws, sid, "forward start", T.FORWARD,
                     lambda s, row: forward_frame(s, row))
+
+        # Twenty rows against Haug and two independent implementations, at the
+        # 1e-3 the C++ test uses: the price is sensitive to which bivariate
+        # normal is underneath, and that tolerance is what is published.
+        await table(ws, sid, "compound", T.COMPOUND,
+                    lambda s, row: compound_frame(s, row), value="npv")
 
         await table(ws, sid, "quanto vanilla", T.QUANTO,
                     lambda s, row: vanilla_frame(s, row, quanto=True))
@@ -984,6 +1026,26 @@ async def main():
         reply = await send(ws, f)
         check("a plain lookback still prices", reply.HasField("price_result"),
               f"got {reply.WhichOneof('payload')}")
+
+        # Three compound refusals. Each is something QuantLib would throw on
+        # from inside the engine -- "non-plain payoff given", or the maturity
+        # check in CompoundOption::arguments::validate -- which arrives as
+        # CALCULATION_FAILED with no field on it. Named here instead.
+        crow = T.COMPOUND[0]
+        await send(ws, set_market(sid, **row_market(crow)))
+
+        await rejected("a compound naming its mother twice",
+                       compound_frame(sid, crow, mother_fields=True),
+                       "instrument.option.compound.mother_payoff", E.Error.UNSUPPORTED)
+
+        await rejected("a compound written on a binary payoff",
+                       compound_frame(sid, crow, daughter_payoff="cash_or_nothing"),
+                       "instrument.option.compound.daughter_payoff", E.Error.UNSUPPORTED)
+
+        await rejected("a compound outliving the option it is written on",
+                       compound_frame(sid, dict(crow, tMother=crow["tDaughter"] + 0.25)),
+                       "instrument.option.compound.daughter_exercise.dates",
+                       E.Error.INVALID_ARGUMENT)
 
         # And one the build does serve: the engine's own additional results.
         f = vanilla_frame(sid, row)

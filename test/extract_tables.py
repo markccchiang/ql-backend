@@ -43,6 +43,12 @@ TABLES = [
      "barrier_type barrier rebate type s strike q r t v fxr fxv corr result tol"),
     ("QUANTO_DOUBLE_BARRIER", "quantooption.cpp", "QuantoDoubleBarrierOptionData values[]",
      "barrier_type barrier_lo barrier_hi rebate type s strike q r t v fxr fxv corr result tol"),
+    # Occurrence 1: the first table in the file is the put-call parity one,
+    # which carries no published price -- it checks a relation rather than a
+    # number, so there is nothing in it to price against.
+    ("COMPOUND", "compoundoption.cpp", "CompoundOptionData values[]",
+     "typeMother typeDaughter strikeMother strikeDaughter s q r tMother tDaughter v"
+     " npv tol delta gamma vega theta", 1),
 ]
 
 # C++ spellings that are not numbers. Mapped to the strings the smoke scripts

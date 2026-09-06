@@ -11,6 +11,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/asianoption.hpp>
 #include <ql/instruments/barrieroption.hpp>
+#include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
 #include <ql/instruments/forwardvanillaoption.hpp>
 #include <ql/instruments/lookbackoption.hpp>
@@ -33,6 +34,7 @@
 #include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
@@ -1891,6 +1893,72 @@ namespace qlservice {
                                lb.running_extremum(), payoff(opt.payoff(), base + ".payoff"), ex),
                            ext::make_shared<AnalyticContinuousFixedLookbackEngine>(graph.process),
                            msg);
+            }
+
+            // -- compound --------------------------------------------------
+            case qlpb::Option::kCompound: {
+                const std::string path = base + ".compound";
+                const auto& c = opt.compound();
+
+                // The mother is the option's own payoff and exercise.
+                // CompoundOption derives from OneAssetOption and passes those
+                // two straight to it (ql/instruments/compoundoption.cpp:31), so
+                // Compound.mother_payoff and .mother_exercise re-declare fields
+                // every other style already takes. A request setting both would
+                // give the same question two answers; these are refused by name
+                // rather than merged or, worse, ignored.
+                QLS_FIELD_REQUIRE(!c.has_mother_payoff(), qlpb::Error::UNSUPPORTED,
+                                  path + ".mother_payoff",
+                                  "the mother option is the option's own payoff: set "
+                                  "instrument.option.payoff rather than this");
+                QLS_FIELD_REQUIRE(!c.has_mother_exercise(), qlpb::Error::UNSUPPORTED,
+                                  path + ".mother_exercise",
+                                  "the mother option is the option's own exercise: set "
+                                  "instrument.option.exercise rather than this");
+
+                QLS_FIELD_REQUIRE(!graph.quanto, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                  "there is no quanto compound engine in QuantLib");
+                QLS_FIELD_REQUIRE(eng.method() == qlpb::Engine_Method_METHOD_ANALYTIC,
+                                  qlpb::Error::UNSUPPORTED, "engine.method",
+                                  "compound options take METHOD_ANALYTIC: QuantLib has one "
+                                  "compound engine and it is the Wystup closed form");
+                QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
+                                  "AnalyticCompoundOptionEngine is European only");
+                QLS_FIELD_REQUIRE(c.daughter_exercise().type() == qlpb::Exercise_Type_TYPE_EUROPEAN,
+                                  qlpb::Error::UNSUPPORTED, path + ".daughter_exercise.type",
+                                  "the option written on is European only, for the same reason");
+
+                // Plain on both legs. The engine casts each payoff back to a
+                // PlainVanillaPayoff and QL_FAILs "non-plain payoff given"
+                // (analyticcompoundoptionengine.cpp:205,213) -- which arrives as
+                // CALCULATION_FAILED with no field to blame, so it is caught
+                // here where there is one.
+                QLS_FIELD_REQUIRE(opt.payoff().kind_case() == qlpb::Payoff::kPlain,
+                                  qlpb::Error::UNSUPPORTED, base + ".payoff",
+                                  "a compound option takes a plain payoff on each leg");
+                QLS_FIELD_REQUIRE(c.daughter_payoff().kind_case() == qlpb::Payoff::kPlain,
+                                  qlpb::Error::UNSUPPORTED, path + ".daughter_payoff",
+                                  "a compound option takes a plain payoff on each leg");
+
+                const auto daughterEx =
+                    exercise(c.daughter_exercise(), path + ".daughter_exercise");
+
+                // CompoundOption::arguments::validate() throws on this
+                // (ql/instruments/compoundoption.cpp:52) and an exception out of
+                // the engine names no field. The option on the option has to
+                // expire first, or there is nothing left to exercise into.
+                QLS_FIELD_REQUIRE(ex->lastDate() <= daughterEx->lastDate(),
+                                  qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".daughter_exercise.dates",
+                                  "the compound expires "
+                                      << ex->lastDate()
+                                      << ", after the option it is written on, which expires "
+                                      << daughterEx->lastDate());
+
+                return run(ext::make_shared<CompoundOption>(
+                               payoff(opt.payoff(), base + ".payoff"), ex,
+                               payoff(c.daughter_payoff(), path + ".daughter_payoff"), daughterEx),
+                           ext::make_shared<AnalyticCompoundOptionEngine>(graph.process), msg);
             }
 
             case qlpb::Option::STYLE_NOT_SET:

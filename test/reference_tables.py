@@ -296,6 +296,30 @@ QUANTO_DOUBLE_BARRIER = [
     dict(barrier_type='knock_in', barrier_lo=80.0, barrier_hi=120.0, rebate=0, type='call', s=100, strike=102.0, q=0.00, r=0.1, t=0.50, v=0.15, fxr=0.05, fxv=0.2, corr=0.3, result=1.9305, tol=1.0e-4),
 ]
 
+# compoundoption.cpp: CompoundOptionData values[] [1]
+COMPOUND = [
+    dict(typeMother='put', typeDaughter='call', strikeMother=50.0, strikeDaughter=520.0, s=500.0, q=0.03, r=0.08, tMother=0.25, tDaughter=0.5, v=0.35, npv=21.1965, tol=1.0e-3, delta=-0.1966, gamma=0.0007, vega=-32.1241, theta=-3.3837),
+    dict(typeMother='call', typeDaughter='call', strikeMother=50.0, strikeDaughter=520.0, s=500.0, q=0.03, r=0.08, tMother=0.25, tDaughter=0.5, v=0.35, npv=17.5945, tol=1.0e-3, delta=0.3219, gamma=0.0038, vega=106.5185, theta=-65.1614),
+    dict(typeMother='call', typeDaughter='put', strikeMother=50.0, strikeDaughter=520.0, s=500.0, q=0.03, r=0.08, tMother=0.25, tDaughter=0.5, v=0.35, npv=18.7128, tol=1.0e-3, delta=-0.2906, gamma=0.0036, vega=103.3856, theta=-46.6982),
+    dict(typeMother='put', typeDaughter='put', strikeMother=50.0, strikeDaughter=520.0, s=500.0, q=0.03, r=0.08, tMother=0.25, tDaughter=0.5, v=0.35, npv=15.2601, tol=1.0e-3, delta=0.1760, gamma=0.0005, vega=-35.2570, theta=-10.1126),
+    dict(typeMother='call', typeDaughter='call', strikeMother=0.05, strikeDaughter=1.14, s=1.20, q=0.0, r=0.01, tMother=0.5, tDaughter=2.0, v=0.11, npv=0.0729, tol=1.0e-3, delta=0.6614, gamma=2.5762, vega=0.5812, theta=-0.0297),
+    dict(typeMother='call', typeDaughter='put', strikeMother=0.05, strikeDaughter=1.14, s=1.20, q=0.0, r=0.01, tMother=0.5, tDaughter=2.0, v=0.11, npv=0.0074, tol=1.0e-3, delta=-0.1334, gamma=1.9681, vega=0.2933, theta=-0.0155),
+    dict(typeMother='put', typeDaughter='call', strikeMother=0.05, strikeDaughter=1.14, s=1.20, q=0.0, r=0.01, tMother=0.5, tDaughter=2.0, v=0.11, npv=0.0021, tol=1.0e-3, delta=-0.0426, gamma=0.7252, vega=-0.0052, theta=-0.0058),
+    dict(typeMother='put', typeDaughter='put', strikeMother=0.05, strikeDaughter=1.14, s=1.20, q=0.0, r=0.01, tMother=0.5, tDaughter=2.0, v=0.11, npv=0.0192, tol=1.0e-3, delta=0.1626, gamma=0.1171, vega=-0.2931, theta=-0.0028),
+    dict(typeMother='call', typeDaughter='call', strikeMother=10.0, strikeDaughter=122.0, s=120.0, q=0.06, r=0.02, tMother=0.1, tDaughter=0.7, v=0.22, npv=0.4419, tol=1.0e-3, delta=0.1049, gamma=0.0195, vega=11.3368, theta=-6.2871),
+    dict(typeMother='call', typeDaughter='put', strikeMother=10.0, strikeDaughter=122.0, s=120.0, q=0.06, r=0.02, tMother=0.1, tDaughter=0.7, v=0.22, npv=2.6112, tol=1.0e-3, delta=-0.3618, gamma=0.0337, vega=28.4843, theta=-13.4124),
+    dict(typeMother='put', typeDaughter='call', strikeMother=10.0, strikeDaughter=122.0, s=120.0, q=0.06, r=0.02, tMother=0.1, tDaughter=0.7, v=0.22, npv=4.1616, tol=1.0e-3, delta=-0.3174, gamma=0.0024, vega=-26.6403, theta=-2.2720),
+    dict(typeMother='put', typeDaughter='put', strikeMother=10.0, strikeDaughter=122.0, s=120.0, q=0.06, r=0.02, tMother=0.1, tDaughter=0.7, v=0.22, npv=1.0914, tol=1.0e-3, delta=0.1748, gamma=0.0165, vega=-9.4928, theta=-4.8995),
+    dict(typeMother='call', typeDaughter='call', strikeMother=0.4, strikeDaughter=8.2, s=8.0, q=0.05, r=0.00, tMother=2.0, tDaughter=3.0, v=0.08, npv=0.0099, tol=1.0e-3, delta=0.0285, gamma=0.0688, vega=0.7764, theta=-0.0027),
+    dict(typeMother='call', typeDaughter='put', strikeMother=0.4, strikeDaughter=8.2, s=8.0, q=0.05, r=0.00, tMother=2.0, tDaughter=3.0, v=0.08, npv=0.9826, tol=1.0e-3, delta=-0.7224, gamma=0.2158, vega=2.7279, theta=-0.3332),
+    dict(typeMother='put', typeDaughter='call', strikeMother=0.4, strikeDaughter=8.2, s=8.0, q=0.05, r=0.00, tMother=2.0, tDaughter=3.0, v=0.08, npv=0.3585, tol=1.0e-3, delta=-0.0720, gamma=-0.0835, vega=-1.5633, theta=-0.0117),
+    dict(typeMother='put', typeDaughter='put', strikeMother=0.4, strikeDaughter=8.2, s=8.0, q=0.05, r=0.00, tMother=2.0, tDaughter=3.0, v=0.08, npv=0.0168, tol=1.0e-3, delta=0.0378, gamma=0.0635, vega=0.3882, theta=0.0021),
+    dict(typeMother='call', typeDaughter='call', strikeMother=0.02, strikeDaughter=1.6, s=1.6, q=0.013, r=0.022, tMother=0.45, tDaughter=0.5, v=0.17, npv=0.0680, tol=1.0e-3, delta=0.4937, gamma=2.1271, vega=0.4418, theta=-0.0843),
+    dict(typeMother='call', typeDaughter='put', strikeMother=0.02, strikeDaughter=1.6, s=1.6, q=0.013, r=0.022, tMother=0.45, tDaughter=0.5, v=0.17, npv=0.0605, tol=1.0e-3, delta=-0.4169, gamma=2.0836, vega=0.4330, theta=-0.0697),
+    dict(typeMother='put', typeDaughter='call', strikeMother=0.02, strikeDaughter=1.6, s=1.6, q=0.013, r=0.022, tMother=0.45, tDaughter=0.5, v=0.17, npv=0.0081, tol=1.0e-3, delta=-0.0417, gamma=0.0761, vega=-0.0045, theta=-0.0020),
+    dict(typeMother='put', typeDaughter='put', strikeMother=0.02, strikeDaughter=1.6, s=1.6, q=0.013, r=0.022, tMother=0.45, tDaughter=0.5, v=0.17, npv=0.0078, tol=1.0e-3, delta=0.0413, gamma=0.0326, vega=-0.0133, theta=-0.0016),
+]
+
 TABLES = {
     'EUROPEAN': EUROPEAN,
     'AMERICAN_BAW': AMERICAN_BAW,
@@ -307,4 +331,5 @@ TABLES = {
     'QUANTO_FORWARD': QUANTO_FORWARD,
     'QUANTO_BARRIER': QUANTO_BARRIER,
     'QUANTO_DOUBLE_BARRIER': QUANTO_DOUBLE_BARRIER,
+    'COMPOUND': COMPOUND,
 }
