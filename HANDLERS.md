@@ -190,7 +190,7 @@ The rest — `swaption`, `cap_floor`, `bond`, `credit_default_swap`, `fra`,
 ### Option
 
 An option is **payoff × exercise × underlying × style**, with quanto orthogonal
-to all four. Seven of twelve styles are built:
+to all four. Eight of twelve styles are built:
 
 | `Option.style` | Exercise | Engine methods | Quanto |
 | --- | --- | --- | --- |
@@ -201,7 +201,8 @@ to all four. Seven of twelve styles are built:
 | `asian` | European | `ANALYTIC` (geometric), `MONTE_CARLO` (arithmetic) | no — QuantLib has no quanto Asian engine |
 | `lookback` | European | `ANALYTIC` | no |
 | `compound` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto compound engine |
-| `cliquet`, `chooser`, `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
+| `chooser` | European, on both legs | `ANALYTIC` | no — QuantLib has no quanto chooser engine |
+| `cliquet`, `basket`, `spread`, `digital` | — | not built — `UNSUPPORTED`; a knock digital is a `barrier` with a binary payoff | |
 
 Style-specific rules worth knowing before you send one:
 
@@ -241,6 +242,24 @@ Style-specific rules worth knowing before you send one:
   other style takes it and put only `daughter_payoff` and `daughter_exercise`
   in the style block. Both legs are `plain` and European, and the compound has
   to expire **on or before** the option it is written on.
+- **Chooser.** The strike and the expiry are the option's own `payoff` and
+  `exercise`, for the same reason the compound's mother is — both chooser
+  instruments hand a `PlainVanillaPayoff` and the (call) exercise to
+  `OneAssetOption` — so `Chooser.call_strike` and `Chooser.call_expiry` are
+  `UNSUPPORTED`. Send `payoff.plain.strike` with **`payoff.type` unset**: a
+  chooser has no side until the choice date, and that is the one place in the
+  schema where a set `type` would be read and thrown away. A `put_expiry` in
+  the style block is what makes it the *complex* chooser, with `put_strike`
+  beside it; without one it is the simple chooser, which shares a single strike
+  and expiry, and a `put_strike` alone is `INVALID_ARGUMENT`. `choice_date`
+  must fall after the evaluation date and before every expiry. Three further
+  rules are the engines', not the product's: all three curves must count days
+  the same way (`AnalyticSimpleChooserEngine` requires it and the complex
+  engine assumes it without checking), the exercise must be `EUROPEAN`
+  (neither engine reads the type, so an American one would price as European),
+  and each complex leg must expire more than **twice** the choice time out —
+  `AnalyticComplexChooserEngine` solves for the critical spot at
+  `maturity - 2 × choice time`, which below that is a negative time.
 - **Vanilla.** A binary payoff on an American exercise is a one-touch and goes
   to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price **must** name
   an approximation (below).
@@ -684,7 +703,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 309 rows of QuantLib's own reference values
+`ql-backend` over a real WebSocket: 311 rows of QuantLib's own reference values
 plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
 it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

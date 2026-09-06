@@ -53,6 +53,11 @@ def expiry(t):
     return (TODAY + timedelta(days=days(t))).isoformat()
 
 
+def on_day(n):
+    """chooseroption.cpp writes its dates as day offsets, not year fractions."""
+    return (TODAY + timedelta(days=n)).isoformat()
+
+
 rid = 0
 
 
@@ -103,6 +108,16 @@ def open_session():
         m.yield_curve.flat.rate.quote_id = qid
         m.yield_curve.flat.compounding = C.CONTINUOUS
         m.yield_curve.flat.frequency = C.ANNUAL
+
+    # The same dividend yield counting days the other way. Nothing prices
+    # against it; it is here so the chooser's one-time-axis check has something
+    # to refuse, which is otherwise unreachable from a market this uniform.
+    m = o.market.add()
+    m.id = "QC365"
+    m.yield_curve.day_counter.family = C.DayCounter.ACTUAL_365_FIXED
+    m.yield_curve.flat.rate.quote_id = "Q"
+    m.yield_curve.flat.compounding = C.CONTINUOUS
+    m.yield_curve.flat.frequency = C.ANNUAL
 
     for vid, qid in [("VOL", "V"), ("FXVOL", "FXV")]:
         m = o.market.add()
@@ -303,6 +318,63 @@ def compound_frame(sid, row, daughter_payoff="plain", mother_fields=False):
     return f
 
 
+def simple_chooser_frame(sid, row, exercise="european", payoff_type=None,
+                         call_strike=False, put_strike=0.0, dividend_curve="QC",
+                         method=EN.Engine.METHOD_ANALYTIC):
+    """One choice date, one strike, one expiry.
+
+    SimpleChooserOption builds its own PlainVanillaPayoff and passes the strike
+    and the exercise to OneAssetOption, so those go where every other style
+    puts them and the style block carries only the choice date. There is no
+    option type: which side this becomes is what is being chosen.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.plain.strike = row["strike"]
+    if payoff_type is not None:
+        opt.payoff.type = payoff_type
+    opt.exercise.dates.add().iso = on_day(row["exercise_days"])
+    if exercise == "american":
+        opt.exercise.type = I.Exercise.TYPE_AMERICAN
+        opt.exercise.payoff_at_expiry = M.FLAG_FALSE
+    else:
+        opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+    underlying(opt).dividend_curve_id = dividend_curve
+
+    c = opt.chooser
+    c.choice_date.iso = on_day(row["choosing_days"])
+    if call_strike:
+        c.call_strike = row["strike"]
+    if put_strike:
+        c.put_strike = put_strike
+
+    f.price.engine.method = method
+    return f
+
+
+def complex_chooser_frame(sid, row, call_days=None, put_days=None):
+    """Separate strikes and expiries for the two sides.
+
+    ComplexChooserOption hands the call leg to OneAssetOption, so the put leg
+    is the only one the style block carries -- and carrying it is what says
+    this is the complex chooser rather than the simple one.
+    """
+    f, opt = base_frame(sid)
+    opt.payoff.plain.strike = row["call_strike"]
+    opt.exercise.type = I.Exercise.TYPE_EUROPEAN
+    opt.exercise.dates.add().iso = on_day(
+        row["choosing_days"] + (row["call_days"] if call_days is None else call_days))
+    underlying(opt)
+
+    c = opt.chooser
+    c.choice_date.iso = on_day(row["choosing_days"])
+    c.put_strike = row["put_strike"]
+    c.put_expiry.iso = on_day(
+        row["choosing_days"] + (row["put_days"] if put_days is None else put_days))
+
+    f.price.engine.method = EN.Engine.METHOD_ANALYTIC
+    return f
+
+
 def forward_frame(sid, row, performance=False, quanto=False):
     f, opt = base_frame(sid)
     opt.payoff.type = OPTION_TYPE[row["type"]]
@@ -433,7 +505,7 @@ async def main():
               f"bootstrap={r.session_opened.bootstrap_seconds:.4f}s")
         check("SessionOpened lists what it built",
               list(r.session_opened.market_ids) ==
-              list(QUOTES) + ["RC", "QC", "FXRC", "VOL", "FXVOL"])
+              list(QUOTES) + ["RC", "QC", "FXRC", "QC365", "VOL", "FXVOL"])
 
         # -- the reference tables --------------------------------------------
         print("\n  -- QuantLib's published values --")
@@ -491,6 +563,14 @@ async def main():
         # normal is underneath, and that tolerance is what is published.
         await table(ws, sid, "compound", T.COMPOUND,
                     lambda s, row: compound_frame(s, row), value="npv")
+
+        # Chooser publishes no table -- two values, in the bodies of
+        # chooseroption.cpp's two test cases. extract_tables.py reads them out
+        # variable by variable rather than letting them be typed here.
+        await table(ws, sid, "simple chooser", T.SIMPLE_CHOOSER,
+                    lambda s, row: simple_chooser_frame(s, row))
+        await table(ws, sid, "complex chooser", T.COMPLEX_CHOOSER,
+                    lambda s, row: complex_chooser_frame(s, row))
 
         await table(ws, sid, "quanto vanilla", T.QUANTO,
                     lambda s, row: vanilla_frame(s, row, quanto=True))
@@ -1140,6 +1220,45 @@ async def main():
                        compound_frame(sid, dict(crow, tMother=crow["tDaughter"] + 0.25)),
                        "instrument.option.compound.daughter_exercise.dates",
                        E.Error.INVALID_ARGUMENT)
+
+        # Seven chooser refusals. Two are duplicate fields, one is a field the
+        # instrument overwrites, and four are things the engines get wrong
+        # quietly rather than loudly: an exercise type neither of them reads, a
+        # day-counter mismatch only the simple engine checks, and a complex leg
+        # inside twice the choice time, where the volatility surface throws
+        # "negative time" from inside a Newton-Raphson.
+        srow, xrow = T.SIMPLE_CHOOSER[0], T.COMPLEX_CHOOSER[0]
+        await send(ws, set_market(sid, **row_market(srow)))
+
+        await rejected("a chooser naming its strike twice",
+                       simple_chooser_frame(sid, srow, call_strike=True),
+                       "instrument.option.chooser.call_strike", E.Error.UNSUPPORTED)
+
+        await rejected("a chooser told which side it is",
+                       simple_chooser_frame(sid, srow, payoff_type=I.Payoff.OPTION_TYPE_CALL),
+                       "instrument.option.payoff.type", E.Error.INVALID_ARGUMENT)
+
+        await rejected("a chooser on an American exercise, which neither engine reads",
+                       simple_chooser_frame(sid, srow, exercise="american"),
+                       "instrument.option.exercise.type", E.Error.UNSUPPORTED)
+
+        await rejected("a chooser on a lattice",
+                       simple_chooser_frame(sid, srow, method=EN.Engine.METHOD_LATTICE),
+                       "engine.method", E.Error.UNSUPPORTED)
+
+        await rejected("a put strike with no put expiry beside it",
+                       simple_chooser_frame(sid, srow, put_strike=srow["strike"] - 2.0),
+                       "instrument.option.chooser.put_expiry", E.Error.INVALID_ARGUMENT)
+
+        await rejected("a chooser whose curves count days differently",
+                       simple_chooser_frame(sid, srow, dividend_curve="QC365"),
+                       "instrument.option.underlyings[0].dividend_curve_id",
+                       E.Error.INVALID_ARGUMENT)
+
+        await send(ws, set_market(sid, **row_market(xrow)))
+        await rejected("a complex chooser expiring inside twice its choice time",
+                       complex_chooser_frame(sid, xrow, call_days=60),
+                       "instrument.option.exercise.dates", E.Error.UNSUPPORTED)
 
         # And one the build does serve: the engine's own additional results.
         f = vanilla_frame(sid, row)

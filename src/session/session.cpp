@@ -11,6 +11,7 @@
 #include <ql/indexes/iborindex.hpp>
 #include <ql/instruments/asianoption.hpp>
 #include <ql/instruments/barrieroption.hpp>
+#include <ql/instruments/complexchooseroption.hpp>
 #include <ql/instruments/compoundoption.hpp>
 #include <ql/instruments/doublebarrieroption.hpp>
 #include <ql/instruments/forwardvanillaoption.hpp>
@@ -18,6 +19,7 @@
 #include <ql/instruments/quantobarrieroption.hpp>
 #include <ql/instruments/quantoforwardvanillaoption.hpp>
 #include <ql/instruments/quantovanillaoption.hpp>
+#include <ql/instruments/simplechooseroption.hpp>
 #include <ql/instruments/swap.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
@@ -35,7 +37,9 @@
 #include <ql/pricingengines/barrier/binomialbarrierengine.hpp>
 #include <ql/pricingengines/barrier/fdblackscholesbarrierengine.hpp>
 #include <ql/pricingengines/barrier/mcbarrierengine.hpp>
+#include <ql/pricingengines/exotic/analyticcomplexchooserengine.hpp>
 #include <ql/pricingengines/exotic/analyticcompoundoptionengine.hpp>
+#include <ql/pricingengines/exotic/analyticsimplechooserengine.hpp>
 #include <ql/pricingengines/forward/forwardengine.hpp>
 #include <ql/pricingengines/forward/forwardperformanceengine.hpp>
 #include <ql/pricingengines/lookback/analyticcontinuousfixedlookback.hpp>
@@ -2021,6 +2025,150 @@ namespace qlservice {
                                payoff(opt.payoff(), base + ".payoff"), ex,
                                payoff(c.daughter_payoff(), path + ".daughter_payoff"), daughterEx),
                            ext::make_shared<AnalyticCompoundOptionEngine>(graph.process), msg);
+            }
+
+
+            // -- chooser ---------------------------------------------------
+            case qlpb::Option::kChooser: {
+                const std::string path = base + ".chooser";
+                const auto& ch = opt.chooser();
+
+                // Both chooser instruments derive from OneAssetOption and hand
+                // it a PlainVanillaPayoff struck at the strike -- the call
+                // strike, when the two sides differ -- together with the (call)
+                // exercise (simplechooseroption.cpp:30,
+                // complexchooseroption.cpp:34). So those live where every other
+                // style puts them, and Chooser.call_strike and .call_expiry
+                // re-declare them. Refused by name, as Compound.mother_payoff
+                // is, rather than merged or ignored.
+                QLS_FIELD_REQUIRE(ch.call_strike() == 0.0, qlpb::Error::UNSUPPORTED,
+                                  path + ".call_strike",
+                                  "the strike is the option's own payoff: set "
+                                  "instrument.option.payoff.plain.strike rather than this");
+                QLS_FIELD_REQUIRE(!ch.has_call_expiry(), qlpb::Error::UNSUPPORTED,
+                                  path + ".call_expiry",
+                                  "the expiry is the option's own exercise: set "
+                                  "instrument.option.exercise rather than this");
+
+                QLS_FIELD_REQUIRE(!graph.quanto, qlpb::Error::UNSUPPORTED, base + ".quanto",
+                                  "there is no quanto chooser engine in QuantLib");
+                QLS_FIELD_REQUIRE(eng.method() == qlpb::Engine_Method_METHOD_ANALYTIC,
+                                  qlpb::Error::UNSUPPORTED, "engine.method",
+                                  "chooser options take METHOD_ANALYTIC: QuantLib has one engine "
+                                  "per chooser and both are closed forms");
+
+                // Neither engine reads the exercise type. Both take
+                // exercise->lastDate() and value a European option at it
+                // (analyticsimplechooserengine.cpp:52,
+                // analyticcomplexchooserengine.cpp:135), so an American
+                // exercise would price as if it were European and the early
+                // exercise would be dropped without a word.
+                QLS_FIELD_REQUIRE(european, qlpb::Error::UNSUPPORTED, base + ".exercise.type",
+                                  "the chooser engines are European only -- and neither checks: "
+                                  "an American exercise would be priced as if it were European");
+
+                // The instrument builds its own PlainVanillaPayoff and forces
+                // the type to Call, so payoff.type says nothing here: which
+                // side this becomes is what the holder chooses. Every other arm
+                // requires it, so leaving it set would be the one place in the
+                // schema where a field is read and discarded.
+                QLS_FIELD_REQUIRE(opt.payoff().kind_case() == qlpb::Payoff::kPlain,
+                                  qlpb::Error::UNSUPPORTED, base + ".payoff",
+                                  "a chooser is struck on a plain payoff: the instrument builds "
+                                  "the PlainVanillaPayoff itself and takes only a strike");
+                QLS_FIELD_REQUIRE(opt.payoff().type() ==
+                                      qlpb::Payoff_OptionType_OPTION_TYPE_UNSPECIFIED,
+                                  qlpb::Error::INVALID_ARGUMENT, base + ".payoff.type",
+                                  "a chooser has no option type until the choice date: that is "
+                                  "the thing being chosen. Leave payoff.type unset");
+                const Real strike = opt.payoff().plain().strike();
+                QLS_FIELD_REQUIRE(strike > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  base + ".payoff.plain.strike", "strike must be positive");
+
+                // One time axis. AnalyticSimpleChooserEngine requires the three
+                // day counters to be equal and QL_REQUIREs if they are not
+                // (analyticsimplechooserengine.cpp:36-42), which arrives as
+                // CALCULATION_FAILED with nothing to blame. The complex engine
+                // makes the same assumption and does not check: it takes every
+                // time off the risk-free counter (blackscholesprocess.cpp:150)
+                // and then reads the dividend curve and the vol surface at that
+                // number, which is only the same instant if they agree.
+                const DayCounter rfdc = graph.riskFree->dayCounter();
+                QLS_FIELD_REQUIRE(graph.dividend->dayCounter() == rfdc,
+                                  qlpb::Error::INVALID_ARGUMENT,
+                                  base + ".underlyings[0].dividend_curve_id",
+                                  "a chooser is priced on one time axis: the dividend curve counts "
+                                  "days as " << graph.dividend->dayCounter().name()
+                                             << " and the discount curve as " << rfdc.name());
+                QLS_FIELD_REQUIRE(graph.volatility->dayCounter() == rfdc,
+                                  qlpb::Error::INVALID_ARGUMENT,
+                                  base + ".underlyings[0].volatility_id",
+                                  "a chooser is priced on one time axis: the volatility counts "
+                                  "days as " << graph.volatility->dayCounter().name()
+                                             << " and the discount curve as " << rfdc.name());
+
+                QLS_FIELD_REQUIRE(ch.has_choice_date(), qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".choice_date",
+                                  "a chooser needs the date the choice is made");
+                const Date choice = registry_.date(ch.choice_date(), path + ".choice_date");
+                QLS_FIELD_REQUIRE(choice > evaluationDate_, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".choice_date",
+                                  "the choice date " << choice << " is not after the evaluation "
+                                                     << "date " << evaluationDate_
+                                                     << ": the choice has been made already, and "
+                                                        "what is left is a vanilla option");
+                QLS_FIELD_REQUIRE(choice < ex->lastDate(), qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".choice_date",
+                                  "the choice date " << choice << " is not before the expiry "
+                                                     << ex->lastDate());
+
+                // Simple or complex is read off the put leg rather than
+                // declared: SimpleChooserOption is the one that shares a strike
+                // and an expiry between the two sides, and it takes exactly one
+                // of each, so a put expiry is what there is no room for in it.
+                if (!ch.has_put_expiry()) {
+                    QLS_FIELD_REQUIRE(ch.put_strike() == 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                      path + ".put_expiry",
+                                      "a put strike of its own needs a put expiry beside it: "
+                                      "SimpleChooserOption shares one strike and one expiry "
+                                      "between the two sides and takes no second pair");
+                    return run(ext::make_shared<SimpleChooserOption>(choice, strike, ex),
+                               ext::make_shared<AnalyticSimpleChooserEngine>(graph.process), msg);
+                }
+
+                QLS_FIELD_REQUIRE(ch.put_strike() > 0.0, qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".put_strike", "strike must be positive");
+                const ext::shared_ptr<Exercise> putEx = ext::make_shared<EuropeanExercise>(
+                    expiryDate(ch.put_expiry(), path + ".put_expiry"));
+                QLS_FIELD_REQUIRE(choice < putEx->lastDate(), qlpb::Error::INVALID_ARGUMENT,
+                                  path + ".choice_date",
+                                  "the choice date " << choice << " is not before the put expiry "
+                                                     << putEx->lastDate());
+
+                // AnalyticComplexChooserEngine finds the critical spot with a
+                // Black-Scholes calculator run to (maturity - 2 x choice time)
+                // rather than (maturity - choice time)
+                // (analyticcomplexchooserengine.cpp:91,99). A leg expiring
+                // before twice the choice date leaves that negative, and the
+                // volatility surface then throws "negative time" from inside
+                // the Newton-Raphson: CALCULATION_FAILED, no field. The bound
+                // is the engine's, not the product's.
+                const Time tChoice = graph.riskFree->timeFromReference(choice);
+                QLS_FIELD_REQUIRE(graph.riskFree->timeFromReference(ex->lastDate()) > 2.0 * tChoice,
+                                  qlpb::Error::UNSUPPORTED, base + ".exercise.dates",
+                                  "AnalyticComplexChooserEngine needs the expiry more than twice "
+                                  "the choice time out, and " << ex->lastDate() << " is not: it "
+                                  "prices the choice off (expiry - 2 x choice time)");
+                QLS_FIELD_REQUIRE(graph.riskFree->timeFromReference(putEx->lastDate()) >
+                                      2.0 * tChoice,
+                                  qlpb::Error::UNSUPPORTED, path + ".put_expiry",
+                                  "AnalyticComplexChooserEngine needs the put expiry more than "
+                                  "twice the choice time out, and " << putEx->lastDate()
+                                                                    << " is not");
+
+                return run(ext::make_shared<ComplexChooserOption>(choice, strike, ch.put_strike(),
+                                                                  ex, putEx),
+                           ext::make_shared<AnalyticComplexChooserEngine>(graph.process), msg);
             }
 
             // -- digital ---------------------------------------------------

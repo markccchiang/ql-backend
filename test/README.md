@@ -5,16 +5,23 @@ the service works; there is no unit-test target yet.
 
 It checks two different kinds of thing, and the distinction matters.
 
-**Numbers.** 309 rows of QuantLib's own published reference values — European
-and American vanillas, barriers and knock digitals, forward-start and compound
-options and the four quanto shapes — each priced through the wire and compared
-against the C++
-test suite records, at the tolerance that test uses. Neither the values nor the
+**Numbers.** 311 rows of QuantLib's own published reference values — European
+and American vanillas, barriers and knock digitals, forward-start, compound and
+chooser options and the four quanto shapes — each priced through the wire and
+compared against the value the C++ test suite records, at the tolerance that
+test uses. Neither the values nor the
 tolerances are typed in: `reference_tables.py` is generated from
 `test-suite/*.cpp` by `extract_tables.py`, and the generator is checked in
 beside its output. Transcribing a benchmark by hand is how it quietly stops
 being one — a digit changes and the test still passes, against the wrong
 number.
+
+Two of those rows have no table behind them. `chooseroption.cpp` publishes its
+two values as local variables in the bodies of its test cases, so
+`extract_tables.py` reads them out variable by variable — naming the C++
+variable each field comes from — rather than letting two constants be typed
+here. A pattern that stops matching is a hard failure, which is the point: the
+alternative is a stale `6.1071` that outlives the number it was copied from.
 
 Re-run the generator when the QuantLib checkout moves:
 

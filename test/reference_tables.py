@@ -6,7 +6,9 @@ Each row is a dict keyed by the C++ struct's own member names, so a
 row can be read against the source without counting commas. `result`
 is the published value and `tol` the tolerance the C++ test uses;
 neither is tightened here, because those numbers are what is under
-test.
+test. The chooser cases have no struct: they are single rows read
+variable by variable out of the test case body, and the field names
+are this benchmark's own.
 """
 
 # europeanoption.cpp: EuropeanOptionData values[]
@@ -370,6 +372,16 @@ COMPOUND = [
     dict(typeMother='put', typeDaughter='put', strikeMother=0.02, strikeDaughter=1.6, s=1.6, q=0.013, r=0.022, tMother=0.45, tDaughter=0.5, v=0.17, npv=0.0078, tol=1.0e-3, delta=0.0413, gamma=0.0326, vega=-0.0133, theta=-0.0016),
 ]
 
+# chooseroption.cpp: testAnalyticSimpleChooserEngine()
+SIMPLE_CHOOSER = [
+    dict(s=50.0, q=0.0, r=0.08, v=0.25, strike=50.0, choosing_days=90, exercise_days=180, result=6.1071, tol=3e-5),
+]
+
+# chooseroption.cpp: testAnalyticComplexChooserEngine()
+COMPLEX_CHOOSER = [
+    dict(s=50.0, q=0.05, r=0.10, v=0.35, call_strike=55.0, put_strike=48.0, choosing_days=90, call_days=180, put_days=210, result=6.0508, tol=1e-4),
+]
+
 TABLES = {
     'EUROPEAN': EUROPEAN,
     'AMERICAN_BAW': AMERICAN_BAW,
@@ -384,4 +396,6 @@ TABLES = {
     'BINARY_CASH': BINARY_CASH,
     'BINARY_ASSET': BINARY_ASSET,
     'COMPOUND': COMPOUND,
+    'SIMPLE_CHOOSER': SIMPLE_CHOOSER,
+    'COMPLEX_CHOOSER': COMPLEX_CHOOSER,
 }

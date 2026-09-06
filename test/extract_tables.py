@@ -59,6 +59,52 @@ TABLES = [
      " npv tol delta gamma vega theta", 1),
 ]
 
+# Chooser has no table. Its two published values sit in the body of a
+# BOOST_AUTO_TEST_CASE as local variables, and transcribing two numbers is
+# still transcribing -- 6.1071 typed as 6.1017 is a benchmark that passes
+# against the wrong number, which is the failure this file exists to prevent.
+# So they are parsed too, by naming the C++ variable each field is read from.
+# There is no struct to follow here, so the pattern carries the provenance;
+# a pattern that stops matching, or starts matching twice, is a hard failure
+# rather than a stale constant frozen into reference_tables.py.
+#
+# The dates are kept as the day offsets the C++ writes -- `today + 180`,
+# `choosingDate + 210` -- rather than converted to year fractions here.
+# Arithmetic on an extracted number is the same transcription by another name.
+#
+# (module name, source file, test case, [(field, pattern with one group)])
+N = r"[-+0-9.eE]+"
+QUOTE = r"\b{}\s*=\s*ext::make_shared<SimpleQuote>\(\s*({})\s*\)"
+REAL = r"\bReal\s+{}\s*=\s*({})\s*;"
+OFFSET = r"\bDate\s+{}\s*=\s*{}\s*\+\s*(\d+)\s*;"
+
+SCALARS = [
+    ("SIMPLE_CHOOSER", "chooseroption.cpp", "testAnalyticSimpleChooserEngine", [
+        ("s", QUOTE.format("spot", N)),
+        ("q", QUOTE.format("qRate", N)),
+        ("r", QUOTE.format("rRate", N)),
+        ("v", QUOTE.format("vol", N)),
+        ("strike", REAL.format("strike", N)),
+        ("choosing_days", OFFSET.format("choosingDate", "today")),
+        ("exercise_days", OFFSET.format("exerciseDate", "today")),
+        ("result", REAL.format("expected", N)),
+        ("tol", REAL.format("tolerance", N)),
+    ]),
+    ("COMPLEX_CHOOSER", "chooseroption.cpp", "testAnalyticComplexChooserEngine", [
+        ("s", QUOTE.format("spot", N)),
+        ("q", QUOTE.format("qRate", N)),
+        ("r", QUOTE.format("rRate", N)),
+        ("v", QUOTE.format("vol", N)),
+        ("call_strike", REAL.format("callStrike", N)),
+        ("put_strike", REAL.format("putStrike", N)),
+        ("choosing_days", OFFSET.format("choosingDate", "today")),
+        ("call_days", OFFSET.format("callExerciseDate", "choosingDate")),
+        ("put_days", OFFSET.format("putExerciseDate", "choosingDate")),
+        ("result", REAL.format("expected", N)),
+        ("tol", REAL.format("tolerance", N)),
+    ]),
+]
+
 # C++ spellings that are not numbers. Mapped to the strings the smoke scripts
 # use, never to the proto enum values: those are deliberately not QuantLib's
 # own numbers, and a table that hardcoded them would silently follow a
@@ -88,13 +134,8 @@ def strip_comments(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
-def find_table(text, declaration, occurrence=0):
-    """The brace-balanced body of the nth `declaration = { ... };`."""
-    starts = [m.end() for m in re.finditer(re.escape(declaration) + r"\s*=\s*\{",
-                                           text)]
-    if len(starts) <= occurrence:
-        raise SystemExit(f"no occurrence {occurrence} of {declaration!r}")
-    i = starts[occurrence]
+def balanced(text, i):
+    """The text from `i` to the `}` that closes the `{` just before it."""
     depth = 1
     out = []
     while depth:
@@ -110,6 +151,24 @@ def find_table(text, declaration, occurrence=0):
     return "".join(out)
 
 
+def find_table(text, declaration, occurrence=0):
+    """The brace-balanced body of the nth `declaration = { ... };`."""
+    starts = [m.end() for m in re.finditer(re.escape(declaration) + r"\s*=\s*\{",
+                                           text)]
+    if len(starts) <= occurrence:
+        raise SystemExit(f"no occurrence {occurrence} of {declaration!r}")
+    return balanced(text, starts[occurrence])
+
+
+def find_case(text, case):
+    """The brace-balanced body of a BOOST_AUTO_TEST_CASE."""
+    m = re.search(r"BOOST_AUTO_TEST_CASE\s*\(\s*" + re.escape(case)
+                  + r"\s*\)\s*\{", text)
+    if not m:
+        raise SystemExit(f"no test case {case!r}")
+    return balanced(text, m.end())
+
+
 def parse_rows(body, fields):
     rows = []
     for match in re.finditer(r"\{([^{}]*)\}", body):
@@ -120,6 +179,18 @@ def parse_rows(body, fields):
                 f"row has {len(cells)} cells, expected {len(fields)}: {cells}")
         rows.append([WORDS.get(c, c) for c in cells])
     return rows
+
+
+def parse_scalars(body, fields):
+    """One row, read variable by variable out of a test case body."""
+    row = []
+    for name, pattern in fields:
+        found = re.findall(pattern, body)
+        if len(found) != 1:
+            raise SystemExit(
+                f"{name}: {len(found)} matches for {pattern!r}, expected 1")
+        row.append(WORDS.get(found[0], found[0]))
+    return [row]
 
 
 def main():
@@ -135,7 +206,9 @@ def main():
     print("row can be read against the source without counting commas. `result`")
     print("is the published value and `tol` the tolerance the C++ test uses;")
     print("neither is tightened here, because those numbers are what is under")
-    print('test.')
+    print("test. The chooser cases have no struct: they are single rows read")
+    print("variable by variable out of the test case body, and the field names")
+    print('are this benchmark\'s own.')
     print('"""')
     print()
 
@@ -156,8 +229,20 @@ def main():
         print("]")
         print()
 
+    for name, filename, case, fields in SCALARS:
+        text = strip_comments((root / filename).read_text())
+        rows = parse_scalars(find_case(text, case), fields)
+
+        print(f"# {filename}: {case}()")
+        print(f"{name} = [")
+        for row in rows:
+            pairs = ", ".join(f"{f}={v}" for (f, _), v in zip(fields, row))
+            print(f"    dict({pairs}),")
+        print("]")
+        print()
+
     print("TABLES = {")
-    for spec in TABLES:
+    for spec in TABLES + SCALARS:
         print(f"    {spec[0]!r}: {spec[0]},")
     print("}")
 
