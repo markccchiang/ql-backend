@@ -140,6 +140,22 @@ namespace qlservice {
     }
 
 
+    void Supervisor::rebuildOn(const std::string& sessionId, const SessionState& state) {
+        for (const auto& f : state.log.replayFrames())
+            host_.send(state.workerId, f);
+
+        qlpb::ClientFrame frame;
+        frame.set_session_id(sessionId);
+        for (const auto& entry : state.pendingUpdates) {
+            // request_id 0: the client has one answer coming for this write
+            // and it comes from the seat the write was sent to. A second
+            // would be a second terminal frame on one id.
+            *frame.mutable_update_market() = entry.second;
+            host_.send(state.workerId, frame);
+        }
+    }
+
+
     void Supervisor::killWorker(const std::string& workerId) {
         host_.kill(workerId);
         workers_.erase(workerId);
@@ -251,20 +267,28 @@ namespace qlservice {
         if (frame.has_price() || frame.has_batch()) {
             const auto wanted =
                 frame.has_batch() ? placementFor(frame.batch()) : placementFor(frame.price());
-            if (wanted != state.placement) {
+            // Not while a cancel is being served. The target is running on the
+            // old seat and a CloseSession would queue behind it; it would
+            // finish and answer, and a CANCELLED emitted here for the same
+            // request would be a second terminal frame on one id. The kill
+            // the grace may end in is addressed to the session's worker, and
+            // moving the session first would point it at the new one. So the
+            // request runs where the session is, once, and the next one
+            // relocates: a long calculation on a shared seat for one round
+            // is the cheaper wrong.
+            const bool cancelling = !state.cancel.targets.empty();
+            if (wanted != state.placement && !cancelling) {
                 // Moving a session between processes is a replay, not a
                 // migration: the graph is thread-bound and cannot be handed
                 // over (DESIGN §2). Paying one bootstrap to isolate a long
                 // calculation is the trade this design makes.
                 detach(sessionId, state);
-                // Whatever this session had queued on the old worker went with
-                // its graph, cancel targets and unacked writes included.
-                state.pendingUpdates.clear();
-                terminateCancelTargets(sessionId, state);
+                // The writes still unacked are not cleared: the close queued
+                // behind them, so the old seat applies and answers them, and
+                // the log takes each on its Ack. The new seat gets them too.
                 state.placement = wanted;
                 state.workerId = acquireSeat(wanted);
-                for (const auto& f : state.log.replayFrames())
-                    host_.send(state.workerId, f);
+                rebuildOn(sessionId, state);
             }
         }
 
@@ -477,10 +501,13 @@ namespace qlservice {
 
         try {
             state.workerId = acquireSeat(state.placement);
-            for (const auto& frame : state.log.replayFrames())
-                host_.send(state.workerId, frame);
+            rebuildOn(sessionId, state);
             state.replayFailures = 0;
         } catch (const std::exception&) {
+            // The seat was counted before the send threw, and on a shared
+            // worker that count is a thread nobody is using until it is
+            // given back.
+            releaseSeat(state.workerId);
             ++state.replayFailures;
             replay(sessionId, state);
         }

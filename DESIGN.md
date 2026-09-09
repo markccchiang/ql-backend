@@ -274,10 +274,13 @@ next session is policy, and it lives beside the placement rule so both can be
 tested against a fake host. A session takes a seat on the first shared worker
 with room — `Options::sessionsPerSharedWorker`, 8 by default — and forks only
 when none has any. Since one session is one thread, that knob is a thread count
-per process: size it against cores, not against how many sessions a fanned-out
-panel opens, and let the excess queue. A process is retired once its last
-session leaves, so process count tracks live sessions rather than their
-high-water mark.
+per process, and what it bounds is the blast radius of a kill on a shared
+worker: how many co-tenants a cancel that goes the hard way takes with it. It
+does not bound concurrency. A session that finds every shared worker full gets
+a fresh one, so threads on the box follow sessions open; capping the pool and
+queueing sessions on it is §8. A process is retired once its last session
+leaves, so process count tracks live sessions rather than their high-water
+mark.
 
 The shape that falls out, and the ratios worth holding in mind:
 
@@ -750,6 +753,13 @@ convention registry — is worth reading before extending `conventions.proto`.
 - The §2.1 dispatch rule — which requests count as "long" and go to a
   sacrificial process — is currently by engine kind. Sample count may be the
   better signal.
+- Whether the shared pool should be capped. Today every session gets a seat
+  and a full pool grows by a process, so `sessionsPerSharedWorker` bounds a
+  kill's blast radius and nothing else (§2.1); a client that opens a session
+  per strike oversubscribes the cores rather than queueing. A cap with a
+  queue in front of it is the alternative, and it needs a measurement of
+  what a fanned-out panel actually does to a box before it is worth its
+  latency.
 - Whether an OpenMP-enabled worker binary is worth maintaining for the
   sacrificial processes (§2.2). It would help binomial and FD requests and
   nothing else, and it doubles the build matrix, so it needs a measured win on

@@ -168,10 +168,13 @@ namespace qlservice {
 
             //! Sessions packed into one shared worker process.
             /*! One session is one thread (DESIGN §2), so this is a thread
-                count per process and should be sized against cores rather
-                than against how many sessions the frontend opens: a panel
-                that fans out a smile opens a session per strike, and the
-                excess queues on the pool instead of oversubscribing it.
+                count per process. It bounds the blast radius of a kill on a
+                shared worker -- how many co-tenants a cancel that has to go
+                the hard way takes with it -- and nothing else: a session
+                that finds every shared worker full gets a new one, so the
+                number of threads on the box follows the number of sessions
+                open, and nothing queues. Capping the pool and queueing
+                sessions on it is DESIGN §8, still open.
 
                 It does not apply to sacrificial workers, which are always
                 sole occupants — that is what makes them safe to kill.
@@ -321,9 +324,22 @@ namespace qlservice {
 
         //! Moves a session off its worker without disturbing its co-tenants.
         /*! A CloseSession, not a kill: under pooling, killing a process to
-            relocate one of its sessions would take the others with it.
+            relocate one of its sessions would take the others with it. The
+            close queues behind whatever the session has in flight, so the
+            old seat finishes that work and answers it before it goes.
         */
         void detach(const std::string& sessionId, SessionState& state);
+
+        //! Rebuilds a session's graph on a seat it has just been given.
+        /*! The log first, then every write still waiting on an Ack from the
+            seat it was sent to, as request-less frames. The old seat is
+            still going to apply those writes and answer them, and the log
+            takes them on that Ack; sending them here as well is what keeps
+            the new graph at the same state, rather than one write behind
+            (DESIGN §2.1). Both graphs see the same write in the same order
+            against the same definition, so both accept it or both refuse.
+        */
+        void rebuildOn(const std::string& sessionId, const SessionState& state);
 
         //! Kills a worker and puts every session it held somewhere else.
         void killWorker(const std::string& workerId);
