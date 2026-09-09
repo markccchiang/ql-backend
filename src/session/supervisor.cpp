@@ -435,6 +435,29 @@ namespace qlservice {
     }
 
 
+    void Supervisor::onSessionDied(const std::string& sessionId) {
+        auto it = sessions_.find(sessionId);
+        if (it == sessions_.end())
+            return; // closed before the report arrived
+        auto& state = it->second;
+
+        // The seat is already empty on the host's side; this is the count
+        // catching up, and it is what retires the process once nothing is
+        // left on it.
+        releaseSeat(state.workerId);
+
+        // Whatever was queued behind the failing request went with the graph:
+        // writes unacked, cancel targets unreachable.
+        state.pendingUpdates.clear();
+        terminateCancelTargets(sessionId, state);
+        replay(sessionId, state);
+
+        // Only the gateway knows which request ids were queued on it.
+        if (sessions_.count(sessionId) > 0)
+            disrupted_(sessionId);
+    }
+
+
     void Supervisor::replay(const std::string& sessionId, SessionState& state) {
         if (state.replayFailures >= 2) {
             // A request that reliably kills its worker would otherwise become

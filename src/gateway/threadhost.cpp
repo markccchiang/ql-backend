@@ -11,10 +11,11 @@ namespace qlpb = quantlib::v2;
 
 namespace qlservice {
 
-    ThreadProcessHost::ThreadProcessHost(Post post, FrameSink frames)
-    : post_(std::move(post)), frames_(std::move(frames)) {
+    ThreadProcessHost::ThreadProcessHost(Post post, FrameSink frames, SessionSink died)
+    : post_(std::move(post)), frames_(std::move(frames)), died_(std::move(died)) {
         QL_REQUIRE(post_, "a post callback is required");
         QL_REQUIRE(frames_, "a frame sink is required");
+        QL_REQUIRE(died_, "a session death sink is required");
     }
 
 
@@ -66,9 +67,23 @@ namespace qlservice {
                 });
             };
 
+            // Same road as the frames, so it lands after the terminal frame
+            // of the request that dirtied the graph and before anything the
+            // worker answers from its queue afterwards. Once it has landed
+            // the seat is disowned, and those later answers -- every one a
+            // SESSION_NOT_FOUND for a graph that is no longer there -- are
+            // dropped rather than delivered under a session that has just
+            // been replayed elsewhere.
+            auto died = [this, alive, workerId, sessionId] {
+                post_([this, alive, workerId, sessionId] {
+                    if (alive->load())
+                        onSeatDied(workerId, sessionId);
+                });
+            };
+
             Seat fresh;
             fresh.alive = alive;
-            fresh.worker = std::make_unique<Worker>(sessionId, std::move(sink));
+            fresh.worker = std::make_unique<Worker>(sessionId, std::move(sink), std::move(died));
             fresh.worker->start();
             seat = process->second.seats.emplace(sessionId, std::move(fresh)).first;
         }
@@ -113,6 +128,27 @@ namespace qlservice {
             reap(std::move(seat));
         }
         processes_.erase(process);
+    }
+
+
+    void ThreadProcessHost::onSeatDied(const std::string& workerId, const std::string& sessionId) {
+        auto process = processes_.find(workerId);
+        if (process == processes_.end())
+            return;
+        auto seat = process->second.seats.find(sessionId);
+        if (seat == process->second.seats.end())
+            return;
+
+        // The seat goes, the process stays: its other seats are healthy, and
+        // the supervisor retires an empty process through kill() once its
+        // own count says so. Two views of one fact, kept in step by both
+        // moving one seat at a time.
+        auto dead = std::move(seat->second);
+        process->second.seats.erase(seat);
+        dead.alive->store(false);
+        reap(std::move(dead));
+
+        died_(sessionId);
     }
 
 

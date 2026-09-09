@@ -230,12 +230,25 @@ namespace qlservice {
         void onRequestTerminated(const std::string& sessionId,
                                  const quantlib::v2::ServerFrame& frame);
 
-        //! Called when a worker exits on its own.
+        //! Called when a worker process exits on its own.
         /*! Replayed like a cancel. A session that fails to replay twice is
             reported terminally as WORKER_DIED and dropped, so a request that
             reliably kills the worker cannot become a respawn loop.
+
+            For a process host. The thread host reports one session at a time
+            through onSessionDied(), because a thread dropping its graph does
+            not take its co-tenants with it.
         */
         void onWorkerDied(const std::string& workerId);
+
+        //! Called when one session's worker dropped its graph.
+        /*! The dirty-graph path of DESIGN §2.1: a commit failed part way, the
+            worker answered the request that did it and then let the graph
+            go. Its seat is given back, the session is replayed from the log
+            into a fresh seat, and the gateway is told to fail whatever else
+            was queued on it. The session keeps its id throughout.
+        */
+        void onSessionDied(const std::string& sessionId);
 
         //! Whether a request goes to a sacrificial process.
         /*! Currently keyed on engine kind, which is a proxy: a 200-path Monte

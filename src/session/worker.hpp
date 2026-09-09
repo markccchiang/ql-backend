@@ -39,7 +39,17 @@ namespace qlservice {
         //! Emits a frame back to the gateway. Called on the worker thread.
         using FrameSink = std::function<void(const quantlib::v2::ServerFrame&)>;
 
-        Worker(std::string sessionId, FrameSink sink);
+        //! Reports that this worker has dropped its graph. Called on the
+        //! worker thread, after the terminal frame of the request that did it.
+        /*! A failed commit leaves the graph partly invalidated, and the only
+            repair is a replay from the session log (DESIGN §2.1). The worker
+            cannot do that itself -- the log lives in the supervisor -- so it
+            says so and keeps serving, answering SESSION_NOT_FOUND to whatever
+            was queued behind the failure until it is reaped.
+        */
+        using DeathSink = std::function<void()>;
+
+        Worker(std::string sessionId, FrameSink sink, DeathSink died = {});
         ~Worker();
 
         Worker(const Worker&) = delete;
@@ -116,8 +126,12 @@ namespace qlservice {
                        const std::string& message,
                        const std::string& fieldPath = {});
 
+        //! Drops a dirty graph and reports it. The one path off a failed commit.
+        void dropSession();
+
         std::string sessionId_;
         FrameSink sink_;
+        DeathSink died_;
 
         // Created on the worker thread in run(), destroyed there too.
         std::unique_ptr<Session> session_;

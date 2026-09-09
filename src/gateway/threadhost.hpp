@@ -50,7 +50,16 @@ namespace qlservice {
         //! Emits a frame a worker produced. Always called on the loop.
         using FrameSink = std::function<void(const quantlib::v2::ServerFrame&)>;
 
-        ThreadProcessHost(Post post, FrameSink frames);
+        //! Reports a session whose thread dropped its graph. Always on the loop.
+        /*! The thread-host form of a worker death. A real process dies whole
+            and takes its co-tenants with it; a thread here drops one
+            session's graph and leaves the others untouched, so what is
+            reported is the session, and the seat is already gone by the time
+            this is called. The supervisor replays it (DESIGN §2.1).
+        */
+        using SessionSink = std::function<void(const std::string& sessionId)>;
+
+        ThreadProcessHost(Post post, FrameSink frames, SessionSink died);
         ~ThreadProcessHost() override;
 
         ThreadProcessHost(const ThreadProcessHost&) = delete;
@@ -85,8 +94,12 @@ namespace qlservice {
         */
         static void reap(Seat seat);
 
+        //! Takes a dead seat out of its process and reports the session.
+        void onSeatDied(const std::string& workerId, const std::string& sessionId);
+
         Post post_;
         FrameSink frames_;
+        SessionSink died_;
         std::map<std::string, Process> processes_;
         std::uint64_t nextWorkerId_ = 0;
     };

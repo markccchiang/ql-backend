@@ -252,6 +252,13 @@ namespace qlservice {
             }
         }
 
+        //! A worker dropped a session's graph. On the loop, after the terminal
+        //! frame of the request that did it.
+        void onSessionDied(const std::string& sessionId) {
+            logf("session replayed after a dirty graph", sessionId);
+            supervisor->onSessionDied(sessionId);
+        }
+
         //! A frame produced by a worker, marshalled onto the loop.
         void onWorkerFrame(const qlpb::ServerFrame& frame) {
             if (frame.request_id() == 0) {
@@ -542,7 +549,8 @@ namespace qlservice {
 
         impl.host = std::make_unique<ThreadProcessHost>(
             [loop](std::function<void()> fn) { loop->defer(std::move(fn)); },
-            [&impl](const qlpb::ServerFrame& frame) { impl.onWorkerFrame(frame); });
+            [&impl](const qlpb::ServerFrame& frame) { impl.onWorkerFrame(frame); },
+            [&impl](const std::string& sessionId) { impl.onSessionDied(sessionId); });
 
         impl.supervisor = std::make_unique<Supervisor>(
             *impl.host,

@@ -90,8 +90,8 @@ namespace qlservice {
     }
 
 
-    Worker::Worker(std::string sessionId, FrameSink sink)
-    : sessionId_(std::move(sessionId)), sink_(std::move(sink)) {
+    Worker::Worker(std::string sessionId, FrameSink sink, DeathSink died)
+    : sessionId_(std::move(sessionId)), sink_(std::move(sink)), died_(std::move(died)) {
         QL_REQUIRE(sink_, "a frame sink is required");
     }
 
@@ -480,7 +480,7 @@ namespace qlservice {
         // Dropped here rather than in the catch that usually does it: this one
         // did not throw, so nothing else will notice.
         if (session_->dirty())
-            session_.reset();
+            dropSession();
     }
 
 
@@ -644,11 +644,29 @@ namespace qlservice {
             // A dirty session cannot be repaired here: the supervisor replays
             // the session log into a fresh worker (DESIGN §2.1).
             if (session_ != nullptr && session_->dirty())
-                session_.reset();
+                dropSession();
 
         } catch (const std::exception& e) {
             emitError(frame.request_id(), qlpb::Error::INVALID_ARGUMENT, e.what());
+
+        } catch (...) {
+            // Nothing this thread throws should be able to reach here, and
+            // one that does is still one request's failure rather than the
+            // process's: an exception out of run() is std::terminate.
+            emitError(frame.request_id(), qlpb::Error::CALCULATION_FAILED,
+                      "the request failed with an exception that carries no message");
         }
+    }
+
+
+    void Worker::dropSession() {
+        session_.reset();
+        // After the terminal frame, never before: the sink runs the death
+        // through the same post as the frames, so the order they are called
+        // in here is the order the loop sees them, and the request that
+        // dirtied the graph is answered before its session is replayed.
+        if (died_)
+            died_();
     }
 
 
