@@ -20,6 +20,7 @@
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/date.hpp>
 #include <ql/time/schedule.hpp>
+#include <ql/errors.hpp>
 #include <functional>
 #include <map>
 #include <string>
@@ -58,6 +59,19 @@ namespace qlservice {
         exercise, an underlying and a style rather than one message per product
         (DESIGN §6.3).
     */
+    //! A calculation that stopped because it was asked to.
+    /*! Thrown from the one place a stop can be taken -- between Monte Carlo
+        batches -- so the worker can tell it from a calculation that failed.
+        A stop flag alone cannot: an engine that fails for its own reasons
+        after the user pressed Stop is still a failure, and reporting it as
+        CANCELLED would tell them their trade priced and was thrown away.
+    */
+    class Cancelled : public QuantLib::Error {
+      public:
+        explicit Cancelled(const std::string& message)
+        : QuantLib::Error(__FILE__, __LINE__, "Session::priceInBatches", message) {}
+    };
+
     class Session {
       public:
         //! Values the worker reports back for one price request.

@@ -79,6 +79,7 @@
 #include <ql/termstructures/yield/zerocurve.hpp>
 #include <ql/time/calendars/nullcalendar.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
+#include "capabilities.hpp"
 #include <algorithm>
 #include <any>
 #include <chrono>
@@ -494,13 +495,18 @@ namespace qlservice {
             Session::PriceOutcome out;
             out.npv = option->NPV();
 
-            // Always, never on request: a Monte Carlo price without its
-            // standard error is not comparable to another price, and a client
-            // that has to know to ask for it will compare them anyway. Engines
-            // that do not produce one simply have no entry.
-            try {
-                out.results["errorEstimate"] = option->errorEstimate();
-            } catch (const Error&) {
+            // Always for a Monte Carlo, never on request: a Monte Carlo price
+            // without its standard error is not comparable to another price,
+            // and a client that has to know to ask for it will compare them
+            // anyway. Asked of the Monte Carlo engines only: every other
+            // engine answers errorEstimate() by throwing, and a sweep of a
+            // hundred thousand analytic points would unwind that many times
+            // in its hot loop to learn nothing.
+            if (msg.engine().method() == qlpb::Engine::METHOD_MONTE_CARLO) {
+                try {
+                    out.results["errorEstimate"] = option->errorEstimate();
+                } catch (const Error&) {
+                }
             }
 
             if (msg.include_additional_results()) {
@@ -729,10 +735,15 @@ namespace qlservice {
                               "market object at '" << path << "' has no id");
 
             // One namespace across every kind, so a curve and a quote cannot
-            // share an id and leave a reference ambiguous.
+            // share an id and leave a reference ambiguous. marketIds_ is the
+            // whole namespace, fixings included -- a fixings object lives in
+            // no map here, it writes into the IndexManager, and without this
+            // two of them could share an id or take a quote's.
             const bool taken = quotes_.count(obj.id()) != 0 || curves_.count(obj.id()) != 0 ||
                                vols_.count(obj.id()) != 0 || indices_.count(obj.id()) != 0 ||
-                               correlations_.count(obj.id()) != 0;
+                               correlations_.count(obj.id()) != 0 ||
+                               std::find(marketIds_.begin(), marketIds_.end(), obj.id()) !=
+                                   marketIds_.end();
             QLS_FIELD_REQUIRE(!taken, qlpb::Error::INVALID_ARGUMENT, path + ".id",
                               "duplicate market id '" << obj.id() << "'");
 
@@ -2749,6 +2760,12 @@ namespace qlservice {
             const bool byTime = sample.times_size() > 0;
             QLS_FIELD_REQUIRE(byDate != byTime, qlpb::Error::INVALID_ARGUMENT, path,
                               "a curve sample takes dates or times, one of the two");
+            const int points = byDate ? sample.dates_size() : sample.times_size();
+            QLS_FIELD_REQUIRE(points <= kMaxCurveSamplePoints, qlpb::Error::INVALID_ARGUMENT,
+                              path + (byDate ? ".dates" : ".times"),
+                              "this sample asks for " << points << " points, over the limit of "
+                                                      << kMaxCurveSamplePoints
+                                                      << "; a chart shows hundreds");
 
             // Rate quantities need to say what a rate means; a discount factor
             // does not, and a compounding set beside one would be a field
@@ -2872,7 +2889,7 @@ namespace qlservice {
         const auto start = std::chrono::steady_clock::now();
 
         Real sum = 0.0;
-        Real sumOfSquaredErrors = 0.0;
+        Real sumOfSquaredWeightedErrors = 0.0;
 
         for (Size i = 0; i < batches; ++i) {
             // Explicit Size: samples() is uint64 and Size is size_t, which are
@@ -2880,8 +2897,12 @@ namespace qlservice {
             const Size thisBatch = std::min(batch, static_cast<Size>(mc.samples()) - i * batch);
 
             // Derived, not random: replaying the same request reproduces the
-            // same batch seeds.
-            const BigNatural batchSeed = static_cast<BigNatural>(mc.seed() + i);
+            // same batch seeds. Never zero, which the engine reads as "seed
+            // from the clock" and which the sum can wrap to from a seed near
+            // the top of the range.
+            BigNatural batchSeed = static_cast<BigNatural>(mc.seed() + i);
+            if (batchSeed == 0)
+                batchSeed = 1;
 
             option->setPricingEngine(
                 MakeMCEuropeanEngine<PseudoRandom>(graph.process)
@@ -2893,8 +2914,11 @@ namespace qlservice {
             sum += batchNpv * static_cast<Real>(thisBatch);
 
             try {
-                const Real err = option->errorEstimate();
-                sumOfSquaredErrors += err * err;
+                // The mean below weights each batch by its paths, so its
+                // error carries the same weight: the last batch is usually
+                // short, and counting it as a full one would overstate it.
+                const Real weighted = option->errorEstimate() * static_cast<Real>(thisBatch);
+                sumOfSquaredWeightedErrors += weighted * weighted;
             } catch (const Error&) {
                 // engine did not provide one; the combined estimate is dropped
             }
@@ -2904,15 +2928,18 @@ namespace qlservice {
                 // Cooperative stop between batches. Inside a batch nothing can
                 // interrupt the engine, which is why a hard cancel still has
                 // to kill the process (DESIGN §3).
-                QL_FAIL("cancelled after " << done << " of " << mc.samples() << " paths");
+                throw Cancelled("cancelled after " + std::to_string(done) + " of " +
+                                std::to_string(mc.samples()) + " paths");
             }
         }
 
         PriceOutcome out;
         out.npv = sum / static_cast<Real>(mc.samples());
-        if (sumOfSquaredErrors > 0.0) {
-            // Independent batches, so the errors add in quadrature.
-            out.results["errorEstimate"] = std::sqrt(sumOfSquaredErrors) / static_cast<Real>(batches);
+        if (sumOfSquaredWeightedErrors > 0.0) {
+            // Independent batches, so the errors add in quadrature, each
+            // scaled by its share of the paths.
+            out.results["errorEstimate"] =
+                std::sqrt(sumOfSquaredWeightedErrors) / static_cast<Real>(mc.samples());
         }
         out.calculationSeconds = seconds(start);
         return out;

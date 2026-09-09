@@ -27,6 +27,23 @@ namespace qlservice {
     */
     constexpr std::uint32_t kMaxScenarioPoints = 100000;
 
+    //! The most trades one PriceBatch may carry.
+    /*! The sweep cap's sibling: a 4 MB frame can hold tens of thousands of
+        Monte Carlos, each of which runs to completion on the seat it starts
+        on. Sized the same way -- a blotter is tens of rows, a thousand is a
+        loop that forgot to stop. Not advertised yet: Capabilities carries
+        only the sweep ceiling, and the schema is a separate repository.
+    */
+    constexpr int kMaxBatchEntries = 1000;
+
+    //! The most points one CurveSample may ask for.
+    /*! A curve chart is hundreds of points; ten thousand is more than any
+        screen shows. Each point is a term-structure query on the live graph,
+        so a sample this size is a request in its own right rather than a
+        decoration on one.
+    */
+    constexpr int kMaxCurveSamplePoints = 10000;
+
     //! Fills the reply to a Hello.
     /*! The lists here and the dispatch in session.cpp are the same fact told
         twice, and the second telling is the one that goes over the wire. They

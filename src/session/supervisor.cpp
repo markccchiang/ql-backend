@@ -37,12 +37,42 @@ namespace qlservice {
         }
 
         // Fixings are graph input the replay has to reproduce as well, and
-        // they only ever accumulate: appending is the whole fold.
+        // they fold the same way: one series per index, one row per date, a
+        // later value for a date superseding the earlier. Appending an
+        // object per update instead would grow the replay by one per
+        // keystroke, since the editor sends the whole series each time.
         for (const auto& f : msg.fixings()) {
-            auto* obj = open_.add_market();
-            obj->set_id("fixings:" + f.index_id() + ":" +
-                        std::to_string(open_.market_size()));
-            *obj->mutable_fixings() = f;
+            qlpb::FixingSeries* series = nullptr;
+            for (int i = 0; i < open_.market_size() && series == nullptr; ++i)
+                if (open_.market(i).has_fixings() &&
+                    open_.market(i).fixings().index_id() == f.index_id())
+                    series = open_.mutable_market(i)->mutable_fixings();
+            if (series == nullptr) {
+                // A fresh object needs an id the replay's duplicate check
+                // will pass; the client's own ids are in the same namespace.
+                std::string id = "fixings:" + f.index_id();
+                for (int n = 2; std::any_of(open_.market().begin(), open_.market().end(),
+                                            [&](const auto& obj) { return obj.id() == id; });
+                     ++n)
+                    id = "fixings:" + f.index_id() + ":" + std::to_string(n);
+                auto* obj = open_.add_market();
+                obj->set_id(id);
+                series = obj->mutable_fixings();
+                series->set_index_id(f.index_id());
+            }
+            for (const auto& row : f.fixings()) {
+                const auto key = row.date().SerializeAsString();
+                bool replaced = false;
+                for (auto& held : *series->mutable_fixings()) {
+                    if (held.date().SerializeAsString() == key) {
+                        held.set_value(row.value());
+                        replaced = true;
+                        break;
+                    }
+                }
+                if (!replaced)
+                    *series->add_fixings() = row;
+            }
         }
     }
 

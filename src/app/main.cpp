@@ -5,6 +5,7 @@
 */
 
 #include "gateway/gateway.hpp"
+#include <charconv>
 #include <cstdio>
 #include <cstdlib>
 #include <cstddef>
@@ -12,6 +13,28 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <system_error>
+
+namespace {
+
+    //! Reads a whole number in [low, high] or says why not and exits 2.
+    /*! atoi read "--port abc" as port 0 and "--max-sessions -1" as the
+        largest size there is, and the daemon started on either. A flag that
+        does not parse is the operator's mistake, and it is reported as one.
+    */
+    long long parseCount(const char* flag, const char* text, long long low, long long high) {
+        long long value = 0;
+        const char* end = text + std::strlen(text);
+        const auto [ptr, ec] = std::from_chars(text, end, value);
+        if (ec != std::errc() || ptr != end || value < low || value > high) {
+            std::fprintf(stderr, "%s takes a whole number from %lld to %lld, not '%s'\n", flag,
+                         low, high, text);
+            std::exit(2);
+        }
+        return value;
+    }
+
+}
 
 int main(int argc, char** argv) {
     qlservice::Gateway::Options options;
@@ -20,7 +43,7 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--port" && i + 1 < argc) {
-            options.port = std::atoi(argv[++i]);
+            options.port = static_cast<int>(parseCount("--port", argv[++i], 1, 65535));
         } else if (arg == "--host" && i + 1 < argc) {
             options.host = argv[++i];
         } else if (arg == "--allow-origin" && i + 1 < argc) {
@@ -38,13 +61,16 @@ int main(int argc, char** argv) {
             options.allowedOrigins.clear();
             replacedOrigins = true;
         } else if (arg == "--max-connections" && i + 1 < argc) {
-            options.maxConnections = static_cast<std::size_t>(std::atoi(argv[++i]));
+            options.maxConnections =
+                static_cast<std::size_t>(parseCount("--max-connections", argv[++i], 1, 1 << 20));
         } else if (arg == "--max-sessions" && i + 1 < argc) {
-            options.maxSessionsPerConnection = static_cast<std::size_t>(std::atoi(argv[++i]));
+            options.maxSessionsPerConnection =
+                static_cast<std::size_t>(parseCount("--max-sessions", argv[++i], 1, 1 << 20));
         } else if (arg == "--session-grace" && i + 1 < argc) {
             // Zero restores the rule this service had until now: a dropped
             // socket closes its sessions on the spot.
-            options.resumeGrace = std::chrono::seconds(std::atoi(argv[++i]));
+            options.resumeGrace =
+                std::chrono::seconds(parseCount("--session-grace", argv[++i], 0, 86400));
         } else if (arg == "--help" || arg == "-h") {
             std::printf("usage: ql-backend [--host ADDR] [--port N]\n"
                         "                  [--allow-origin URL]... | [--any-origin]\n"

@@ -399,6 +399,12 @@ namespace qlservice {
         const auto& requests = frame.batch().requests();
         QLS_FIELD_REQUIRE(!requests.empty(), qlpb::Error::INVALID_ARGUMENT, "batch.requests",
                           "a batch prices at least one trade");
+        QLS_FIELD_REQUIRE(requests.size() <= kMaxBatchEntries, qlpb::Error::INVALID_ARGUMENT,
+                          "batch.requests",
+                          "this batch holds " + std::to_string(requests.size()) +
+                              " trades, over the limit of " + std::to_string(kMaxBatchEntries) +
+                              "; a book is tens of rows, and each row runs to completion on "
+                              "the seat it starts on");
 
         qlpb::BatchResult out;
 
@@ -431,10 +437,11 @@ namespace qlservice {
                 error->set_message(e.what());
                 error->set_field_path(e.fieldPath().empty() ? path : path + "." + e.fieldPath());
             } catch (const Error& e) {
+                // A failure, whatever the stop flag says: one entry is one
+                // engine call, and nothing interrupts that. A stop is taken
+                // between entries, below, and never inside one.
                 auto* error = entry->mutable_error();
-                error->set_code(stopRequested_.load(std::memory_order_relaxed)
-                                    ? qlpb::Error::CANCELLED
-                                    : qlpb::Error::CALCULATION_FAILED);
+                error->set_code(qlpb::Error::CALCULATION_FAILED);
                 error->set_message(e.what());
                 error->set_field_path(path);
             }
@@ -627,19 +634,21 @@ namespace qlservice {
             // path the frontend should highlight (DESIGN §6).
             emitError(frame.request_id(), e.code(), e.what(), e.fieldPath());
 
-        } catch (const Error& e) {
-            // A stop taken at a batch boundary unwinds through here as well,
-            // and it is not a calculation failure: the client asked for it,
-            // and the protocol promises one code for a cancel however it was
-            // served (envelope.proto, CancelRequest). Reporting
-            // CALCULATION_FAILED would tell the user their trade did not
-            // price.
-            const bool stopped = stopRequested_.load(std::memory_order_relaxed);
+        } catch (const Cancelled& e) {
+            // A stop taken at a batch boundary unwinds through here, and it
+            // is not a calculation failure: the client asked for it, and the
+            // protocol promises one code for a cancel however it was served
+            // (envelope.proto, CancelRequest). Reporting CALCULATION_FAILED
+            // would tell the user their trade did not price. Told apart by
+            // type rather than by the stop flag, because a trade that fails
+            // for its own reasons after the user pressed Stop is still a
+            // failure, and the flag alone would hide it.
+            emitError(frame.request_id(), qlpb::Error::CANCELLED, e.what());
 
-            // Otherwise QuantLib's message names the failing quantity and is
-            // worth showing to the user verbatim.
-            emitError(frame.request_id(),
-                      stopped ? qlpb::Error::CANCELLED : qlpb::Error::CALCULATION_FAILED, e.what());
+        } catch (const Error& e) {
+            // QuantLib's message names the failing quantity and is worth
+            // showing to the user verbatim.
+            emitError(frame.request_id(), qlpb::Error::CALCULATION_FAILED, e.what());
 
             // A dirty session cannot be repaired here: the supervisor replays
             // the session log into a fresh worker (DESIGN §2.1).
