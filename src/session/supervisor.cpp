@@ -70,12 +70,14 @@ namespace qlservice {
     Supervisor::Supervisor(ProcessHost& host,
                            FrameSink sink,
                            DisruptionSink disrupted,
+                           DroppedSink dropped,
                            DeadlineTimer armTimer,
                            Options options)
     : host_(host), sink_(std::move(sink)), disrupted_(std::move(disrupted)),
-      armTimer_(std::move(armTimer)), options_(options) {
+      dropped_(std::move(dropped)), armTimer_(std::move(armTimer)), options_(options) {
         QL_REQUIRE(sink_, "a frame sink is required");
         QL_REQUIRE(disrupted_, "a disruption sink is required");
+        QL_REQUIRE(dropped_, "a dropped-session sink is required");
         QL_REQUIRE(armTimer_, "a deadline timer is required");
         QL_REQUIRE(options_.stopGrace.count() >= 0, "the stop grace cannot be negative");
         QL_REQUIRE(options_.sessionsPerSharedWorker > 0,
@@ -86,8 +88,10 @@ namespace qlservice {
     Supervisor::Supervisor(ProcessHost& host,
                            FrameSink sink,
                            DisruptionSink disrupted,
+                           DroppedSink dropped,
                            DeadlineTimer armTimer)
-    : Supervisor(host, std::move(sink), std::move(disrupted), std::move(armTimer), Options()) {}
+    : Supervisor(host, std::move(sink), std::move(disrupted), std::move(dropped),
+                 std::move(armTimer), Options()) {}
 
 
     std::string Supervisor::acquireSeat(Placement placement) {
@@ -467,6 +471,7 @@ namespace qlservice {
             emitError(sessionId, 0, qlpb::Error::WORKER_DIED,
                       "session '" + sessionId + "' could not be replayed and has been dropped");
             sessions_.erase(sessionId);
+            dropped_(sessionId);
             return;
         }
 

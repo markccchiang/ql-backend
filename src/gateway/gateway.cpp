@@ -113,6 +113,13 @@ namespace qlservice {
         struct Detached {
             std::chrono::steady_clock::time_point deadline;
             std::vector<qlpb::ServerFrame> held;
+            //! Requests whose terminal frame arrived past the holding limit.
+            /*! The frame is gone, but the client is still owed exactly one
+                terminal per request, and it gets that on resume as an error
+                that says what happened rather than nothing for ninety
+                seconds.
+            */
+            std::set<std::uint64_t> lost;
         };
         std::map<std::string, Detached> detached;
 
@@ -222,7 +229,12 @@ namespace qlservice {
                     return;
 
                 if (waiting->second.held.size() >= kMaxHeldFrames) {
+                    // The result is lost; the request must not be. Tracked
+                    // again, so a disruption still fails it, and remembered
+                    // so a resume answers it.
                     logf("held frames overflowed", frame.session_id());
+                    track(frame.session_id(), frame.request_id());
+                    waiting->second.lost.insert(frame.request_id());
                     return;
                 }
                 waiting->second.held.push_back(frame);
@@ -252,15 +264,66 @@ namespace qlservice {
             }
         }
 
+        //! Runs a loop callback with the process's life not riding on it.
+        /*! Everything below the gateway signals failure by throwing, and a
+            throw that escapes a uWS defer() or a timer tick is
+            std::terminate: one QL_REQUIRE in the supervisor's bookkeeping
+            would take every session on the box. Logged and dropped here
+            instead; the request it concerned is the one that pays.
+        */
+        template <class Fn>
+        void guarded(const char* what, Fn&& fn) {
+            try {
+                fn();
+            } catch (const std::exception& e) {
+                logf(what, e.what());
+            } catch (...) {
+                logf(what, "exception without a message");
+            }
+        }
+
         //! A worker dropped a session's graph. On the loop, after the terminal
         //! frame of the request that did it.
         void onSessionDied(const std::string& sessionId) {
-            logf("session replayed after a dirty graph", sessionId);
-            supervisor->onSessionDied(sessionId);
+            guarded("session death handling failed", [&] {
+                logf("session replayed after a dirty graph", sessionId);
+                supervisor->onSessionDied(sessionId);
+            });
+        }
+
+        //! The supervisor has forgotten a session: nothing can arrive for it.
+        void onSessionDropped(const std::string& sessionId) {
+            // The WORKER_DIED that announced it went out before this was
+            // called. Requests still outstanding get their own terminal
+            // frame; then the route, the token and the seat in the
+            // connection's count are released, or the session would keep
+            // counting against maxSessionsPerConnection and stay resumable
+            // as something that no longer exists.
+            auto pending = outstanding.find(sessionId);
+            if (pending != outstanding.end()) {
+                const auto ids = pending->second;
+                for (const auto requestId : ids)
+                    fail(sessionId, requestId, qlpb::Error::WORKER_DIED,
+                         "the session could not be replayed and has been dropped");
+            }
+            outstanding.erase(sessionId);
+            detached.erase(sessionId);
+            sessions.erase(sessionId);
+            auto owner = sessionConn.find(sessionId);
+            if (owner != sessionConn.end()) {
+                auto conn = conns.find(owner->second);
+                if (conn != conns.end())
+                    conn->second.openSessions.erase(sessionId);
+                sessionConn.erase(owner);
+            }
         }
 
         //! A frame produced by a worker, marshalled onto the loop.
         void onWorkerFrame(const qlpb::ServerFrame& frame) {
+            guarded("worker frame handling failed", [&] { onWorkerFrameUnguarded(frame); });
+        }
+
+        void onWorkerFrameUnguarded(const qlpb::ServerFrame& frame) {
             if (frame.request_id() == 0) {
                 // A replay's own answer. The supervisor rebuilds a session by
                 // re-sending its OpenSession with no request id, and a replay
@@ -385,6 +448,7 @@ namespace qlservice {
                 sessionConn[ask.session_id()] = connId;
                 conn.openSessions.insert(ask.session_id());
                 auto held = std::move(waiting->second.held);
+                auto lost = std::move(waiting->second.lost);
                 detached.erase(waiting);
 
                 // The original SessionOpened, replayed: same id, same graph,
@@ -400,8 +464,19 @@ namespace qlservice {
                 for (const auto& frameHeld : held)
                     deliver(frameHeld);
 
+                // And what finished but could not be kept. The work was done
+                // and its result is gone; the client is told that much, on
+                // the request's own id, and can ask again.
+                for (const auto requestId : lost)
+                    fail(ask.session_id(), requestId, qlpb::Error::WORKER_DIED,
+                         "this request finished while the connection was down, past the number "
+                         "of results the service holds for an absent client; send it again");
+
                 logf("session resumed", ask.session_id() + " with " +
-                                            std::to_string(held.size()) + " held frames");
+                                            std::to_string(held.size()) + " held frames" +
+                                            (lost.empty() ? std::string()
+                                                          : ", " + std::to_string(lost.size()) +
+                                                                " lost"));
                 return;
             }
 
@@ -530,7 +605,7 @@ namespace qlservice {
             while (!deadlines.empty() && deadlines.begin()->first <= now) {
                 auto callback = std::move(deadlines.begin()->second);
                 deadlines.erase(deadlines.begin());
-                callback(); // may arm another round
+                guarded("deadline callback failed", callback); // may arm another round
             }
         }
     };
@@ -568,6 +643,7 @@ namespace qlservice {
                     impl.fail(sessionId, requestId, qlpb::Error::WORKER_DIED,
                               "worker died; the session was replayed and this request was lost");
             },
+            [&impl](const std::string& sessionId) { impl.onSessionDropped(sessionId); },
             [&impl](std::chrono::milliseconds delay, std::function<void()> callback) {
                 impl.deadlines.emplace(std::chrono::steady_clock::now() + delay,
                                        std::move(callback));

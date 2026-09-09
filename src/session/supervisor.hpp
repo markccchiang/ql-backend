@@ -137,6 +137,15 @@ namespace qlservice {
         */
         using DisruptionSink = std::function<void(const std::string& sessionId)>;
 
+        //! Reports that a session is gone for good.
+        /*! Called after the terminal WORKER_DIED that announces it, once the
+            supervisor has forgotten the session. What the gateway holds for
+            it -- a route, a token, a place in its connection's count, the
+            requests still outstanding on it -- is the gateway's to release,
+            and nothing else would ever tell it to.
+        */
+        using DroppedSink = std::function<void(const std::string& sessionId)>;
+
         //! Arms a one-shot timer on the event loop that drives this object.
         /*! The supervisor owns no thread and no clock. Every entry point is
             called from the gateway's loop, and the deferred half of a cancel
@@ -173,6 +182,7 @@ namespace qlservice {
         Supervisor(ProcessHost& host,
                    FrameSink sink,
                    DisruptionSink disrupted,
+                   DroppedSink dropped,
                    DeadlineTimer armTimer,
                    Options options);
 
@@ -184,6 +194,7 @@ namespace qlservice {
         Supervisor(ProcessHost& host,
                    FrameSink sink,
                    DisruptionSink disrupted,
+                   DroppedSink dropped,
                    DeadlineTimer armTimer);
 
         void openSession(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
@@ -340,6 +351,7 @@ namespace qlservice {
         ProcessHost& host_;
         FrameSink sink_;
         DisruptionSink disrupted_;
+        DroppedSink dropped_;
         DeadlineTimer armTimer_;
         Options options_;
         std::map<std::string, SessionState> sessions_;
