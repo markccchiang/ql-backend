@@ -1005,6 +1005,43 @@ on a developer's machine and the wrong one anywhere else — where the answer
 stays a reverse proxy that terminates TLS, authenticates, and leaves this
 process on loopback behind it.
 
+**Decision: an optional shared secret, presented at the upgrade.**
+`--token-file PATH` is what makes that bet unnecessary on a machine with other
+users on it, and it is the one thing a proxy cannot supply: a proxy stands
+beside this process rather than in front of its loopback socket, so anything
+local still dials the port directly. Three choices inside it are the whole
+design:
+
+- **A file, not a flag.** Arguments are world-readable through `ps`, so
+  `--token abc` would publish the secret to exactly the local processes it
+  exists to exclude. The file is read when it exists and minted at `0600` when
+  it does not, and it is refused when anyone but its owner can read it —
+  a secret that is not is not one.
+- **At the upgrade, not in a frame.** A refusal costs no connection slot, no
+  session and no worker seat, which is why `Hello` was not given a token field.
+  A wrong token and a missing one get the same `401`, for the reason a refused
+  resume gets one answer (§9.4); the log distinguishes them.
+- **Two places to put it, because a browser has only one.** Anything that can
+  set a header sends `Authorization: Bearer`. A browser cannot — `new
+  WebSocket` takes a URL and a list of subprotocols and nothing else (RFC 6455
+  §11.3.4) — so it sends `token.<secret>` as a subprotocol beside
+  `qlservice.v2`. A server must then select exactly one protocol or the browser
+  fails the handshake, so the offered list is parsed and answered rather than
+  echoed. The third option would be the query string, and it is the worst:
+  a URL reaches logs, history and referrers, and a secret in one is written
+  down in several places nobody is guarding.
+
+What this cannot do belongs beside what it can. The protection is bounded by
+who can read the token, so it keeps out another user's process and not one
+running as the user who owns the file — which is an operating-system boundary
+and not something this gateway can supply.
+
+**Decision: refuse to bind anywhere but loopback without one.** Fail closed.
+Everything above is a door against a page and none of it is a boundary against
+the network, so a routable `--host` with no token is refused at startup with
+exit code 2 and both ways out named. It is the accident far more than the
+decision: nothing else here would have said a word before answering the office.
+
 **Decision: cap connections per process and sessions per connection.** The other
 half of having no authentication is that nothing else stops one client taking
 everything: 32 sockets, refused at the upgrade with `503`, and 16 sessions per
@@ -1022,4 +1059,7 @@ turning — which is the honest scope, and the right one: everything that can go
 wrong inside a graph happens on a worker thread and must not restart the
 process. It carries the live connection and session counts, and deliberately no
 `Access-Control-Allow-Origin`, so the tab that was just refused an upgrade
-cannot read them either.
+cannot read them either. Once a token is required the counts are left out
+altogether: this endpoint cannot ask for one, since a container runtime holds
+no secret and still has to decide whether to restart the process, so what an
+unauthenticated caller may read is trimmed to liveness instead.

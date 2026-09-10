@@ -36,6 +36,20 @@ from quantlib.v2 import results_pb2 as R
 import reference_tables as T
 
 URL = "ws://127.0.0.1:9111"
+
+# The service may have been started with --token-file, in which case every
+# upgrade has to present the secret. A header rather than a subprotocol: only
+# a browser is unable to set one, and this is not a browser.
+TOKEN = os.environ.get("QL_TOKEN", "")
+
+
+def connect(*args, **kwargs):
+    """websockets.connect, carrying the token when there is one."""
+    if TOKEN:
+        headers = dict(kwargs.pop("additional_headers", None) or {})
+        headers["Authorization"] = "Bearer " + TOKEN
+        kwargs["additional_headers"] = headers
+    return websockets.connect(*args, **kwargs)
 HEALTH = "http://127.0.0.1:9111/healthz"
 
 # The C++ tests all price against Actual/360 with the expiry a whole number of
@@ -580,7 +594,7 @@ async def main():
                 worst, worst_row = err, n
         check(f"{label} ({len(rows)} rows)", True, f"worst err={worst:.2e} at row {worst_row}")
 
-    async with websockets.connect(URL, max_size=16 << 20) as ws:
+    async with connect(URL, max_size=16 << 20) as ws:
 
         # -- what this build says it can do ----------------------------------
         #
@@ -2079,7 +2093,7 @@ async def main():
         # for this market -- so what the window is for is the work.
         print("\n  -- resume --")
 
-        async with websockets.connect(URL, max_size=None) as doomed:
+        async with connect(URL, max_size=None) as doomed:
             opened = await send(doomed, open_session())
             resume_id = opened.session_opened.session_id
             token = opened.session_opened.resume_token
@@ -2105,7 +2119,7 @@ async def main():
             check("a batched Monte Carlo reports before the socket dies", started)
 
         # The socket is gone. Come back for the session, and for the answer.
-        async with websockets.connect(URL, max_size=None) as returning:
+        async with connect(URL, max_size=None) as returning:
             back = E.ClientFrame(request_id=next_id())
             back.resume_session.session_id = resume_id
             back.resume_session.resume_token = token
@@ -2145,7 +2159,7 @@ async def main():
 
         # Closed on purpose is not dropped by accident: there is nothing to
         # come back for, and the token dies with the session.
-        async with websockets.connect(URL, max_size=None) as after:
+        async with connect(URL, max_size=None) as after:
             back = E.ClientFrame(request_id=next_id())
             back.resume_session.session_id = resume_id
             back.resume_session.resume_token = token
@@ -2161,7 +2175,7 @@ async def main():
                 # On a socket of its own, which then goes: a session still
                 # held by a live connection is not detached at all, and
                 # checking that would prove nothing about the window.
-                async with websockets.connect(URL, max_size=None) as brief:
+                async with connect(URL, max_size=None) as brief:
                     opened = await send(brief, open_session())
                     short_id = opened.session_opened.session_id
                     short_token = opened.session_opened.resume_token
@@ -2193,9 +2207,20 @@ async def main():
 
         # The numbers have to be the real ones, or the endpoint is a constant
         # dressed as a measurement. This connection is open and holds sessions.
-        check("and counts the sockets and sessions it is actually serving",
-              health.get("connections", 0) >= 1 and health.get("sessions", 0) >= 1,
-              f"connections={health.get('connections')} sessions={health.get('sessions')}")
+        #
+        # Unless a token is required, in which case there are no numbers at
+        # all: a probe cannot present a secret and still has to be able to ask
+        # whether the process is alive, so what an unauthenticated caller may
+        # read is trimmed to that instead. How much is open is the business of
+        # whoever can open something.
+        if TOKEN:
+            check("and tells an unauthenticated caller nothing but that it is alive",
+                  "connections" not in health and "sessions" not in health,
+                  f"{health}")
+        else:
+            check("and counts the sockets and sessions it is actually serving",
+                  health.get("connections", 0) >= 1 and health.get("sessions", 0) >= 1,
+                  f"connections={health.get('connections')} sessions={health.get('sessions')}")
 
         # A browser may send this request from any page it likes; without the
         # header it cannot read the reply, and these counts are not something a
@@ -2216,7 +2241,7 @@ async def main():
               ws.state.name == "OPEN")
 
         try:
-            await websockets.connect(URL, origin="https://evil.example",
+            await connect(URL, origin="https://evil.example",
                                      max_size=16 << 20)
             refused = False
         except Exception as e:
@@ -2224,7 +2249,7 @@ async def main():
         check("a browser origin that is not allowed is refused at the upgrade",
               refused)
 
-        allowed = await websockets.connect(URL, origin="http://localhost:5173",
+        allowed = await connect(URL, origin="http://localhost:5173",
                                            max_size=16 << 20)
         check("and the development server's origin is let through",
               allowed.state.name == "OPEN")
@@ -2236,7 +2261,7 @@ async def main():
         refused_at = None
         for n in range(64):
             try:
-                extra.append(await websockets.connect(URL, max_size=16 << 20))
+                extra.append(await connect(URL, max_size=16 << 20))
             except Exception as e:
                 refused_at = (n, "503" in str(e))
                 break

@@ -40,6 +40,9 @@ namespace qlservice {
         //! Terminal frames held for one absent client before we start dropping.
         constexpr std::size_t kMaxHeldFrames = 64;
 
+        //! The subprotocol item that carries a token rather than a protocol.
+        constexpr std::string_view kTokenProtocol = "token.";
+
         //! 128 bits from the platform's entropy source, as hex.
         /*! std::random_device and not a seeded generator: this is the only
             thing between a session and any other page on the machine, since a
@@ -67,6 +70,61 @@ namespace qlservice {
             for (std::size_t i = 0; i < a.size(); ++i)
                 diff |= static_cast<unsigned char>(a[i] ^ b[i]);
             return diff == 0;
+        }
+
+        bool startsWith(std::string_view text, std::string_view prefix) {
+            return text.size() >= prefix.size() && text.substr(0, prefix.size()) == prefix;
+        }
+
+        //! Strips the spaces a comma-separated header list carries.
+        std::string_view trimmed(std::string_view text) {
+            while (!text.empty() && (text.front() == ' ' || text.front() == '\t'))
+                text.remove_prefix(1);
+            while (!text.empty() && (text.back() == ' ' || text.back() == '\t'))
+                text.remove_suffix(1);
+            return text;
+        }
+
+        //! The one subprotocol this service answers with, never the token.
+        /*! A server selects exactly one or the browser closes the socket, so
+            the offered list cannot simply be echoed back the way it was
+            before a token could be among its items.
+        */
+        std::string_view selectedProtocol(std::string_view offered) {
+            for (;;) {
+                const auto comma = offered.find(',');
+                const auto item = trimmed(offered.substr(0, comma));
+                if (!item.empty() && !startsWith(item, kTokenProtocol))
+                    return item;
+                if (comma == std::string_view::npos)
+                    return {};
+                offered.remove_prefix(comma + 1);
+            }
+        }
+
+        //! The token a client presents, from either place one may be put.
+        /*! An Authorization header for everything that can set headers, and
+            the subprotocol list for the one client that cannot: a browser's
+            WebSocket constructor takes a URL and a list of protocols and
+            nothing else (RFC 6455 §11.3.4). The third option would be the
+            query string, and it is the worst of the three -- a URL reaches
+            logs, history and referrers, and a secret in one is a secret
+            written down in several places nobody is guarding.
+        */
+        std::string presentedToken(std::string_view authorization, std::string_view offered) {
+            constexpr std::string_view bearer = "Bearer ";
+            if (startsWith(authorization, bearer))
+                return std::string(trimmed(authorization.substr(bearer.size())));
+
+            for (;;) {
+                const auto comma = offered.find(',');
+                const auto item = trimmed(offered.substr(0, comma));
+                if (startsWith(item, kTokenProtocol))
+                    return std::string(item.substr(kTokenProtocol.size()));
+                if (comma == std::string_view::npos)
+                    return {};
+                offered.remove_prefix(comma + 1);
+            }
         }
 
     }
@@ -678,6 +736,24 @@ namespace qlservice {
                 res->writeStatus("403 Forbidden")->end("origin not allowed");
                 return;
             }
+
+            // The secret, checked before there is a socket: a refusal here
+            // costs no connection slot, no session and no worker seat, which
+            // is the whole reason it is not a frame. The reason is not
+            // spelled out to the caller -- a wrong token and a missing one
+            // are one answer, for the same reason a refused resume is
+            // (DESIGN §9.4) -- but the log says which.
+            const std::string_view offered = req->getHeader("sec-websocket-protocol");
+            if (!impl.options.authToken.empty()) {
+                const auto presented = presentedToken(req->getHeader("authorization"), offered);
+                if (!sameToken(impl.options.authToken, presented)) {
+                    logf("upgrade refused",
+                         presented.empty() ? "no token presented" : "token does not match");
+                    res->writeStatus("401 Unauthorized")->end("a token is required");
+                    return;
+                }
+            }
+
             if (impl.conns.size() >= impl.options.maxConnections) {
                 // Refused here rather than opened and closed, so the client
                 // reads a status rather than an unexplained disconnect.
@@ -686,7 +762,7 @@ namespace qlservice {
                 return;
             }
             res->template upgrade<SocketData>({}, req->getHeader("sec-websocket-key"),
-                                              req->getHeader("sec-websocket-protocol"),
+                                              selectedProtocol(offered),
                                               req->getHeader("sec-websocket-extensions"), context);
         };
 
@@ -724,16 +800,26 @@ namespace qlservice {
                     // may send this request from any page; without the header
                     // it cannot read the reply, and the counts below are not
                     // something a random tab should be able to poll.
-                    res->writeHeader("Content-Type", "application/json")
-                        ->end("{\"status\":\"ok\""
-                              ",\"build\":\"ql-backend\""
-                              ",\"quantlib\":\"" QL_VERSION "\""
-                              ",\"uptimeSeconds\":" + std::to_string(uptime) +
-                              ",\"connections\":" + std::to_string(impl.conns.size()) +
-                              ",\"sessions\":" + std::to_string(impl.sessionConn.size()) +
-                              ",\"detached\":" + std::to_string(impl.detached.size()) +
-                              ",\"maxConnections\":" + std::to_string(impl.options.maxConnections) +
-                              "}");
+                    //
+                    // The counts are left out entirely once a token is
+                    // required. This endpoint cannot ask for one -- a
+                    // container runtime holds no secret and still has to be
+                    // able to decide whether to restart the process -- so
+                    // what it may say is trimmed to what liveness needs
+                    // instead. How many sessions are open is the business of
+                    // whoever can open one.
+                    std::string body = "{\"status\":\"ok\""
+                                       ",\"build\":\"ql-backend\""
+                                       ",\"quantlib\":\"" QL_VERSION "\""
+                                       ",\"uptimeSeconds\":" + std::to_string(uptime);
+                    if (impl.options.authToken.empty())
+                        body += ",\"connections\":" + std::to_string(impl.conns.size()) +
+                                ",\"sessions\":" + std::to_string(impl.sessionConn.size()) +
+                                ",\"detached\":" + std::to_string(impl.detached.size()) +
+                                ",\"maxConnections\":" +
+                                    std::to_string(impl.options.maxConnections);
+                    body += "}";
+                    res->writeHeader("Content-Type", "application/json")->end(body);
                 })
             .ws<SocketData>("/*", std::move(behavior))
             .listen(impl.options.host, impl.options.port,

@@ -25,12 +25,29 @@ namespace qlservice {
     class Gateway {
       public:
         struct Options {
-            //! Interface to bind. Loopback by default: this is a pricing
-            //! backend with no authentication of any kind (DESIGN §9), so it
-            //! has no business being reachable from the network until it has.
+            //! Interface to bind. Loopback by default, and anything else
+            //! needs a token: a service with no authentication has no
+            //! business being reachable from the network (DESIGN §9.6).
             std::string host = "127.0.0.1";
 
             int port = 9001;
+
+            //! The shared secret a client presents at the upgrade, if any.
+            /*! Empty is the old behaviour and the default: on a single-user
+                machine the door of §9.6 is the whole model, and a token would
+                buy nothing a file mode does not already give.
+
+                It buys one thing, and only on a machine with other users on
+                it: the origin check bets that the attacker is a page rather
+                than a process, and this is what makes that bet unnecessary.
+                Anything that cannot read the secret cannot open a socket, so
+                the boundary moves from "any process here" to "anything
+                running as the user who owns the token file". A process
+                running as that user reads the file like any other, which is
+                the ceiling of what this can do and belongs in the docs
+                rather than in a promise.
+            */
+            std::string authToken;
 
             //! Browser origins allowed to open a socket.
             /*! A WebSocket upgrade is not subject to the same-origin policy,
