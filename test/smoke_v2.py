@@ -602,6 +602,10 @@ async def main():
         check("it advertises the sweep ceiling a grid has to fit under",
               caps.max_scenario_points > 0,
               f"max_scenario_points={caps.max_scenario_points}")
+        check("it advertises the batch and curve-sample ceilings beside it",
+              caps.max_batch_entries > 0 and caps.max_curve_sample_points > 0,
+              f"max_batch_entries={caps.max_batch_entries} "
+              f"max_curve_sample_points={caps.max_curve_sample_points}")
         check("it names the build it is",
               bool(caps.build) and bool(caps.quantlib_version),
               f"{caps.build!r} on QuantLib {caps.quantlib_version!r}")

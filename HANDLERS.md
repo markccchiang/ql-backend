@@ -481,8 +481,10 @@ no cash flows rather than one that was never going to have any.
 comes back as a `Series` on the result, sampled from the very handle the engine
 priced against — which is the point of it: the alternative is shipping the term
 structure and re-implementing QuantLib's interpolation in the client, which is
-how a frontend ends up drawing a curve the backend did not price with. Four
-quantities are built:
+how a frontend ends up drawing a curve the backend did not price with. A sample
+may ask for at most `Capabilities.max_curve_sample_points` points, on
+`curve_samples[n].dates` or `.times`: each point is a term-structure query on
+the live graph, and a chart shows hundreds. Four quantities are built:
 
 | `CurveSample.Quantity` | On | Needs |
 | --- | --- | --- |
@@ -516,6 +518,7 @@ Three things are refused rather than absorbed:
 | Refusal | Where it lands | Why |
 | --- | --- | --- |
 | an empty `requests` | the whole frame, on `batch.requests` | The request itself is wrong, not one of its rows |
+| more entries than `Capabilities.max_batch_entries` | the whole frame, on `batch.requests` | Each row runs to completion on the seat it starts on, and a frame can carry tens of thousands of Monte Carlos. The ceiling is advertised so a blotter can refuse the book before sending it |
 | a `scenarios` sweep inside an entry | that entry, `UNSUPPORTED` | Both shapes mean "price this many times", and nesting them is a product one `completed`/`total` pair cannot describe |
 | a failure that dirties the graph | the rest of the book | Every later price would be computed against a half-invalidated graph |
 

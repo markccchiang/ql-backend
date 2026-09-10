@@ -15,6 +15,8 @@ namespace qlservice {
 
     void fillCapabilities(qlpb::Capabilities& out) {
         out.set_max_scenario_points(kMaxScenarioPoints);
+        out.set_max_batch_entries(kMaxBatchEntries);
+        out.set_max_curve_sample_points(kMaxCurveSamplePoints);
         out.set_build("ql-backend");
         out.set_quantlib_version(QL_VERSION);
 
