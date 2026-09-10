@@ -58,6 +58,14 @@ A browser is let in from the Vite dev server's ports only; anything else needs
 `--allow-origin URL` (DESIGN §9.6), and `--help` lists that flag, the two
 caps, and `--any-origin` for a deployment behind a proxy that already checks.
 
+On a machine with other users on it, add `--token-file PATH`: the origin check
+closes the browser, and the token is what closes their processes, which no
+proxy can do from in front of a loopback socket. It is read from the file, or
+minted into it at `0600` on first use, and every client presents it at the
+upgrade or is answered `401`. A `--host` that is not loopback is refused
+without one, because a pricing engine with no authentication answering the
+network is an accident rather than a decision.
+
 That builds QuantLib from the submodule, which is the route that works
 unmodified from a clean clone: `CMakeLists.txt` forces `QL_ENABLE_SESSIONS=ON`,
 without which two sessions in one process silently share one

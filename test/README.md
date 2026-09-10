@@ -72,6 +72,23 @@ touch /tmp/qlpb2/quantlib/__init__.py /tmp/qlpb2/quantlib/v{1,2}/__init__.py
 
 It prints one line per check and exits non-zero if any failed.
 
+Regenerate the bindings whenever the `proto` submodule moves. They are written
+to a directory outside the repository and nothing rebuilds them for you, so a
+suite run against a stale copy fails on a field the service is sending and the
+bindings have never heard of.
+
+Against a daemon started with `--token-file`, put the secret in `QL_TOKEN` and
+every connection the suite opens carries it as an `Authorization` header:
+
+```bash
+./build/ql-backend --port 9111 --token-file /tmp/qltoken &
+QL_TOKEN=$(cat /tmp/qltoken) /tmp/qlvenv/bin/python test/smoke_v2.py /tmp/qlpb2
+```
+
+The whole suite passes either way. One check reads differently: `/healthz`
+stops reporting its connection and session counts once a token is required, and
+the check asserts whichever shape applies.
+
 One check only runs when the daemon is started with a short resume window:
 
 ```bash

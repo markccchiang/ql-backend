@@ -612,9 +612,17 @@ There is deliberately **no** `Access-Control-Allow-Origin`. A browser may send
 this request from any page; without the header it cannot read the reply, and
 these numbers are not something a random tab should be able to poll.
 
-## The door
+Started with `--token-file`, the reply carries `status`, `build`, `quantlib`
+and `uptimeSeconds` and stops there. This endpoint cannot ask a caller for the
+token — a container runtime holds no secret and still has to decide whether to
+restart the process — so what an unauthenticated caller may read is trimmed to
+liveness rather than left open.
 
-There is no authentication, and this section is about what stands in for it.
+## The door, and the lock
+
+There is no notion of *who* a client is. This section is what stands in for
+that: a door that closes the browser, and a lock that can close everything
+else on the machine.
 
 **Origin.** A WebSocket upgrade is not subject to the same-origin policy, so
 binding to loopback is not a boundary against a *browser*: any page in any tab
@@ -634,8 +642,8 @@ The defaults are the development server's origins (`5173`, `4173` on both
 `localhost` and `127.0.0.1`). A refused upgrade is `403 Forbidden` with a
 reason, not a dropped connection.
 
-**Limits.** The other half of having no authentication is that nothing stops
-one client taking everything:
+**Limits.** The other half of having no identity is that nothing stops one
+client taking everything:
 
 | Limit | Default | Refused with | Why this is the unit |
 | --- | --- | --- | --- |
@@ -647,11 +655,50 @@ one client taking everything:
 `--max-connections` and `--max-sessions` move the first two. Both are refusals
 rather than breakages: close a session and the next one opens.
 
-**What is deliberately not here.** TLS, users, tokens. If this is ever served
-off the machine it runs on, a reverse proxy terminates TLS, authenticates and
-checks origin, and `ql-backend` goes on binding to loopback behind it. A
-pricing engine that grew its own TLS stack would be a worse pricing engine and
-a worse edge server.
+**The token.** `Origin` bets that whoever might abuse the service is a page
+rather than a process, which is the right bet on a machine with one user on it
+and the wrong one otherwise. No proxy closes that gap, because a proxy stands
+beside this service rather than in front of its loopback socket, so the secret
+has to live here:
+
+```
+ql-backend --token-file ~/.ql-backend-token   # read, or minted at 0600
+```
+
+Every client then presents it at the upgrade or is answered `401`, before a
+socket, a session or a worker seat exists. A file rather than a flag, because
+arguments are world-readable through `ps` and a token there would be published
+to exactly the local processes it excludes; refused outright when anyone but
+its owner can read it.
+
+| Client | Where the token goes |
+| --- | --- |
+| anything that can set headers | `Authorization: Bearer <token>` |
+| a browser | `token.<token>` in the subprotocol list, beside `qlservice.v2` |
+
+A browser gets the second row because it cannot set headers: `new WebSocket`
+takes a URL and a list of subprotocols and nothing else. The service answers
+with exactly one protocol, never the token, since a browser fails a handshake
+in which it named protocols and the server selected none. A URL query string
+would be the third option and is the worst of the three: a URL reaches logs,
+history and referrers.
+
+A wrong token and a missing one are the same `401`, for the reason a refused
+resume is one answer. The log says which.
+
+**Fail closed on the address.** `--host` anywhere but loopback, with no token,
+is refused at startup with exit code 2 rather than served. Everything above is
+a door against a page and none of it is a boundary against the network, so an
+unauthenticated pricing engine answering a routable address is an accident far
+more often than a decision.
+
+**What is deliberately not here.** TLS, and users. The token is one shared
+secret rather than an identity, and anything that can read the token file can
+present it, so it keeps out another user's process and not one running as that
+user. If this is ever served off the machine it runs on, a reverse proxy
+terminates TLS, authenticates and checks origin, and `ql-backend` goes on
+binding to loopback behind it. A pricing engine that grew its own TLS stack
+would be a worse pricing engine and a worse edge server.
 
 ## Cancellation
 
