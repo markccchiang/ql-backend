@@ -168,7 +168,7 @@ so the three gateway translation units are warned about but never fail on it.
   looks exactly like a backend that is not running. A client that sends no
   `Origin` at all, `test/smoke_v2.py` included, is unaffected. `--help` lists
   that flag and the rest.
-- **A routable `--host` needs `--token-file`.** Without one the daemon refuses
+- **A routable `--host` needs `--token-file FILE`.** Without one the daemon refuses
   to start and exits 2, naming both ways out: give it a token file, or leave it
   on loopback behind a proxy that terminates TLS and authenticates. The check
   is a string comparison against the three loopback spellings, so it is a rule

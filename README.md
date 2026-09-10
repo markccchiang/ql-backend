@@ -58,7 +58,7 @@ A browser is let in from the Vite dev server's ports only; anything else needs
 `--allow-origin URL` (DESIGN §9.6), and `--help` lists that flag, the two
 caps, and `--any-origin` for a deployment behind a proxy that already checks.
 
-On a machine with other users on it, add `--token-file PATH`: the origin check
+On a machine with other users on it, add `--token-file FILE`: the origin check
 closes the browser, and the token is what closes their processes, which no
 proxy can do from in front of a loopback socket. It is read from the file, or
 minted into it at `0600` on first use, and every client presents it at the

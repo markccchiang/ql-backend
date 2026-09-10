@@ -74,6 +74,17 @@ namespace {
     std::string tokenFromFile(const std::string& path) {
         struct stat info{};
         if (::stat(path.c_str(), &info) == 0) {
+            // Before the permission check, or a directory fails it: every
+            // directory carries the group and other bits this looks for, so
+            // the answer would be "chmod 600 it" -- useless advice about the
+            // wrong problem, and bad advice about a directory.
+            if (!S_ISREG(info.st_mode)) {
+                std::fprintf(stderr,
+                             "%s is not a regular file; --token-file names the file the "
+                             "secret is kept in, not the directory it sits in\n",
+                             path.c_str());
+                std::exit(2);
+            }
             if ((info.st_mode & (S_IRWXG | S_IRWXO)) != 0) {
                 std::fprintf(stderr,
                              "%s can be read by other users, so it is not a secret; "
@@ -156,7 +167,7 @@ int main(int argc, char** argv) {
             std::printf("usage: ql-backend [--host ADDR] [--port N]\n"
                         "                  [--allow-origin URL]... | [--any-origin]\n"
                         "                  [--max-connections N] [--max-sessions N]\n"
-                        "                  [--session-grace SECONDS] [--token-file PATH]\n"
+                        "                  [--session-grace SECONDS] [--token-file FILE]\n"
                         "\n"
                         "A session outlives its socket by --session-grace seconds (60 by\n"
                         "default, 0 to turn it off), so a client that loses its connection can\n"
@@ -168,13 +179,14 @@ int main(int argc, char** argv) {
                         "A request with no Origin -- a script, a proxy that already checked --\n"
                         "is not affected.\n"
                         "\n"
-                        "--token-file names a shared secret every client must present at the\n"
-                        "upgrade: an Authorization: Bearer header, or a `token.<secret>` entry\n"
-                        "in the WebSocket subprotocol list for a browser, which cannot set\n"
-                        "headers. The file is read if it exists and minted at 0600 if it does\n"
-                        "not, and it is refused if anyone but its owner can read it. Without\n"
-                        "one this service listens on loopback only: an address that is not\n"
-                        "loopback and no token is refused rather than served.\n");
+                        "--token-file names the file a shared secret is kept in, not the\n"
+                        "directory it sits in. The file is read if it exists and minted at 0600\n"
+                        "if it does not, and it is refused if anyone but its owner can read it.\n"
+                        "Every client then presents the secret at the upgrade: an\n"
+                        "Authorization: Bearer header, or a `token.<secret>` entry in the\n"
+                        "WebSocket subprotocol list for a browser, which cannot set headers.\n"
+                        "Without a token this service listens on loopback only: an address that\n"
+                        "is not loopback and no token is refused rather than served.\n");
             return 0;
         } else {
             std::fprintf(stderr, "unknown argument '%s'\n", arg.c_str());
@@ -191,7 +203,7 @@ int main(int argc, char** argv) {
         std::fprintf(stderr,
                      "refusing to listen on %s without a token: this service has no\n"
                      "authentication of its own, and that address is reachable from the\n"
-                     "network. Give it --token-file PATH, or leave it on loopback and put a\n"
+                     "network. Give it --token-file FILE, or leave it on loopback and put a\n"
                      "proxy that terminates TLS and authenticates in front of it.\n",
                      options.host.c_str());
         return 2;

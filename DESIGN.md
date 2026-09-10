@@ -1006,7 +1006,7 @@ stays a reverse proxy that terminates TLS, authenticates, and leaves this
 process on loopback behind it.
 
 **Decision: an optional shared secret, presented at the upgrade.**
-`--token-file PATH` is what makes that bet unnecessary on a machine with other
+`--token-file FILE` is what makes that bet unnecessary on a machine with other
 users on it, and it is the one thing a proxy cannot supply: a proxy stands
 beside this process rather than in front of its loopback socket, so anything
 local still dials the port directly. Three choices inside it are the whole
