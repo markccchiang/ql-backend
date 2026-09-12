@@ -50,8 +50,8 @@ would not.
 It also benchmarks, which is the part worth reading: it cross-checks the
 analytic quanto barrier prices against a PDE, because `testBarrierValues` in
 `quantooption.cpp` asks for exactly that benchmark and never got one. The
-numbers, and what they do and do not establish, are in `BENCHMARK.md`. One of
-the three recorded values does not reproduce.
+numbers, and what they do and do not establish, are in [the quanto barrier
+benchmark](BENCHMARK.md). One of the three recorded values does not reproduce.
 
 The three earlier scripts — `smoke_pricing.py`, `smoke_sessions.py` and
 `smoke_quanto.py` — were `v1` clients. The service speaks `v2` now (DESIGN

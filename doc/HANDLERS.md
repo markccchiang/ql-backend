@@ -2,16 +2,19 @@
 
 What the running service accepts today, and how to drive it.
 
-`DESIGN.md` says *why* each of these is shaped the way it is and cites the
-QuantLib constraint that forces it; this page is the flat list, derived from the
-code rather than from the schema. The distinction matters: `proto/` describes
-more than the service builds, and everything in the schema that is not here is
-**rejected as `UNSUPPORTED` naming the field**, never priced on a substitute.
-`index.md` has the orientation and `INSTALL.md` the build.
+This page is the flat list, derived from the code rather than from the schema.
+The [design document](DESIGN.md) says *why* each handler is shaped the way it
+is, and cites the QuantLib constraint that forces it. The distinction matters:
+the schema describes more than the service builds, and everything in it that
+is not on this page is **rejected as `UNSUPPORTED` naming the field**, never
+priced on a substitute.
 
-The wire schema itself is a submodule at [`proto/`](https://github.com/markccchiang/ql-protobuf).
+The schema itself is a separate repository, mounted here as the
+[`proto/`](https://github.com/markccchiang/ql-protobuf) submodule.
 
-## The eight frames
+## The protocol
+
+### The frames
 
 One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly one,
 including for failures and for the cancel itself — a client that never sees a
@@ -36,25 +39,23 @@ See [Liveness](#liveness).
 service, and a client has to be able to ask before it opens one. The reply
 carries **sets** — the styles, methods, trees, approximations, result kinds,
 market shapes and leg kinds this build implements — and deliberately not the
-combinations. Whether an analytic barrier takes an American exercise is a rule
-about a pair, and there are more pairs than are worth putting on the wire; a
-client keeps its own table for those. What the handshake removes is the drift
-that actually happens, which is a value appearing in or disappearing from one
-of these lists while every client's copy of this page says otherwise.
-`src/session/capabilities.cpp` is where the lists live, next to the dispatch
-they describe.
+combinations: whether an analytic barrier takes an American exercise is a rule
+about a pair, and there are more pairs than are worth putting on the wire.
+What the handshake removes is the drift that actually happens, which is a
+value entering or leaving one of these lists while every client's copy of this
+page says otherwise. `src/session/capabilities.cpp` is where the lists live,
+next to the dispatch they describe.
 
 `Progress` is the one non-terminal frame. Three shapes emit it: a batched Monte
 Carlo (`engine.mc.progress_every_paths`), a scenario sweep, and a batch. Those
 are also the three that can be stopped where they stand — see
-[Cancellation](#cancellation), which is not the one-line story this sentence
-used to tell.
+[Cancellation](#cancellation).
 
 Every frame carries `request_id` (yours, echoed on every reply) and
 `session_id` (set on every server frame, because one socket can hold several
 sessions).
 
-## A session, end to end
+### A session, end to end
 
 The wire is Protobuf over WebSocket. This is the idiom `test/smoke_v2.py` uses:
 
@@ -136,24 +137,6 @@ index and the index names the curve. The index is built on a
 `RelinkableHandle` and linked when its curve appears; one that never appears is
 `UNKNOWN_ID` against `Index.forwarding_curve_id`.
 
-### Correlation matrices
-
-`labels` names the rows and columns, and an `Underlying.label` is what finds a
-row; `values` is row-major, `labels²` entries, each a `Number` so an
-off-diagonal can be a live `quote_id` and drag like anything else in the quote
-bar. The diagonal must be exactly 1, the matrix symmetric, every entry within
-[-1, 1] and the whole thing positive semi-definite.
-
-All four are checked **when the object is built and again on every request that
-uses it**, because the entries are quotes: a matrix that was a correlation
-matrix when the session opened can be dragged into one that is not. This is the
-one market object where QuantLib would not have complained. `StulzEngine` takes
-rho as a bare `Real`; `StochasticProcessArray` factorises with
-`SalvagingAlgorithm::Spectral`, which *repairs* a matrix that is not positive
-semi-definite by zeroing the negative eigenvalues and renormalising. An
-impossible market is therefore neither refused nor mispriced — it is silently
-replaced by the nearest possible one and priced correctly for that.
-
 ### Yield curves
 
 | `YieldCurve.shape` | Live pillars? |
@@ -199,6 +182,24 @@ hardcoded indices, because that table is what goes stale.
 `FixingSeries` may arrive in `OpenSession` or in `UpdateMarket`: past fixings
 are graph input, not graph structure, so a leg that cannot price without one
 does not need a new session to get it.
+
+### Correlation matrices
+
+`labels` names the rows and columns, and an `Underlying.label` is what finds a
+row; `values` is row-major, `labels²` entries, each a `Number` so an
+off-diagonal can be a live `quote_id` and drag like anything else in the quote
+bar. The diagonal must be exactly 1, the matrix symmetric, every entry within
+[-1, 1] and the whole thing positive semi-definite.
+
+All four are checked **when the object is built and again on every request that
+uses it**, because the entries are quotes: a matrix that was a correlation
+matrix when the session opened can be dragged into one that is not. This is the
+one market object where QuantLib would not have complained. `StulzEngine` takes
+rho as a bare `Real`; `StochasticProcessArray` factorises with
+`SalvagingAlgorithm::Spectral`, which *repairs* a matrix that is not positive
+semi-definite by zeroing the negative eigenvalues and renormalising. An
+impossible market is therefore neither refused nor mispriced — it is silently
+replaced by the nearest possible one and priced correctly for that.
 
 ## Instruments
 
@@ -258,12 +259,12 @@ Style-specific rules worth knowing before you send one:
   `CashOrNothingPayoff.cash_payoff`, which the request already carries.
 - **Compound.** The mother option *is* the option's own `payoff` and
   `exercise` — `CompoundOption` hands those straight to `OneAssetOption` — so
-  `Compound.mother_payoff` and `Compound.mother_exercise` re-declare fields the
-  request already carries and are `UNSUPPORTED`; send the mother where every
-  other style takes it and put only `daughter_payoff` and `daughter_exercise`
-  in the style block. Both legs are `plain` and European, and the compound has
-  to expire **on or before** the option it is written on.
-- **Chooser.** The strike and the expiry are the option's own `payoff` and
+  `Compound.mother_payoff` and `Compound.mother_exercise` re-declare fields
+  the request already carries and are `UNSUPPORTED`; send the mother where
+  every other style takes it and put only `daughter_payoff` and
+  `daughter_exercise` in the style block. Both legs are `plain` and European,
+  and the compound has to expire **on or before** the option it is written on.
+  - **Chooser.** The strike and the expiry are the option's own `payoff` and
   `exercise`, for the same reason the compound's mother is — both chooser
   instruments hand a `PlainVanillaPayoff` and the (call) exercise to
   `OneAssetOption` — so `Chooser.call_strike` and `Chooser.call_expiry` are
@@ -271,31 +272,30 @@ Style-specific rules worth knowing before you send one:
   chooser has no side until the choice date, and that is the one place in the
   schema where a set `type` would be read and thrown away. A `put_expiry` in
   the style block is what makes it the *complex* chooser, with `put_strike`
-  beside it; without one it is the simple chooser, which shares a single strike
-  and expiry, and a `put_strike` alone is `INVALID_ARGUMENT`. `choice_date`
-  must fall after the evaluation date and before every expiry. Three further
-  rules are the engines', not the product's: all three curves must count days
-  the same way (`AnalyticSimpleChooserEngine` requires it and the complex
-  engine assumes it without checking), the exercise must be `EUROPEAN`
-  (neither engine reads the type, so an American one would price as European),
-  and each complex leg must expire more than **twice** the choice time out —
-  `AnalyticComplexChooserEngine` solves for the critical spot at
-  `maturity - 2 × choice time`, which below that is a negative time.
-- **Cliquet.** A series of forward starts, so it takes a `percentage_strike`
-  payoff for the same reason one does, plus `reset_dates` — in order, distinct,
-  each on or after the evaluation date and before the expiry. `performance` is
-  a `Flag` and selects the engine, exactly as it does on a forward start:
-  false is `AnalyticCliquetEngine` (the ratchet), true is
-  `AnalyticPerformanceEngine`, and `MONTE_CARLO` reaches `MCPerformanceEngine`,
-  which is the only sampled cliquet engine QuantLib has — a `MONTE_CARLO`
-  ratchet is `UNSUPPORTED` and says so. **`local_cap`, `local_floor`,
-  `global_cap` and `global_floor` are `UNSUPPORTED`**, and not because one
-  engine is missing: `CliquetOption::setupArguments` copies the reset dates and
-  nothing else (`cliquetoption.cpp:32`), so a cap reaches no engine at all and
-  the price would be the uncapped ratchet under a capped description. Both
-  closed forms write `results_.gamma += 0.0` — and the performance one does the
-  same to delta — so those come back in `unavailable_results` rather than as a
-  zero nobody computed.
+  beside it; without one it is the simple chooser, which shares a single
+  strike and expiry, and a `put_strike` alone is `INVALID_ARGUMENT`.
+  `choice_date` must fall after the evaluation date and before every expiry.
+  Three further rules are the engines', not the product's: all three curves
+  must count days the same way (the simple engine requires it, the complex one
+  assumes it unchecked); the exercise must be `EUROPEAN`, since neither engine
+  reads the type and an American one would price as European; and each complex
+  leg must expire more than **twice** the choice time out, because
+  `AnalyticComplexChooserEngine` solves for the critical spot at `maturity - 2
+  × choice time`. - **Cliquet.** A series of forward starts, so it takes a
+  `percentage_strike` payoff for the same reason one does, plus `reset_dates`
+  — in order, distinct, each on or after the evaluation date and before the
+  expiry. `performance` is a `Flag` and selects the engine, exactly as it does
+  on a forward start: false is `AnalyticCliquetEngine` (the ratchet), true is
+  `AnalyticPerformanceEngine`, and `MONTE_CARLO` reaches
+  `MCPerformanceEngine`, which is the only sampled cliquet engine QuantLib has
+  — a `MONTE_CARLO` ratchet is `UNSUPPORTED` and says so. **`local_cap`,
+  `local_floor`, `global_cap` and `global_floor` are `UNSUPPORTED`**, and not
+  for want of an engine: `CliquetOption::setupArguments` copies the reset
+  dates and nothing else (`cliquetoption.cpp:32`), so a cap would reach no
+  engine at all and the price would be the uncapped ratchet under a capped
+  description. Both closed forms write `results_.gamma += 0.0` — and the
+  performance one does the same to delta — so those come back in
+  `unavailable_results` rather than as a zero nobody computed.
 - **Basket.** The only style that takes more than one underlying, and the only
   one that names a `correlation` market object. Every underlying needs a
   **`label`**, because the matrix indexes on labels rather than on position.
@@ -386,8 +386,8 @@ decimal, so the client names one rather than inheriting a default:
 `FINE` (2000×800), each of them Douglas with no damping. `custom` — explicit
 `time_steps`, `asset_steps`, `damping_steps` and `scheme` — works on the plain
 paths and is `UNSUPPORTED` under quanto. All four fields are read: a custom
-grid that named a scheme and got Douglas anyway was a defect, not a
-simplification, and it stood for three milestones.
+grid that named a scheme and got Douglas anyway would be a defect rather than
+a simplification.
 
 `scheme` has no default, for the reason the grid has none: two schemes are two
 prices for one trade. Five of the six arms build.
@@ -448,13 +448,10 @@ Anything else in the enum — the bond, credit and remaining cash-flow kinds —
 
 An engine that cannot supply a result you asked for **names the absence**: the
 kind comes back in `PriceResult.unavailable_results` and the price comes back
-with it. This page used to promise a rejection instead, and the code never did
-it; the document was right about the problem and wrong about the remedy. A
-frontend that asked for vega and got a map without it cannot tell that from a
-vega of zero — but refusing the whole request would cost the price as well, and
-a client that wanted the NPV would learn to ask for nothing. `AnalyticEuropean-
-Engine` has vega, the binomial one does not, and a frontend should be able to
-ask both the same question and be told which answered.
+with it. Refusing the whole request would cost the price too, and a client
+that wanted the NPV would learn to ask for nothing. `AnalyticEuropeanEngine`
+has vega and the binomial one does not; a frontend should be able to ask both
+the same question and be told which answered.
 
 The same field carries a kind that does not apply to the instrument at all —
 a fair rate asked of an option, a greek asked of a swap. A kind this build does
@@ -500,7 +497,9 @@ the live graph, and a chart shows hundreds. Four quantities are built:
 Sampling a surface across several strikes is refused for a different reason —
 it would be a matrix rather than a series.
 
-## Batches
+## Pricing many at once
+
+### Batches
 
 `PriceBatch` prices a book of trades against one graph in one frame, and
 `BatchResult` answers one entry per request **in order**, so a client matches
@@ -529,12 +528,13 @@ indistinguishable from the ordinary case. The abandoned entries are still
 present, carrying the reason rather than a price.
 
 A batch reports `Progress` per entry and checks the stop flag between them, so
-it is cancellable at trade boundaries in exactly the way a sweep is cancellable
-at point boundaries (see [Cancellation](#cancellation)). It also takes the placement decision over the whole book: a
-Monte Carlo eleven trades in moves the session to a sacrificial worker before
-the batch starts, because the batch runs to completion wherever it begins.
+it is cancellable at trade boundaries in exactly the way a sweep is
+cancellable at point boundaries (see [Cancellation](#cancellation)). It also
+takes the placement decision over the whole book: a Monte Carlo eleven trades
+in moves the session to a sacrificial worker before the batch starts, because
+the batch runs to completion wherever it begins.
 
-## Scenario sweeps
+### Scenario sweeps
 
 `PriceRequest.scenarios` prices N times off one live graph and replies with a
 `ScenarioResult` instead of a `PriceResult`. Points come three ways — exactly
@@ -546,13 +546,11 @@ one of:
 | `linear` | `begin`, `end`, `steps` (named `begin`/`end` because `from` is a Python keyword) |
 | `relative` | multipliers of the quote's current value |
 
-### More than one axis
-
-`scenarios` is repeated, and several axes sweep **as a product**: spot at 21
-points against vol at 5 is 105 prices, in row-major order with the last axis
-varying fastest. `ScenarioResult.axes` names them outermost first, so
-`prices[i * len(axes[1].values) + j]` is `axes[0].values[i]` against
-`axes[1].values[j]`.
+**More than one axis.** `scenarios` is repeated, and several axes sweep **as a
+product**: spot at 21 points against vol at 5 is 105 prices, in row-major
+order with the last axis varying fastest. `ScenarioResult.axes` names them
+outermost first, so `prices[i * len(axes[1].values) + j]` is
+`axes[0].values[i]` against `axes[1].values[j]`.
 
 The rules a grid adds, each rejected by its own `scenarios[n]` path:
 
@@ -580,13 +578,96 @@ stopped mid-row has no rectangle to report, so its axes are cleared and `prices`
 is the whole of the answer.
 
 Every swept quote is **restored by default**, on the way out of a failure as
-well as a success. `keep_final_value` is per axis — a grid can leave spot where
-it ended and put vol back — and leaves that quote at its last swept value — phrased that way round because proto3 defaults it to false
-and the default has to be the safe one: a sweep is a question, not an edit. A
+well as a success. `keep_final_value` leaves a quote at its last swept
+value instead, and is per axis, so a grid can keep spot where it ended and put
+vol back. Restoring is the default because proto3 defaults the flag to false
+and the safe reading has to be the one you get for free: a sweep is a
+question, not an edit. A
 kept sweep is folded into the session log as a synthetic `UpdateMarket`, so it
 survives a replay.
 
-## Liveness
+## Cancelling and resuming
+
+### Cancellation
+
+A `CancelRequest` names one `request_id`. The cancel itself gets its own `Ack`
+from the gateway, because nothing downstream answers it, and the target gets
+exactly one terminal frame like every other request.
+
+**Every request can be cancelled.** What differs is what the cancel costs, and
+that is worth knowing before offering the button.
+
+| Where the request is | What a cancel does | What it costs |
+| --- | --- | --- |
+| between Monte Carlo batches (`progress_every_paths > 0`) | the engine loop sees the stop flag and returns | nothing: the worker is healthy, the graph is still warm |
+| between scenario sweep points | the sweep stops and returns the points it priced | nothing, and the partial ladder is kept |
+| between batch entries | the book stops and returns the prices it managed | nothing, and the partial book is kept |
+| anywhere else — inside one engine call | the request is terminated for the client after a 250 ms grace and the session is replayed into a fresh worker | one bootstrap, and the abandoned calculation runs to completion on a thread nobody is listening to |
+
+That last row is the one to be honest about. QuantLib cannot be interrupted
+inside an engine call, and this build hosts workers as threads, so the "kill"
+in `Supervisor::onStopGraceExpired` is a disown rather than a kill:
+`ThreadProcessHost::kill` asks the worker to stop, marks its seat dead and
+detaches it. The client is freed in 250 ms and the session survives, but the
+CPU is not given back until that engine call ends on its own.
+
+So a cancel is always worth offering, and a UI that says "cancel" on a
+finite-difference price is not lying — it is promising to give the user their
+session back, not to stop the machine. The three boundary rows are the ones
+where it also stops the work.
+
+A stop taken at a boundary reports `CANCELLED` rather than `CALCULATION_FAILED`:
+the client asked for it, and telling a user their trade failed to price would be
+a different and wrong statement. A sweep and a batch each terminate with their
+own result message carrying `abandoned_after`, not with an error, because the
+part they finished is worth having.
+
+### Resuming a session
+
+A socket that dies takes nothing with it for `resume_grace_seconds` — 60 by
+default, `--session-grace 0` to turn it off. Inside that window the session
+keeps its graph, its worker seat **and its running requests**, which is the
+point of it: the bootstrap it saves costs 0.009 ms on this market, and the
+Monte Carlo it saves can cost a minute.
+
+`SessionOpened` carries what a resume needs:
+
+| Field | What it is |
+| --- | --- |
+| `resume_token` | 128 bits, minted per session, empty when the window is off |
+| `resume_grace_seconds` | How long the session outlives its socket |
+| `resumed` | True when this frame answers a `ResumeSession` rather than an `OpenSession` |
+
+`ResumeSession{session_id, resume_token}` needs no session of its own —
+the socket it arrives on has none yet. The reply is the *original*
+`SessionOpened`, replayed with `resumed` set: the same id, the same
+`market_ids`, and the `bootstrap_seconds` that bootstrap actually cost, then.
+A resume does not build anything, and reporting a second bootstrap that never
+happened would make the field a lie.
+
+Then whatever finished while nobody was attached arrives, in the order it
+finished. `Progress` frames from that period are gone — shed for the reason
+§9.3 sheds them under backpressure — so a client that resumes into a running
+calculation sees progress resume mid-stream, and one that resumes after it
+finished gets the terminal frame straight away.
+
+Three refusals, one answer. A wrong token, an expired window and a session
+closed with `CloseSession` all come back `SESSION_NOT_FOUND`, because telling
+them apart would let a guess be a probe. The client's move is the same in every
+case: `OpenSession` and replay the market.
+
+The token is a bearer secret. A WebSocket upgrade is not subject to the
+same-origin policy (DESIGN §9.6), so any page on the machine can reach this
+socket; the token is the only thing that stops one adopting another's session.
+Hold it in memory, keep it out of logs and out of URLs.
+
+Held sessions are seats nobody is sitting in, so there is a cap on them — 16 by
+default. Past it the longest-waiting session is closed rather than the newest
+refused. `GET /healthz` reports the count as `detached`.
+
+## Running the service
+
+### Liveness
 
 ```
 GET /healthz -> 200 application/json
@@ -601,13 +682,9 @@ graph is healthy. That is the honest scope of a liveness check, and it is the
 one an orchestrator wants: restarting on it is right, and it will not restart
 the process because a client sent a bad trade.
 
-Before this the socket connecting was the only liveness signal, which a proxy
-or a container runtime cannot use — it would have to speak WebSocket and
-Protobuf to find out whether to restart something.
-
-The counts are the live ones rather than a fixed string, which is what makes
-them worth reading: `connections` and `sessions` are what the gateway is
-actually holding, and `maxConnections` is what it will hold before refusing.
+The counts are live rather than a fixed string: `connections` and `sessions`
+are what the gateway is actually holding, and `maxConnections` is what it will
+hold before refusing.
 There is deliberately **no** `Access-Control-Allow-Origin`. A browser may send
 this request from any page; without the header it cannot read the reply, and
 these numbers are not something a random tab should be able to poll.
@@ -618,7 +695,7 @@ token — a container runtime holds no secret and still has to decide whether to
 restart the process — so what an unauthenticated caller may read is trimmed to
 liveness rather than left open.
 
-## The door, and the lock
+### Origin, limits and the token
 
 There is no notion of *who* a client is. This section is what stands in for
 that: a door that closes the browser, and a lock that can close everything
@@ -700,83 +777,6 @@ terminates TLS, authenticates and checks origin, and `ql-backend` goes on
 binding to loopback behind it. A pricing engine that grew its own TLS stack
 would be a worse pricing engine and a worse edge server.
 
-## Cancellation
-
-A `CancelRequest` names one `request_id`. The cancel itself gets its own `Ack`
-from the gateway, because nothing downstream answers it, and the target gets
-exactly one terminal frame like every other request.
-
-**Every request can be cancelled.** What differs is what the cancel costs, and
-that is worth knowing before offering the button.
-
-| Where the request is | What a cancel does | What it costs |
-| --- | --- | --- |
-| between Monte Carlo batches (`progress_every_paths > 0`) | the engine loop sees the stop flag and returns | nothing: the worker is healthy, the graph is still warm |
-| between scenario sweep points | the sweep stops and returns the points it priced | nothing, and the partial ladder is kept |
-| between batch entries | the book stops and returns the prices it managed | nothing, and the partial book is kept |
-| anywhere else — inside one engine call | the request is terminated for the client after a 250 ms grace and the session is replayed into a fresh worker | one bootstrap, and the abandoned calculation runs to completion on a thread nobody is listening to |
-
-That last row is the one to be honest about. QuantLib cannot be interrupted
-inside an engine call, and this build hosts workers as threads, so the "kill"
-in `Supervisor::onStopGraceExpired` is a disown rather than a kill:
-`ThreadProcessHost::kill` asks the worker to stop, marks its seat dead and
-detaches it. The client is freed in 250 ms and the session survives, but the
-CPU is not given back until that engine call ends on its own.
-
-So a cancel is always worth offering, and a UI that says "cancel" on a
-finite-difference price is not lying — it is promising to give the user their
-session back, not to stop the machine. The three boundary rows are the ones
-where it also stops the work.
-
-A stop taken at a boundary reports `CANCELLED` rather than `CALCULATION_FAILED`:
-the client asked for it, and telling a user their trade failed to price would be
-a different and wrong statement. A sweep and a batch each terminate with their
-own result message carrying `abandoned_after`, not with an error, because the
-part they finished is worth having.
-
-## Resuming a session
-
-A socket that dies takes nothing with it for `resume_grace_seconds` — 60 by
-default, `--session-grace 0` to turn it off. Inside that window the session
-keeps its graph, its worker seat **and its running requests**, which is the
-point of it: the bootstrap it saves costs 0.009 ms on this market, and the
-Monte Carlo it saves can cost a minute.
-
-`SessionOpened` carries what a resume needs:
-
-| Field | What it is |
-| --- | --- |
-| `resume_token` | 128 bits, minted per session, empty when the window is off |
-| `resume_grace_seconds` | How long the session outlives its socket |
-| `resumed` | True when this frame answers a `ResumeSession` rather than an `OpenSession` |
-
-`ResumeSession{session_id, resume_token}` needs no session of its own —
-the socket it arrives on has none yet. The reply is the *original*
-`SessionOpened`, replayed with `resumed` set: the same id, the same
-`market_ids`, and the `bootstrap_seconds` that bootstrap actually cost, then.
-A resume does not build anything, and reporting a second bootstrap that never
-happened would make the field a lie.
-
-Then whatever finished while nobody was attached arrives, in the order it
-finished. `Progress` frames from that period are gone — shed for the reason
-§9.3 sheds them under backpressure — so a client that resumes into a running
-calculation sees progress resume mid-stream, and one that resumes after it
-finished gets the terminal frame straight away.
-
-Three refusals, one answer. A wrong token, an expired window and a session
-closed with `CloseSession` all come back `SESSION_NOT_FOUND`, because telling
-them apart would let a guess be a probe. The client's move is the same in every
-case: `OpenSession` and replay the market.
-
-The token is a bearer secret. A WebSocket upgrade is not subject to the
-same-origin policy (DESIGN §9.6), so any page on the machine can reach this
-socket; the token is the only thing that stops one adopting another's session.
-Hold it in memory, keep it out of logs and out of URLs.
-
-Held sessions are seats nobody is sitting in, so there is a cap on them — 16 by
-default. Past it the longest-waiting session is closed rather than the newest
-refused. `GET /healthz` reports the count as `detached`.
-
 ## Errors
 
 Every rejection carries a `Code` and, where it is attributable to a wire field,
@@ -802,7 +802,7 @@ substitute).
 ## Verification
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
-`ql-backend` over a real WebSocket: 369 rows of QuantLib's own reference values
-plus the rejection cases, 145 checks in all. `TESTING.md` explains how to run
-it; `BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
-barriers.
+`ql-backend` over a real WebSocket: 369 rows of QuantLib's own reference
+values plus the rejection cases, 145 checks in all. [Smoke tests](TESTING.md)
+explains how to run it, and [the quanto barrier benchmark](BENCHMARK.md) is
+the analytic-vs-PDE cross-check.

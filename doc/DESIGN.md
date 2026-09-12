@@ -12,10 +12,10 @@ a whole directory, which is all a claim about an *absence* can be cited to —
 §3 rests on one of those. Source comments cite back to this document by
 section, as `DESIGN §2.1`.
 
-Build instructions are in [`INSTALL.md`](INSTALL.md); current status and the
-file map are in the [overview](index.md). Where the design and the code differ,
-the section says so — today that is §3: workers are threads in the gateway
-process, so the kill half of a cancel is a disown rather than a kill.
+Build instructions are on the [build page](INSTALL.md); current status and the
+file map are in the [overview](index.md). Where the design and the code
+differ, the section says so — today that is §3: workers are threads in the
+gateway process, so the kill half of a cancel is a disown rather than a kill.
 
 | Section | What it settles |
 | --- | --- |
@@ -211,12 +211,12 @@ Four things pin a session to its box. Only the first is trivial to remove:
 does not block.** Replay is the failover path (§1.2). A gateway lost to a
 crash or a deploy costs its clients the work in flight and one round trip
 rather than recoverable state, because the document never left the browser and
-a rebuild is 0.009 ms for the seven-object market `HANDLERS.md` opens with and
-3.6 ms for a curve stripped from forty-eight swap pillars (§9.4). Sharding by
-connection therefore needs the id fix and nothing else; failing a session
-*over* to another box needs the log to have an owner, and that earns its
-complexity only once one gateway's core count is the binding constraint rather
-than its liveness.
+a rebuild is 0.009 ms for the seven-object market the [handlers
+page](HANDLERS.md) opens with and 3.6 ms for a curve stripped from forty-eight
+swap pillars (§9.4). Sharding by connection therefore needs the id fix and
+nothing else; failing a session *over* to another box needs the log to have an
+owner, and that earns its complexity only once one gateway's core count is the
+binding constraint rather than its liveness.
 
 **What the statefulness actually buys, which is what should decide the shape.**
 It is not bootstrap amortisation: §9.4 measured that at single-digit
@@ -973,12 +973,12 @@ split it rests on — the graph is this service's, the definition is the
 client's.
 
 **The measurement, taken here against this build.** A bootstrap costs 0.009 ms
-for the seven-object market `HANDLERS.md` opens with, 1.5 ms for a curve
-stripped from thirty swap pillars, and 3.6 ms for one stripped from
-forty-eight. The rebuild was never the expensive part of a dropped socket.
-What was expensive is what was *running*: a request in flight died with the
-session, so a network blink half way through a twenty-million-path Monte Carlo
-cost the calculation, and the client had to start it again.
+for the seven-object market the [handlers page](HANDLERS.md) opens with, 1.5
+ms for a curve stripped from thirty swap pillars, and 3.6 ms for one stripped
+from forty-eight. The rebuild was never the expensive part of a dropped
+socket. What was expensive is what was *running*: a request in flight died
+with the session, so a network blink half way through a twenty-million-path
+Monte Carlo cost the calculation, and the client had to start it again.
 
 **Decision: a session outlives its socket by a grace window, and so does the
 work in it.** The default is 60 seconds; `--session-grace 0` restores the old
