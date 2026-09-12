@@ -10,7 +10,14 @@ copyright = "2026, Cheng-Chin Chiang"
 
 extensions = [
     "myst_parser",
+    "sphinxcontrib.mermaid",
 ]
+
+# DESIGN.md draws its figures as ```mermaid fences, which GitHub renders on
+# its own. This is what makes Sphinx render the same fence rather than print
+# it as a code block, so the diagram has one source and no exported image to
+# fall out of step with it.
+myst_fence_as_directive = ["mermaid"]
 
 # The pages cross-link to each other by section anchor -- DESIGN.md carries a
 # table of contents of its own, and INSTALL.md points at "Why sessions

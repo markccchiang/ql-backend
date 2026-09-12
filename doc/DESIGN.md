@@ -45,29 +45,40 @@ process, so the kill half of a cancel is a disown rather than a kill.
 
 ## 1. Shape
 
-```
-TS frontend
-    │  WebSocket: one binary ClientFrame/ServerFrame per message
-    ▼
-gateway ─────── sockets, correlation ids, backpressure, session log,
-    │           stop-grace timers, terminal frames reported back
-    ▼
-supervisor ──── worker placement (§2.1), cancel-by-kill with replay (§3)
-    │
-    ├──> shared worker process        cheap interactive work: quote bumps,
-    │    N sessions, one thread each  analytic prices, sub-second
-    │
-    └──> sacrificial worker process   long cancellable work: Monte Carlo,
-         one session, killable        finite difference
+```mermaid
+flowchart TD
+    FE["<b>TS frontend</b>"]
+    GW["<b>gateway</b><br/><i>sockets · correlation ids<br/>backpressure · session log<br/>stop-grace timers<br/>terminal frames reported</i>"]
+    SV["<b>supervisor</b><br/><i>worker placement (§2.1)<br/>cancel-by-kill with replay</i>"]
+    SH["<b>shared worker process</b><br/>N sessions, one thread each<br/><i>quote bumps, analytic prices, sub-second</i>"]
+    SA["<b>sacrificial worker process</b><br/>one session, killable<br/><i>Monte Carlo, finite difference</i>"]
 
-every worker: QL_ENABLE_SESSIONS, one client session per thread,
-              live QuantLib object graph cached between requests
+    FE -->|"WebSocket — one binary ClientFrame / ServerFrame per message"| GW
+    GW --> SV
+    SV -->|"cheap interactive work"| SH
+    SV -->|"long cancellable work"| SA
 
-cancel: ask the worker to stop at its next step; kill it only if the
-        request outlives the grace, then replay the session log into a fresh
-        worker — session_id survives either path, and every request is
-        cancellable: what differs is whether it keeps its partial results
+    classDef client fill:#f5f6f8,stroke:#8a94a6,color:#1d2430;
+    classDef core fill:#e8f0fb,stroke:#3b6ea5,color:#11314f;
+    classDef pool fill:#eaf5ee,stroke:#3f8f5f,color:#123524;
+    classDef sac fill:#fdf0e8,stroke:#c1702f,color:#4a2a10;
+    class FE client;
+    class GW,SV core;
+    class SH pool;
+    class SA sac;
 ```
+
+Two things hold for every worker in that picture, and are the subject of §2
+and §3 respectively:
+
+- **Every worker is built with `QL_ENABLE_SESSIONS`**, holds one client
+  session per thread, and keeps that session's QuantLib object graph alive
+  between requests.
+- **A cancel asks first and kills second.** The worker is asked to stop at its
+  next step; it is killed only if the request outlives the grace, and the
+  session log is then replayed into a fresh worker. `session_id` survives
+  either path, and every request is cancellable — what differs is whether it
+  keeps its partial results.
 
 The gateway owns sockets, correlation ids, and backpressure. Workers own
 QuantLib. They are separate processes, for the reason in §3 — in the design.
@@ -331,36 +342,52 @@ queueing sessions on it is §8. A process is retired once its last session
 leaves, so process count tracks live sessions rather than their high-water
 mark.
 
-The shape that falls out, and the ratios worth holding in mind:
+The shape that falls out:
 
-```
-one connection
-  │  session_id per frame, request_id per request
-  ├── A ──┐
-  ├── B ──┤   each session: one object graph, one thread, whole life,
-  ├── C ──┤   one SessionLog held by the supervisor
-  └── D ──┘
-          │   the supervisor places sessions; it packs, it does not
-          ▼   hand each one a process
-  ┌────────────────────────────┐      ┌────────────────────┐
-  │ shared worker process      │      │ sacrificial worker │
-  │  ┌───┐  ┌───┐  ┌───┐       │      │  ┌───┐             │
-  │  │ A │  │ B │  │ C │  ≤ 8  │      │  │ D │  1 thread   │
-  │  └───┘  └───┘  └───┘ thr.  │      │  └───┘             │
-  └────────────────────────────┘      └────────────────────┘
-   quote bumps, analytic prices        Monte Carlo, FD; killed
-   a second one is forked only         to serve a cancel, and
-   when this one has no room           replayed afterwards
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 28, "rankSpacing": 70}}}%%
+flowchart LR
+    CONN["<b>one connection</b><br/><i>session_id per frame<br/>request_id per request</i>"]
 
-  connection : session   1 : N     one socket multiplexes them
-  session    : thread    1 : 1     for the session's whole life
-  session    : process   N : 1     shared, up to sessionsPerSharedWorker
-                         1 : 1     sacrificial, which is what makes the
-                                   kill affordable
-  threads in a process   = sessions it holds, so a shared worker is
-                           multi-threaded because it hosts many sessions,
-                           never because one session uses many threads
+    subgraph SHARED["shared worker process — quote bumps, analytic prices"]
+        direction TB
+        A["session A"]
+        B["session B"]
+        C["session C"]
+    end
+
+    subgraph SAC["sacrificial worker process — Monte Carlo, FD"]
+        direction TB
+        D["session D"]
+    end
+
+    CONN --> A
+    CONN --> B
+    CONN --> C
+    CONN --> D
+
+    classDef conn fill:#e8f0fb,stroke:#3b6ea5,color:#11314f;
+    classDef sess fill:#ffffff,stroke:#6b7687,color:#1d2430;
+    class CONN conn;
+    class A,B,C,D sess;
+    style SHARED fill:#eaf5ee,stroke:#3f8f5f,color:#123524;
+    style SAC fill:#fdf0e8,stroke:#c1702f,color:#4a2a10;
 ```
+
+The supervisor packs: a second shared process is forked only once this one has
+no room, and the sacrificial process is killed to serve a cancel and replayed
+afterwards. The ratios worth holding in mind:
+
+| Relationship | Ratio | What sets it |
+| --- | --- | --- |
+| connection : session | 1 : N | one socket multiplexes them |
+| session : thread | 1 : 1 | for the session's whole life |
+| session : shared process | N : 1 | up to `sessionsPerSharedWorker` |
+| session : sacrificial process | 1 : 1 | which is what makes the kill affordable |
+
+Threads in a process therefore equal the sessions it holds: a shared worker is
+multi-threaded because it hosts many sessions, never because one session uses
+many threads.
 
 D is the same session as before its Monte Carlo: it left the shared worker on
 a `CloseSession`, replayed into a process of its own, and goes back to the pool
