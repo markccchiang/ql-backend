@@ -22,6 +22,7 @@ process, so the kill half of a cancel is a disown rather than a kill.
 | [1. Shape](#1-shape) | The components and what each owns |
 | [1.1 Process topology](#11-process-topology) | Why the supervisor is a class, not a service |
 | [1.2 Where state lives](#12-where-state-lives-and-what-it-survives) | The graph is the service's, the definition is the client's, and nothing is on a disk |
+| [1.3 Scaling out](#13-scaling-out-and-what-pins-a-session-to-one-box) | Sessions shard, they do not replicate, and what pins one to a box |
 | [2. Global state forces session pinning](#2-global-state-forces-session-pinning) | `QL_ENABLE_SESSIONS`, one session per thread |
 | [2.1 How many sessions per process](#21-how-many-sessions-per-process) | Shared vs. sacrificial workers, replay, placement |
 | [2.2 QuantLib does not parallelise for you](#22-quantlib-does-not-parallelise-for-you) | No OpenMP in workers |
@@ -167,6 +168,54 @@ The last two rows are the reason the resume in §9.4 is described as an
 optimisation over replay rather than a replacement for it. Replay is the only
 path that works when the service remembers nothing, and it works because the
 definition was never the service's to keep.
+
+### 1.3 Scaling out, and what pins a session to one box
+
+One box is the unit. Within it the design already spreads work — sessions
+packed into shared workers, long requests sent to sacrificial ones (§2.1).
+Across boxes it does not spread at all, and §1.2 is the reason: a session is a
+graph in a worker's memory plus a log in one gateway's, and that pair is
+reachable only from the process holding it.
+
+That rules out the cheap form of horizontal scaling — identical replicas
+behind a round-robin balancer — and leaves the other one. **Sessions shard;
+they do not replicate.** A router in front of N gateways must send every frame
+of a session to the gateway that opened it, which costs almost nothing here: a
+session lives on one long-lived WebSocket, so connection affinity *is* session
+affinity, and nothing has to parse a `session_id` out of a Protobuf body to
+route correctly. `/healthz` (§9.6) is already the liveness signal such a
+router needs, and is deliberately honest about its scope — it proves the loop
+is turning, not that any graph is well.
+
+Four things pin a session to its box. Only the first is trivial to remove:
+
+| What pins it | Where | What unpinning takes |
+| --- | --- | --- |
+| Session ids come from a per-process counter, `"s-" + ++nextSessionId` | `gateway.cpp:204`, `:465` | A uuid, or a per-gateway prefix. Two gateways today both hand out `s-1` |
+| The `SessionLog` lives in the gateway's memory and is written nowhere | `Supervisor::sessions_` (§1.1, §1.2) | An owner for the log other than the socket that produced it — §8's open question, and the hard half of splitting the supervisor out |
+| The resume token and its window are the gateway's | §9.4 | That same owner. A reconnect landing elsewhere is a reopen, not a resume |
+| The supervisor is a class on the gateway's loop: callbacks in, no mutex on `sessions_` | §1.1 | Turning those callbacks into RPCs, which §1.1 already names as the seam |
+
+**Decision: none of this is built, and the client-held definition is why it
+does not block.** Replay is the failover path (§1.2). A gateway lost to a
+crash or a deploy costs its clients the work in flight and one round trip
+rather than recoverable state, because the document never left the browser and
+a rebuild is 0.009 ms for the seven-object market `HANDLERS.md` opens with and
+3.6 ms for a curve stripped from forty-eight swap pillars (§9.4). Sharding by
+connection therefore needs the id fix and nothing else; failing a session
+*over* to another box needs the log to have an owner, and that earns its
+complexity only once one gateway's core count is the binding constraint rather
+than its liveness.
+
+**What the statefulness actually buys, which is what should decide the shape.**
+It is not bootstrap amortisation: §9.4 measured that at single-digit
+milliseconds, which is exactly why the resume window there is justified by the
+work in flight instead. It is the observer graph of §5 — a quote write
+invalidates only the instruments depending on it, so a slider drag recomputes
+a subgraph rather than a market. A load that is mostly one-shot pricing would
+scale more simply as stateless replicas and would lose little by it; this
+design earns its constraints when a client is dragging a spot and expecting
+the panel to keep up.
 
 ## 2. Global state forces session pinning
 
@@ -774,7 +823,9 @@ convention registry — is worth reading before extending `conventions.proto`.
   in §9.4, and the client identity the protocol did not have is a token minted
   per session rather than per client.
 - Whether the gateway persists session logs. Today it does not, which is what
-  makes it the single point of failure §1.1 admits to.
+  makes it the single point of failure §1.1 admits to — and, per §1.3, the one
+  thing standing between sharding sessions across gateways and failing them
+  over between gateways.
 
 ## 9. The gateway
 
