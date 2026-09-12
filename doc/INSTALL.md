@@ -1,4 +1,4 @@
-# Building qlservice
+# Building ql-backend
 
 Two routes. **Route A builds QuantLib from a submodule** and works unmodified
 from a fresh clone; **Route B links an installed QuantLib** and is faster to

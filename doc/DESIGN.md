@@ -1,4 +1,4 @@
-# Architecture Design — Interactive QuantLib Service
+# Architecture Design
 
 A stateful C++ pricing backend driving a TypeScript frontend over WebSocket,
 with Protobuf as the wire format.
