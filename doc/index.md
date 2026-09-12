@@ -127,3 +127,18 @@ HANDLERS
 TESTING
 BENCHMARK
 ```
+
+```{toctree}
+:maxdepth: 2
+:caption: The mathematics
+:hidden:
+
+maths/index
+maths/black-scholes
+maths/greeks
+maths/american
+maths/exotics
+maths/quanto
+maths/rates
+maths/numerics
+```

@@ -99,6 +99,7 @@ python3 -m venv .venv && .venv/bin/pip install -r doc/requirements.txt
 | [Handlers](doc/HANDLERS.md) | Every frame the service accepts, with a worked client session |
 | [Testing](doc/TESTING.md) | Running the end-to-end suite and regenerating the reference tables |
 | [Benchmark](doc/BENCHMARK.md) | The quanto barrier cross-check against a PDE |
+| [Mathematics](doc/maths/index.md) | The formulas behind every number, and where each one lives in QuantLib |
 
 The wire schema is a separate repository,
 [ql-protobuf](https://github.com/markccchiang/ql-protobuf), mounted here as

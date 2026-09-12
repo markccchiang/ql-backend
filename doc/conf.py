@@ -11,6 +11,17 @@ copyright = "2026, Cheng-Chin Chiang"
 extensions = [
     "myst_parser",
     "sphinxcontrib.mermaid",
+    "sphinx.ext.mathjax",
+]
+
+# The maths pages are written with $...$ and $$...$$ and use ::: fences for
+# their notes, which is how they are written in the frontend guide the section
+# is shared with. MathJax renders them in the browser, so no LaTeX install is
+# needed to build these docs.
+myst_enable_extensions = [
+    "dollarmath",
+    "colon_fence",
+    "deflist",
 ]
 
 # DESIGN.md draws its figures as ```mermaid fences, which GitHub renders on
