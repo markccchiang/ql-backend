@@ -96,6 +96,7 @@ python3 -m venv .venv && .venv/bin/pip install -r doc/requirements.txt
 | [Overview](doc/index.md) | Status, the file map, and what is not built yet |
 | [Install](doc/INSTALL.md) | Prerequisites, both build routes, and what fails silently |
 | [Design](doc/DESIGN.md) | The architecture, and the QuantLib constraint forcing each decision |
+| [API](doc/api/connecting.md) | Writing a client: connecting, bindings, a first price, recipes |
 | [Handlers](doc/HANDLERS.md) | Every frame the service accepts, with a worked client session |
 | [Testing](doc/TESTING.md) | Running the end-to-end suite and regenerating the reference tables |
 | [Benchmark](doc/BENCHMARK.md) | The quanto barrier cross-check against a PDE |

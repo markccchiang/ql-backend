@@ -425,9 +425,11 @@ echoes the whole `Engine` message back.
 
 ## Results
 
-`PriceResult.npv` always. `results` is a `map<string, Value>` keyed by the name
-of each `ResultKind` you asked for in `PriceRequest.results`; nineteen are
-mapped:
+`PriceResult.npv` always. `results` is a `map<string, Value>` keyed by QuantLib's own name for each
+`ResultKind` named in `PriceRequest.results` — `RESULT_KIND_DELTA` comes
+back under `delta` and `RESULT_KIND_THETA_PER_DAY` under `thetaPerDay`, so
+a client asking by kind and a client dumping an engine's
+`additionalResults` read one vocabulary. Nineteen are mapped:
 
 `NPV`, `DELTA`, `GAMMA`, `THETA`, `VEGA`, `RHO`, `DIVIDEND_RHO`,
 `THETA_PER_DAY`, `DELTA_FORWARD`, `ELASTICITY`, `STRIKE_SENSITIVITY`,

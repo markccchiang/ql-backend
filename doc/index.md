@@ -123,9 +123,20 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 
 INSTALL
 DESIGN
-HANDLERS
 TESTING
 BENCHMARK
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: API
+:hidden:
+
+api/connecting
+api/bindings
+api/first-price
+api/recipes
+HANDLERS
 ```
 
 ```{toctree}
