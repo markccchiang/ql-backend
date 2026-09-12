@@ -1,0 +1,6 @@
+# Build the documentation:
+#   python3 -m venv .venv && .venv/bin/pip install -r doc/requirements.txt
+#   .venv/bin/python -m sphinx -b html doc doc/_build/html
+sphinx>=7
+sphinx-rtd-theme>=2
+myst-parser>=2

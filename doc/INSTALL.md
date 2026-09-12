@@ -181,7 +181,7 @@ so the three gateway translation units are warned about but never fail on it.
 ## Verifying the build
 
 There is no unit-test target. `test/smoke_v2.py` drives a running `ql-backend`
-over a real WebSocket; [`test/README.md`](test/README.md) has the setup and how
+over a real WebSocket; [`TESTING.md`](TESTING.md) has the setup and how
 to run it.
 
 Run it at least once after any change to which QuantLib you are linking. Its

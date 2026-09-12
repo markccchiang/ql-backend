@@ -7,7 +7,7 @@ QuantLib constraint that forces it; this page is the flat list, derived from the
 code rather than from the schema. The distinction matters: `proto/` describes
 more than the service builds, and everything in the schema that is not here is
 **rejected as `UNSUPPORTED` naming the field**, never priced on a substitute.
-`README.md` has the orientation and `INSTALL.md` the build.
+`index.md` has the orientation and `INSTALL.md` the build.
 
 The wire schema itself is a submodule at [`proto/`](https://github.com/markccchiang/ql-protobuf).
 
@@ -803,6 +803,6 @@ substitute).
 
 Every handler above is exercised by `test/smoke_v2.py`, which drives a running
 `ql-backend` over a real WebSocket: 369 rows of QuantLib's own reference values
-plus the rejection cases, 145 checks in all. `test/README.md` explains how to run
-it; `test/BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
+plus the rejection cases, 145 checks in all. `TESTING.md` explains how to run
+it; `BENCHMARK.md` is the analytic-vs-PDE cross-check of the quanto
 barriers.

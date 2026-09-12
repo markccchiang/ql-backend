@@ -10,5 +10,9 @@ cmake-build-release/
 # reference_tables.py, and importing it leaves one of these.
 __pycache__/
 
+# Sphinx build output, and the venv the doc/ build page suggests
+doc/_build/
+.venv/
+
 # Agent instructions, kept local
 CLAUDE.md

@@ -13,7 +13,7 @@ a whole directory, which is all a claim about an *absence* can be cited to —
 section, as `DESIGN §2.1`.
 
 Build instructions are in [`INSTALL.md`](INSTALL.md); current status and the
-file map are in [`README.md`](README.md). Where the design and the code differ,
+file map are in the [overview](index.md). Where the design and the code differ,
 the section says so — today that is §3: workers are threads in the gateway
 process, so the kill half of a cancel is a disown rather than a kill.
 

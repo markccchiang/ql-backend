@@ -1,7 +1,7 @@
 # Quanto barrier benchmark
 
 The benchmark `smoke_v2.py` runs, and the numbers it produced. Extracted from
-`README.md`, which now points here.
+`TESTING.md`, which now points here.
 
 ## What is being benchmarked, and why
 
@@ -75,7 +75,7 @@ backwards.
 
 ## Reproducing it
 
-Run `smoke_v2.py` as `README.md` describes; the benchmark is the
+Run `smoke_v2.py` as `TESTING.md` describes; the benchmark is the
 "quanto barriers: analytic against the PDE" section near the end. The three
 grid presets it sweeps are `FdParameters` `PRESET_COARSE`, `PRESET_STANDARD`
 and `PRESET_FINE`.
