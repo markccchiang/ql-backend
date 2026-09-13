@@ -1,0 +1,312 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../maths/rates.md:1 cca3e112ec4a4440a0023e5a0d64ca80
+msgid "Curves, swaps and cash flows"
+msgstr "曲線、利率交換與現金流"
+
+#: ../../maths/rates.md:3 82d04292ed2f4390affb002abac7ab93
+msgid "Discount factors are the primitive"
+msgstr "折現因子是最基本的東西"
+
+#: ../../maths/rates.md:5 f562155ad713424dad84db38033b4d82
+msgid ""
+"Everything on the rates side reduces to one function: the discount factor"
+" $P(0,t)$, the present value of one unit paid at $t$. Rates are ways of "
+"quoting it, and they only mean anything alongside a **compounding "
+"convention** and a **day count**."
+msgstr "利率這一側的一切，都可以化約成一個函數：折現因子 $P(0,t)$，也就是在 $t$ 支付一單位的現值。利率是報出它的各種方式，而它們唯有搭配**複利慣例**與**日計方式**才有意義。"
+
+#: ../../maths/rates.md 343323a31adb445593ebbd07567ec5e3
+msgid "Convention"
+msgstr "慣例"
+
+#: ../../maths/rates.md 2a70e8e262ed4667853c413d4ab9c0c5
+msgid "Relation"
+msgstr "關係式"
+
+#: ../../maths/rates.md d9aa56f9f2b94676968b203b9fced505
+msgid "continuous"
+msgstr "連續複利"
+
+#: ../../maths/rates.md 48233ef1da3744009585ecff36859dd4
+#, python-brace-format
+msgid "$P = e^{-z t}$"
+msgstr ""
+
+#: ../../maths/rates.md 92e8c8ead62c4b2083651aeea10cd434
+msgid "simple"
+msgstr "單利"
+
+#: ../../maths/rates.md 6ca57b47bcc5467292895466049fec67
+#, python-brace-format
+msgid "$P = \\dfrac{1}{1 + z\\,\\tau}$"
+msgstr ""
+
+#: ../../maths/rates.md c2bb1fc76ef9400cad9248938d95833b
+msgid "compounded, frequency $f$"
+msgstr "以頻率 $f$ 複利"
+
+#: ../../maths/rates.md 133b64d41f3f45fca1f27361348fd2f6
+#, python-brace-format
+msgid "$P = \\left(1 + \\dfrac{z}{f}\\right)^{-f t}$"
+msgstr ""
+
+#: ../../maths/rates.md:16 2088ad7f765f477088811fa94fca92af
+msgid ""
+"$\\tau$ is the accrual factor from the day counter, which is *not* $t$ in"
+" general — Actual/360 and Actual/365 disagree by 1.4%, and 30/360 "
+"disagrees with both. This is why a curve-sampling request has to name the"
+" compounding, the frequency and the day counter before it will yield a "
+"zero-rate curve, and why a compounding set beside a discount-factor "
+"request is refused: a discount factor has no convention, and accepting "
+"one would imply it did."
+msgstr ""
+
+#: ../../maths/rates.md:23 d13cc8c34de54137bee9d3814ac02214
+msgid "The forward rate between $t_1$ and $t_2$ follows:"
+msgstr "$t_1$ 與 $t_2$ 之間的遠期利率隨之而來："
+
+#: ../../maths/rates.md:25 7cf96156d5334b5d9d22e91487300b5c
+#, python-brace-format
+msgid ""
+"f(t_1,t_2) = \\frac{1}{\\tau}\\left(\\frac{P(0,t_1)}{P(0,t_2)} - "
+"1\\right)\n"
+"\\quad\\text{(simple)},\n"
+"\\qquad\n"
+"f = \\frac{\\ln P(0,t_1) - \\ln P(0,t_2)}{t_2 - t_1}\n"
+"\\quad\\text{(continuous)}."
+msgstr ""
+
+#: ../../maths/rates.md:31 ad2ed9cfc698447e8b16e51343f0af84
+msgid "The four curve shapes"
+msgstr "四種曲線形狀"
+
+#: ../../maths/rates.md 7880d98b05954d8cbcab3828fa231cb6
+msgid "Shape"
+msgstr "形狀"
+
+#: ../../maths/rates.md 681a152e2ecd4a5b8a12e61a9c9c1344
+msgid "What it is"
+msgstr "是什麼"
+
+#: ../../maths/rates.md 93b3481add5d4aaf8b04ba0b36b56916
+msgid "Live quotes?"
+msgstr "可用即時報價？"
+
+#: ../../maths/rates.md c8998981558c4a6fb5b981e337797678
+msgid "flat"
+msgstr ""
+
+#: ../../maths/rates.md e88a925e59594b11be3fc3ad5409acd2
+msgid "One rate for all maturities"
+msgstr "所有到期日共用一個利率"
+
+#: ../../maths/rates.md 418c6b298bb44d949f737d7cb32f2ec1
+#: b842ce94d899428b8181ea8484dc1a2a
+msgid "yes"
+msgstr "可以"
+
+#: ../../maths/rates.md 2d98ea50cf564c2291d8d3f0127add7a
+msgid "zero"
+msgstr ""
+
+#: ../../maths/rates.md 5dafba8684234d91b45fa35767e6e577
+msgid "Interpolated zero rates through fixed nodes (linear)"
+msgstr "以固定節點內插零息利率（線性）"
+
+#: ../../maths/rates.md 7bd6c72070a747bdabb4b1874f86ede3
+#: fc38364a6c6745d1a8b3a16138f21f38
+msgid "no"
+msgstr "不行"
+
+#: ../../maths/rates.md 056751a10bcc428cbc9cfe58b9747df1
+msgid "discount"
+msgstr ""
+
+#: ../../maths/rates.md 3f80e66816f4466684ebde5fa0f38937
+msgid "Interpolated discount factors through fixed nodes (log-linear)"
+msgstr "以固定節點內插折現因子（對數線性）"
+
+#: ../../maths/rates.md 97d0be7f4227417bb65f249caf014acf
+msgid "bootstrap"
+msgstr ""
+
+#: ../../maths/rates.md ea0ee583ce604366b5b65550ec74a23c
+msgid "Stripped from market instruments"
+msgstr "由市場工具剝離而得"
+
+#: ../../maths/rates.md:40 6da4d34f4e364a90bc000bc11e7efed6
+msgid ""
+"Log-linear interpolation on discount factors is linear interpolation on "
+"$\\ln P$, which means **piecewise-constant continuous forwards** — the "
+"usual default, and the reason a discount curve drawn as forwards looks "
+"like a staircase."
+msgstr "對折現因子做對數線性內插，等於對 $\\ln P$ 做線性內插，也就代表**分段常數的連續遠期利率**——這是常見的預設，也是折現曲線畫成遠期利率時看起來像階梯的原因。"
+
+#: ../../maths/rates.md:45 8da9845d6a104d4ea5685b3eecd9823e
+msgid "Bootstrapping"
+msgstr "拔靴建構"
+
+#: ../../maths/rates.md:47 94999370020b421bb2bf97394548f386
+msgid ""
+"A bootstrapped curve is built so that it reprices, exactly, the "
+"instruments it was built from. Each pillar adds one unknown and one "
+"equation, solved in maturity order — hence *bootstrap*."
+msgstr "拔靴建構出來的曲線，會精確地重新算回建構它所用的那些工具的價格。每一個支點加入一個未知數與一條方程式，依到期順序逐一求解——*拔靴*之名由此而來。"
+
+#: ../../maths/rates.md:51 9456e51fb3034a9d82ecb43a311c7e01
+msgid "**Deposit.** A simple-rate quote over one accrual period:"
+msgstr "**存款。**單一計息期間上的單利報價："
+
+#: ../../maths/rates.md:53 c095348032e147e28f54d83f50724abb
+#, python-brace-format
+msgid "P(0,t) = \\frac{1}{1 + r\\,\\tau}."
+msgstr ""
+
+#: ../../maths/rates.md:55 208b2a94dbe446c28145531a20d045bc
+msgid ""
+"**Par swap.** The fixed rate that makes the swap worth zero. With payment"
+" times $t_1 \\dots t_n$ and accruals $\\tau_i$,"
+msgstr "**平價交換。**使該筆交換價值為零的固定利率。以付款時點 $t_1 \\dots t_n$ 與計息因子 $\\tau_i$ 表示，"
+
+#: ../../maths/rates.md:58 450db6f197a4481895cd2d5b8fa8f6f5
+#, python-brace-format
+msgid "K \\sum_{i=1}^{n} \\tau_i P(0,t_i) \\;=\\; P(0,t_0) - P(0,t_n),"
+msgstr ""
+
+#: ../../maths/rates.md:60 8c2604045a1243e99f1a60077089ce84
+msgid ""
+"the right-hand side being the value of the floating leg when its forwards"
+" come off the same curve. The sum on the left is the **annuity**."
+msgstr "右邊是浮動腳的價值——當它的遠期利率取自同一條曲線時。左邊的加總就是**年金因子**。"
+
+#: ../../maths/rates.md:63 86001740350147e7bab2dd2391f74be5
+msgid ""
+"**OIS.** The same equation with the floating leg compounded daily off the"
+" overnight index rather than accrued over each period."
+msgstr "**OIS。**同一條方程式，只是浮動腳改成依隔夜指標逐日複利，而不是逐期計息。"
+
+#: ../../maths/rates.md:66 b40c2979d1ad40e19263153458d427f8
+msgid ""
+"The type of curve being solved for is a choice of *traits* — what is "
+"interpolated — and *interpolator*. This build compiles three of each "
+"(discount, zero yield, forward rate × linear, log-linear, cubic). The "
+"choice is not cosmetic: interpolating zero rates linearly and "
+"interpolating discount factors log-linearly give different forwards "
+"between pillars, and both reprice the pillars exactly. If two curves "
+"disagree away from the pillars, that is the interpolation, not an error."
+msgstr "要解出來的曲線型別，是 *traits*（內插的對象）與 *interpolator*（內插法）的選擇。這個版本各編譯了三種（折現、零息利率、遠期利率 × 線性、對數線性、三次樣條）。這個選擇不是外觀問題：對零息利率做線性內插與對折現因子做對數線性內插，在支點之間會給出不同的遠期利率，而兩者都精確重算回支點。若兩條曲線在支點以外不一致，那是內插造成的，不是錯誤。"
+
+#: ../../maths/rates.md:75 70e7ea8ca1d542f0b90a416d54989711
+msgid ""
+"The clean test that a bootstrap worked is that a par instrument reprices "
+"to zero. The worked swap example does exactly that: a five-year swap on "
+"the 5Y pillar prices to an NPV of $-0.000002$ with a fair rate of "
+"$0.027000$."
+msgstr "驗證拔靴建構成功最乾淨的檢查，是平價工具重新計價後等於零。現成的交換範例正是如此：一筆掛在 5Y 支點上的五年期交換，計價後淨現值為 $-0.000002$，公平利率為 $0.027000$。"
+
+#: ../../maths/rates.md:80 81d1e721d3b043fdb5d50f757c2e8282
+msgid "Swap pricing"
+msgstr "利率交換的計價"
+
+#: ../../maths/rates.md:82 a23b83ae4a9c4b05bec8961404a620e0
+msgid "A swap is a set of legs, each a set of cash flows, each discounted:"
+msgstr "一筆交換是一組計息腳，每腳是一組現金流，每一筆都折現："
+
+#: ../../maths/rates.md:84 244b17e7e141469cbb2d0be09ab19d63
+msgid ""
+"\\text{NPV} = \\sum_{\\text{legs}} \\pm \\sum_{c \\in \\text{leg}} "
+"c\\;P(0,t_c),"
+msgstr ""
+
+#: ../../maths/rates.md:86 6854c73405024a348d9098667fdca39d
+msgid ""
+"with the sign given by pay-or-receive on each leg. A fixed coupon is "
+"$N\\,\\tau_i\\,K$; a floating coupon is $N\\,\\tau_i\\,(g\\,f_i + s)$ for"
+" gearing $g$ and spread $s$, where $f_i$ is the index fixing — read from "
+"the fixing history if the fixing date has passed, and **forecast off the "
+"index's forwarding curve** otherwise."
+msgstr "正負號由每腳的付或收決定。固定票息為 $N\\,\\tau_i\\,K$；浮動票息為 $N\\,\\tau_i\\,(g\\,f_i + s)$，其中 $g$ 為槓桿倍數、$s$ 為利差，而 $f_i$ 是指標定盤值——若定盤日已過就從歷史定盤讀取，否則就**由該指標的預測曲線推算**。"
+
+#: ../../maths/rates.md:92 321253c8afcf458c86d87b889d2a0b13
+msgid "Leg BPS and the fair rate"
+msgstr "各腳 BPS 與公平利率"
+
+#: ../../maths/rates.md:94 3b536a13d01a47dd911cfe0970388692
+msgid "The BPS of a leg is what it is worth if its rate moves by one basis point:"
+msgstr "一腳的 BPS，是它的利率變動一個基點時的價值："
+
+#: ../../maths/rates.md:96 9f1b9f2a2a3c43cf9ce7b109e303ad91
+#, python-brace-format
+msgid ""
+"\\text{BPS} = \\pm\\, 10^{-4} \\sum_i N\\,\\tau_i\\,P(0,t_i)\n"
+"= 10^{-4} \\times \\text{annuity}."
+msgstr ""
+
+#: ../../maths/rates.md:99 a8dd83700dbb41cda090b0acac37dca9
+msgid ""
+"The fair rate follows directly, and this is exactly what the service "
+"computes for a two-leg swap (fixed first, floating second):"
+msgstr "公平利率隨之而來，而這正是服務為兩腳交換（固定腳在前、浮動腳在後）所計算的東西："
+
+#: ../../maths/rates.md:102 6a65e548f2b14bab96e52a4f466bdc58
+msgid ""
+"K^{\\ast} = -\\frac{\\text{NPV}_{\\text{float}}}{\\text{annuity}},\n"
+"\\qquad\n"
+"\\text{annuity} = \\frac{\\text{BPS}_{\\text{fixed}}}{10^{-4}}."
+msgstr ""
+
+#: ../../maths/rates.md:106 79421a7f9ba74ef4a019c4ea6869726f
+msgid ""
+"The leg order matters because the formula does not check which leg is "
+"which — which is why the service refuses the request rather than "
+"computing it off the wrong leg."
+msgstr "腳的順序有影響，因為公式並不檢查哪一腳是哪一腳——這也是服務寧可拒絕該請求，也不肯拿錯的那一腳算出結果的原因。"
+
+#: ../../maths/rates.md:110 e0122f68382b4b28b3febdd5a0349f8a
+msgid "The cash flow table"
+msgstr "現金流表"
+
+#: ../../maths/rates.md:112 1d2e65bad31e4efb8450276457e2d923
+msgid ""
+"Each row carries its payment date, the amount, the discount factor the "
+"engine used, and their product. The property that makes the table worth "
+"showing is"
+msgstr "每一列帶著付款日、金額、引擎所用的折現因子，以及三者相乘的結果。讓這張表值得展示的，是這個性質："
+
+#: ../../maths/rates.md:115 d2cc4fc391c3449f8459704cb3f12d74
+msgid "\\sum_{\\text{rows}} \\text{present value} = \\text{NPV},"
+msgstr ""
+
+#: ../../maths/rates.md:117 34fb7989117a4e69b4758a79afc7d803
+msgid ""
+"and the service's own test asserts it. Coupons add their accrual dates, "
+"notional and rate; floating coupons add the fixing date, spread and "
+"gearing, and say whether the fixing was **historical or forecast** — "
+"which is the field to check first when a swap mid-period prices "
+"unexpectedly."
+msgstr "而服務自己的測試會斷言它。票息會補上計息起訖日、名目本金與利率；浮動票息再補上定盤日、利差與槓桿倍數，並說明該定盤值是**歷史值或預測值**——當一筆跨期的交換算出意料之外的價格時，這是第一個該看的欄位。"
+
+#: ../../maths/rates.md:122 e00cacc5a17e43aabe266087075f03b7
+msgid "Rows already paid are left out."
+msgstr "已支付的列不列出。"
+

@@ -1,0 +1,247 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../api/connecting.md:1 2886d5064bd4413cae394d0cd0025f06
+msgid "Connecting"
+msgstr ""
+
+#: ../../api/connecting.md:3 59eaed473df045d488cc25c032cfc638
+msgid ""
+"The service speaks Protobuf over a WebSocket. One binary message carries "
+"exactly one serialized frame — WebSocket already delimits messages, so "
+"there is no length prefix of your own to write."
+msgstr ""
+
+#: ../../api/connecting.md:11 735842f0d8a141c88e6144c1db25e8fd
+msgid ""
+"`--host` and `--port` move it, with one refusal: a routable `--host` and "
+"no token is refused at startup rather than served."
+msgstr ""
+
+#: ../../api/connecting.md:14 925e335245e94b4c88edf462bb9358b9
+msgid "The handshake"
+msgstr ""
+
+#: ../../api/connecting.md:16 4e74a132b77e4fe09182cc091a0bd2d3
+msgid ""
+"Offer the subprotocol **`qlservice.v2`**. The service answers with "
+"exactly one protocol and never echoes a token back, because a browser "
+"fails a handshake in which it named protocols and the server selected "
+"none."
+msgstr ""
+
+#: ../../api/connecting.md:33 7ac9603cb5e540369a0e74f684145cb1
+msgid ""
+"Two refusals happen before a socket exists, and both are HTTP rather than"
+" frames:"
+msgstr ""
+
+#: ../../api/connecting.md ed5649a9fe19431e9ee4478201567f1b
+msgid "Answer"
+msgstr ""
+
+#: ../../api/connecting.md 1fe2d7dfd8494ed5b0e4f0c7465e186e
+msgid "Means"
+msgstr ""
+
+#: ../../api/connecting.md 325ebfbfd1a4450eb2fa31faf428415a
+msgid "`403 Forbidden`"
+msgstr ""
+
+#: ../../api/connecting.md 80351955083b406e982cbe39600548a6
+msgid "an `Origin` header was present and is not on the allowed list"
+msgstr ""
+
+#: ../../api/connecting.md 5f868d19d2f44eedafcaee3eb58b8e7a
+msgid "`401 Unauthorized`"
+msgstr ""
+
+#: ../../api/connecting.md b75b21c210c34560a8f679c8715739c2
+msgid "the service was started with a token and yours was wrong or missing"
+msgstr ""
+
+#: ../../api/connecting.md:41 0ee35fe823aa41849826be383367fbd2
+msgid ""
+"An absent `Origin` is let through: only browsers send one, so the check "
+"closes the browser path and leaves a script, a CLI or a proxy exactly as "
+"they were."
+msgstr ""
+
+#: ../../api/connecting.md:44 6a098c9292c34dbbb63283050bc59d31
+msgid "The token, when there is one"
+msgstr ""
+
+#: ../../api/connecting.md:46 95c0ba9be5e64a17aba4bdcb01f32e60
+msgid ""
+"Started with `--token-file`, every upgrade must present the secret. Where"
+" it goes depends on what your client can set:"
+msgstr ""
+
+#: ../../api/connecting.md 0d2f362acfbf40f2b2e274d2eeecd05d
+msgid "Client"
+msgstr ""
+
+#: ../../api/connecting.md b9e633310daf4c009cc319ff271efb44
+msgid "Where the token goes"
+msgstr ""
+
+#: ../../api/connecting.md d1ded041536e4f94919c08de43f9162b
+msgid "anything that can set headers"
+msgstr ""
+
+#: ../../api/connecting.md 8ea668e3cdff420ebac05c33a2d85363
+msgid "`Authorization: Bearer <token>`"
+msgstr ""
+
+#: ../../api/connecting.md 8c54a55ebdc8403fb7558387306322a6
+msgid "a browser"
+msgstr ""
+
+#: ../../api/connecting.md 7832b06b56d04db0b62c29b89a620b54
+msgid "`token.<token>` in the subprotocol list, **beside** `qlservice.v2`"
+msgstr ""
+
+#: ../../api/connecting.md:63 90b0814e06544f1dbfded50c3d716a3a
+msgid ""
+"Never put it in the query string: a URL reaches logs, history and "
+"referrers."
+msgstr ""
+
+#: ../../api/connecting.md:65 6a4e24de29714b828f315e2127fc5f24
+msgid "Frames, ids and the one guarantee"
+msgstr ""
+
+#: ../../api/connecting.md:67 5684eea7d50c4e249d2c362d1999fbca
+msgid ""
+"Every frame you send is a `ClientFrame` with a `request_id` you allocate,"
+" and a `session_id` on everything after the session exists. Both come "
+"back on every reply, because one socket can hold several sessions and "
+"several requests at once."
+msgstr ""
+
+#: ../../api/connecting.md:72 6556bdc9f6f94b9fb582d8b58e737f1d
+msgid ""
+"**Every request gets exactly one terminal frame**, including ones that "
+"fail and including the cancel itself. A client can therefore key a "
+"pending map on `request_id` and know that every entry is eventually "
+"removed by something. The one non-terminal frame is `Progress`, which "
+"arrives from a batched Monte Carlo, a sweep or a batch, and may be shed "
+"under backpressure — treat it as a hint, never as a count you have to "
+"receive."
+msgstr ""
+
+#: ../../api/connecting.md:90 05ccaf352bf743df892018df6584ba48
+msgid ""
+"A real client does not block like this — it keeps a map from `request_id`"
+" to a future, because frames for several requests interleave on one "
+"socket. The frontend's `WireClient` is that shape: monotonic ids, a "
+"pending registry, and a watchdog that flags a request which has heard "
+"nothing, since a missing terminal frame is a service bug rather than "
+"something to hide behind a timeout."
+msgstr ""
+
+#: ../../api/connecting.md:97 ec7443b55a0448f8987a182945a32eb5
+msgid "Limits worth knowing before you hit them"
+msgstr ""
+
+#: ../../api/connecting.md 6334d5955f9047039e7814f90b730954
+msgid "Limit"
+msgstr ""
+
+#: ../../api/connecting.md 90b6acc18dc547b1bee1e4202f0c7e0b
+msgid "Default"
+msgstr ""
+
+#: ../../api/connecting.md 800e218c6bfc4291bb235f379f4bf825
+msgid "What you get"
+msgstr "你會得到什麼"
+
+#: ../../api/connecting.md 6c6f4f6140004c99aded26123e946a18
+msgid "sockets at once"
+msgstr ""
+
+#: ../../api/connecting.md 0ef02ff73d904e76a5c08bc395502bfa
+msgid "32"
+msgstr ""
+
+#: ../../api/connecting.md d6bebd88b2f04ff18cc076596ba22fb9
+msgid "`503` at the upgrade"
+msgstr ""
+
+#: ../../api/connecting.md 1b3ec1040fb644568fb8cfb58e7aea24
+msgid "sessions per socket"
+msgstr ""
+
+#: ../../api/connecting.md 0b59b3f7dd604ba78f8555d251d46c9a
+msgid "16"
+msgstr ""
+
+#: ../../api/connecting.md 19c77a2af79842b3b29fdbfe5fd8f0f4
+msgid "`OVERLOADED`"
+msgstr ""
+
+#: ../../api/connecting.md fabebb246b8b438a97f752d2b29ce9ce
+msgid "frame size"
+msgstr ""
+
+#: ../../api/connecting.md 994157d7d1db4f5aa58f73d307f36036
+msgid "4 MB"
+msgstr ""
+
+#: ../../api/connecting.md 454ba76bb9894c07ac2cf11569fd6568
+msgid "the transport closes the connection"
+msgstr ""
+
+#: ../../api/connecting.md 0376e66633c44846a44604ce3dab45d0
+msgid "points per sweep"
+msgstr ""
+
+#: ../../api/connecting.md c77d0fb4f2794d04ab005a7d5e809c33
+msgid "100,000"
+msgstr ""
+
+#: ../../api/connecting.md f61b841a75ea44008fbb13428f9fbe65
+msgid "`INVALID_ARGUMENT`"
+msgstr ""
+
+#: ../../api/connecting.md:106 0e8c35eb80454282bdc16b5b31690554
+msgid ""
+"The sweep and batch ceilings are also published in `Capabilities`, so a "
+"client can refuse a too-large request before spending the round trip."
+msgstr ""
+
+#: ../../api/connecting.md:109 05c6b59945c44011b002b4cca8ffaa97
+msgid "Liveness without the protocol"
+msgstr ""
+
+#: ../../api/connecting.md:111 ba242a41a1b34828a0ef5b35749ef50f
+msgid ""
+"`GET /healthz` answers over plain HTTP for a proxy or an orchestrator "
+"that cannot speak this protocol:"
+msgstr ""
+
+#: ../../api/connecting.md:119 bbe9a7689abb46b0a59331fade4d6e00
+msgid ""
+"It proves the event loop is turning, which is the honest scope of a "
+"liveness check. It says nothing about whether a particular session is "
+"healthy."
+msgstr ""
+

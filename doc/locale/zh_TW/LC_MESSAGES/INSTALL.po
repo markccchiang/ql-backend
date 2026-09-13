@@ -1,0 +1,455 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../INSTALL.md:1 7d6670ce1d2b424a96b65c2b432cee1f
+msgid "Building ql-backend"
+msgstr ""
+
+#: ../../INSTALL.md:3 7208226cb9834b13a65bccc3619ea8b7
+msgid ""
+"Two routes. **Route A builds QuantLib from a submodule** and works "
+"unmodified from a fresh clone; **Route B links an installed QuantLib** "
+"and is faster to rebuild once you have one. They differ only in where "
+"QuantLib comes from — the rest of the build is identical."
+msgstr ""
+
+#: ../../INSTALL.md:8 7376e2df527a4c2ba2eea33cf2ba3fb1
+msgid ""
+"Route B is the default in `CMakeLists.txt`, because a QuantLib build is "
+"nearly a thousand translation units and you do not want to repeat it. "
+"Route A is the one to start with, because it cannot be misconfigured."
+msgstr ""
+
+#: ../../INSTALL.md:12 1289afc363c747a2948f83fd85b762c7
+msgid ""
+"The targets are `qlservice` (the static library) and `ql-backend` (the "
+"daemon, which shares its name with the CMake project). The build options "
+"below are spelled `QLSERVICE_*`, after the library."
+msgstr ""
+
+#: ../../INSTALL.md:16 e2f1347ce1694009be5bc8a8b376e915
+msgid "Prerequisites"
+msgstr ""
+
+#: ../../INSTALL.md fef69020d748473cb874b29ea84670e4
+msgid "Needs"
+msgstr "需要什麼"
+
+#: ../../INSTALL.md 1088d3aa28554af794dd8a5a31a1f643
+msgid "Known good here"
+msgstr ""
+
+#: ../../INSTALL.md 93bbf5c58cd04a0897c5c95ef1546226
+msgid "Notes"
+msgstr "備註"
+
+#: ../../INSTALL.md e0fff62203cf4098b513801de833d74b
+msgid "CMake ≥ 3.16"
+msgstr ""
+
+#: ../../INSTALL.md 2ed486840ffa4d3cba0f908c0d2279ca
+msgid "4.2.3"
+msgstr ""
+
+#: ../../INSTALL.md f6cf7d3eb9514fffaccb22be09396ee5
+msgid "A C++17 compiler"
+msgstr ""
+
+#: ../../INSTALL.md 26054e82a7e3400ab094a59a84e11fb7
+msgid "AppleClang 21.0.0"
+msgstr ""
+
+#: ../../INSTALL.md b8b6d1ce012942a4b206d177507ddcd3
+msgid "C is also enabled, for uSockets"
+msgstr ""
+
+#: ../../INSTALL.md 202e81b1c7f3412ebced47da370cdabe
+msgid "Boost ≥ 1.58, headers"
+msgstr ""
+
+#: ../../INSTALL.md 2a8ddea8c45641b485d9f355f8aff610
+msgid "1.92.0 (Homebrew)"
+msgstr ""
+
+#: ../../INSTALL.md 4845f7bc29ba417eb8c2114f6ecdc0e1
+msgid "Required by QuantLib on **both** routes"
+msgstr ""
+
+#: ../../INSTALL.md c2b8cdf6ace44ea68b74b7971ccadbee
+msgid "Protobuf with a CMake package config"
+msgstr ""
+
+#: ../../INSTALL.md d5b4d6f369154ead97b5ff75a0199dcf
+msgid "34.0 (Homebrew)"
+msgstr ""
+
+#: ../../INSTALL.md 553884e173b9493db319f083b78b357c
+msgid "Found in CONFIG mode; see below"
+msgstr ""
+
+#: ../../INSTALL.md baa42ef3aecf4803b3f15e0bb23cfbf9
+msgid "`protoc`"
+msgstr ""
+
+#: ../../INSTALL.md 5c9b44faf9c34132a49739ba5b59d91f
+msgid "34.0"
+msgstr ""
+
+#: ../../INSTALL.md 20d14a74e62242d5bfd12cef13999003
+msgid "Invoked by the build, not by hand"
+msgstr ""
+
+#: ../../INSTALL.md 0d6e69ae86984901b6b23d64bf55e439
+msgid "git"
+msgstr ""
+
+#: ../../INSTALL.md d179e9e9b1154cf3b8b99a08a631c5d1
+msgid "Both routes use submodules; the wire schema is one of them"
+msgstr ""
+
+#: ../../INSTALL.md a8e112b94cb94a6cbb17a1ec8ba66785
+msgid "Python 3 with `venv`"
+msgstr ""
+
+#: ../../INSTALL.md 70f3001c8c824bf785eff47a4fecf25d
+msgid "3.14"
+msgstr ""
+
+#: ../../INSTALL.md 0c4c03736fd7433d9e57ffe546f56f30
+msgid "Only for `test/`, not for the build"
+msgstr ""
+
+#: ../../INSTALL.md 0b5060789af945ddb9638d8eec3422cd
+msgid "A QuantLib, on Route B only"
+msgstr ""
+
+#: ../../INSTALL.md 7ab4a7be7a104df6bbd66a3ab5dd2e05
+msgid "1.44-dev, in a prefix of its own"
+msgstr ""
+
+#: ../../INSTALL.md c38c9b03339a47ebb28048048d09ba16
+msgid ""
+"Must be built with `QL_ENABLE_SESSIONS`; Route A builds the pinned v1.43 "
+"instead"
+msgstr ""
+
+#: ../../INSTALL.md:29 78bbde8bb3a046178af2191d4a7665dd
+msgid "On macOS with Homebrew: `brew install cmake boost protobuf`."
+msgstr ""
+
+#: ../../INSTALL.md:31 f7226984ddf740d58b1d1823ec3e29ec
+msgid ""
+"Protobuf is found with `find_package(Protobuf CONFIG REQUIRED)`. The "
+"CONFIG mode is deliberate — the deprecated `FindProtobuf` module misses "
+"the abseil dependencies that libprotobuf now carries. A protobuf "
+"installed without its CMake package config will not work."
+msgstr ""
+
+#: ../../INSTALL.md:36 087ac4760caa48c2a1a38957a88e43ee
+msgid ""
+"Vendoring QuantLib does **not** make the build self-contained: Boost is "
+"an external dependency on both routes."
+msgstr ""
+
+#: ../../INSTALL.md:39 760003fc42a04abc9473f84373431f06
+msgid "Route A (Recommended) — build QuantLib from the submodule"
+msgstr ""
+
+#: ../../INSTALL.md:49 3d33d02b91f8430f9ca2f169ce763e6a
+msgid ""
+"`CMakeLists.txt` forces `QL_ENABLE_SESSIONS=ON` and "
+"`QL_ENABLE_OPENMP=OFF` before adding QuantLib's directory, so the two "
+"settings this service cannot be correct without are build settings rather"
+" than properties of somebody's install tree. That is the whole reason "
+"this route exists — see [Why sessions matter](#why-sessions-matter)."
+msgstr ""
+
+#: ../../INSTALL.md:55 38d6472e98d643fab16fe9eef4bb846f
+msgid "Three notes:"
+msgstr ""
+
+#: ../../INSTALL.md:57 e49a3de4ce8d4556b4ece1e2ddf0cae5
+msgid ""
+"`-Wno-dev` suppresses one warning, and it is QuantLib's rather than this "
+"project's: `CMP0167`, the removal of CMake's `FindBoost` module, raised "
+"at `third_party/QuantLib/CMakeLists.txt:164`. It is a policy a parent "
+"project cannot set on a submodule's behalf. Drop the flag to see it; "
+"nothing else is hidden, and Route B configures clean with or without it."
+msgstr ""
+
+#: ../../INSTALL.md:62 5cec2450b8ae4bcca26e18af567857cf
+msgid ""
+"The second command is separate because the QuantLib submodule is marked "
+"`update = none` in `.gitmodules`. A plain `--init --recursive` skips it, "
+"so nobody on Route B pays for an 800 MB clone they will not use. "
+"`--checkout` is what overrides that."
+msgstr ""
+
+#: ../../INSTALL.md:66 40c23663f67241799b67bb864d26324b
+msgid ""
+"QuantLib's full history is around 800 MB. Adding `--depth 1` to the "
+"second command fetches the pinned commit alone and brings that down to "
+"about 50 MB — 41 MB of working tree, 11 MB of git data:"
+msgstr ""
+
+#: ../../INSTALL.md:74 117012cba4ee4240ad4f8ad91215e444
+msgid ""
+"This works because the pin is a release tag rather than an arbitrary "
+"commit — git fetches it by SHA and checks it out directly. Nothing in the"
+" build needs the history."
+msgstr ""
+
+#: ../../INSTALL.md:78 36be9f25e1f34598985fd4d78581db97
+msgid ""
+"Expect the first build to take a while — QuantLib is ~1000 translation "
+"units and all of them are new."
+msgstr ""
+
+#: ../../INSTALL.md:81 3b68a941354e45df85c46bcec4bb4a16
+msgid "Route B — link an installed QuantLib"
+msgstr ""
+
+#: ../../INSTALL.md:90 441c984257854039a37bf808cadcd893
+msgid ""
+"`CMAKE_PREFIX_PATH` must name a QuantLib **built with "
+"`QL_ENABLE_SESSIONS`**. Nothing in this build checks that, and the "
+"failure is silent — see below. If you do not already have one:"
+msgstr ""
+
+#: ../../INSTALL.md:106 bfcf9142520943fd807d9472979bf378
+msgid ""
+"Install it to a **prefix of its own**, not over a general-purpose "
+"QuantLib. `QL_ENABLE_SESSIONS` changes the behaviour of "
+"`Singleton<T>::instance()` for every program that links the library, and "
+"other projects will not expect it. Two prefixes side by side is the "
+"intended arrangement:"
+msgstr ""
+
+#: ../../INSTALL.md 7bdf79a3669c4f8dbda4f32643ce4e62
+msgid "Prefix"
+msgstr ""
+
+#: ../../INSTALL.md e37c42f3489347f7a87481d40d8e228f
+msgid "`QL_ENABLE_SESSIONS`"
+msgstr ""
+
+#: ../../INSTALL.md 63b39e81e27643c4842b6fa489b4c9ff
+msgid "Use"
+msgstr "用途"
+
+#: ../../INSTALL.md 20ed1be8739645328e604be221468817
+msgid "`~/.local`"
+msgstr ""
+
+#: ../../INSTALL.md ce79e4c85f7d49678002253c4ea61143
+msgid "undefined"
+msgstr ""
+
+#: ../../INSTALL.md 134f9702b4d843d897b30adacac8f24e
+msgid "Other projects"
+msgstr ""
+
+#: ../../INSTALL.md be0b7be9400646818e3f5703d114476c
+msgid "`~/.local/quantlib-sessions`"
+msgstr ""
+
+#: ../../INSTALL.md e2334483d7f24ae0905e27512078c9ed
+msgid "`1`"
+msgstr ""
+
+#: ../../INSTALL.md c57fe8d2d00d4acd833e9205267e92f0
+msgid "This one"
+msgstr ""
+
+#: ../../INSTALL.md:116 a90013720c6a47a78ae9bc374c98642b
+msgid ""
+"`QL_ENABLE_OPENMP=OFF` is not incidental either — workers are "
+"deliberately built without OpenMP (DESIGN §2.2)."
+msgstr ""
+
+#: ../../INSTALL.md:119 31460e9161044782b82d12c6be434157
+msgid "Why sessions matter"
+msgstr ""
+
+#: ../../INSTALL.md:121 9dffa8d4181844ddae2eb482e22cca0e
+msgid ""
+"`Singleton<T>::instance()` returns one process-wide static in a default "
+"QuantLib, and a `thread_local` one under `QL_ENABLE_SESSIONS`. "
+"`Settings`, which holds `evaluationDate()`, is one of those singletons."
+msgstr ""
+
+#: ../../INSTALL.md:125 f29c42cdd9f643e99cea56d8750a7499
+msgid ""
+"The wrong QuantLib therefore compiles, links, and prices a single session"
+" perfectly correctly. It only goes wrong with two sessions in one "
+"process, which then silently share one evaluation date — plausible "
+"numbers, wrong date, no error anywhere. DESIGN §2 is the argument in "
+"full."
+msgstr ""
+
+#: ../../INSTALL.md:130 c8326ab4a37445898ebe5a2e984c61d2
+msgid ""
+"`test/smoke_v2.py` is the check that catches it. Two of its sessions sit "
+"on evaluation dates one day apart and must disagree by one day of theta; "
+"**prices that agree exactly mean the wrong QuantLib is linked.**"
+msgstr ""
+
+#: ../../INSTALL.md:134 ab5b1a89c30848e0854725280bf4e081
+msgid "Options"
+msgstr ""
+
+#: ../../INSTALL.md ec2c30d957e24e08b8e791fbaf508312
+msgid "Option"
+msgstr ""
+
+#: ../../INSTALL.md eaca3d4bc7f645fdb6b28e95309b3dcd
+msgid "Default"
+msgstr ""
+
+#: ../../INSTALL.md f3a0d25524024b2f807af8f6df91a6ba
+msgid "Effect"
+msgstr ""
+
+#: ../../INSTALL.md 12e4249b3acc4d1d823d1bc9fe7ced1d
+msgid "`QLSERVICE_VENDOR_QUANTLIB`"
+msgstr ""
+
+#: ../../INSTALL.md 0779d5243ea94b8088f4a600a3fb359f
+#: fdcc9be81e084591a49c6730c942fadd
+msgid "`OFF`"
+msgstr ""
+
+#: ../../INSTALL.md e623d1f5e19041c0a7ab912333987620
+msgid "Build QuantLib from `third_party/QuantLib` instead of `find_package`"
+msgstr ""
+
+#: ../../INSTALL.md ff95f16a76344b1bac438fa74e69dd03
+msgid "`QLSERVICE_WERROR`"
+msgstr ""
+
+#: ../../INSTALL.md 734caf9da1dc4cc3a7bdef81d8b26944
+msgid "`-Werror` on `qlservice`. The tree is warning-free on both routes"
+msgstr ""
+
+#: ../../INSTALL.md:141 ea3819f1b89b4e2ebea8d6c5cc6db6b1
+msgid ""
+"Warnings are `-Wall -Wextra -Wpedantic -Wno-switch`, and only on this "
+"project's own targets: generated protobuf code and uSockets build with "
+"`-w`, and a vendored QuantLib's headers are marked as system includes. "
+"The `ql-backend` target drops `-Wpedantic` alone — uWebSockets' templates"
+" are instantiated there and were not written to it — and "
+"`QLSERVICE_WERROR` reaches `qlservice` only, so the three gateway "
+"translation units are warned about but never fail on it."
+msgstr ""
+
+#: ../../INSTALL.md:148 939dfa6c4006425fbb3198c2db7ba5d8
+msgid "Things that will bite"
+msgstr ""
+
+#: ../../INSTALL.md:150 90057cc368ca45e5acbc44697a9d2b97
+msgid ""
+"**`QuantLib_DIR` is cached.** Changing `CMAKE_PREFIX_PATH` on an existing"
+" build tree does not move an already-resolved QuantLib. Reconfigure with "
+"`cmake --fresh` or delete the tree."
+msgstr ""
+
+#: ../../INSTALL.md:153 cc234a6cba8c4b08b985266e0dd7b8ab
+msgid ""
+"**An uninitialized `proto` is a hard error.** The schema is a submodule, "
+"and `add_library()` names its `.proto` files directly, so a clone that "
+"skips `git submodule update` fails the configure with `Cannot find source"
+" file` rather than degrading. It is the one submodule with no graceful "
+"path."
+msgstr ""
+
+#: ../../INSTALL.md:157 8ade189004ea4c03b6d77df1da95831d
+msgid ""
+"**An uninitialized `third_party/uWebSockets` is not an error.** The "
+"configure succeeds, `libqlservice.a` still builds, and only the `ql-"
+"backend` executable is skipped — with a message telling you to init the "
+"submodule. If you ran `cmake` before `git submodule update`, this is why "
+"there is no binary."
+msgstr ""
+
+#: ../../INSTALL.md:161 d51a27020dce40658096960dfd40f071
+msgid ""
+"**`--recursive` matters for uWebSockets**, which nests uSockets inside "
+"itself. Without it uSockets is empty and the executable is skipped as "
+"above."
+msgstr ""
+
+#: ../../INSTALL.md:163 673d4c17c53944dd88c841aa9486a3f0
+msgid ""
+"**A browser is refused where a script is not.** An upgrade whose `Origin`"
+" header is present and not on the allowed list is answered `403 "
+"Forbidden` (DESIGN §9.6). The default list is the Vite dev server's ports"
+" — `localhost` and `127.0.0.1` on 5173 and 4173 — so a frontend served "
+"from anywhere else needs `--allow-origin URL`, and until it gets one the "
+"failure looks exactly like a backend that is not running. A client that "
+"sends no `Origin` at all, `test/smoke_v2.py` included, is unaffected. "
+"`--help` lists that flag and the rest."
+msgstr ""
+
+#: ../../INSTALL.md:171 9920167dae2b4e339cecfc53819b560c
+msgid ""
+"**A routable `--host` needs `--token-file FILE`.** Without one the daemon"
+" refuses to start and exits 2, naming both ways out: give it a token "
+"file, or leave it on loopback behind a proxy that terminates TLS and "
+"authenticates. The check is a string comparison against the three "
+"loopback spellings, so it is a rule you can act on rather than a lookup "
+"you cannot see."
+msgstr ""
+
+#: ../../INSTALL.md:176 661b4144778045788a20238ee6643205
+msgid ""
+"**`QLSERVICE_VENDOR_QUANTLIB=ON` with an empty submodule** stops the "
+"configure with a `FATAL_ERROR` naming the checkout command. That one is "
+"deliberate: a vendored build that silently fell back to `find_package` "
+"would defeat the point of the option."
+msgstr ""
+
+#: ../../INSTALL.md:181 8170692e8f554882bf305dafe2f228e2
+msgid "Verifying the build"
+msgstr ""
+
+#: ../../INSTALL.md:183 cc3239c1a5764c55a81b2e6bf804ae8e
+msgid ""
+"There is no unit-test target. `test/smoke_v2.py` drives a running `ql-"
+"backend` over a real WebSocket; [the smoke tests page](TESTING.md) has "
+"the setup and how to run it."
+msgstr ""
+
+#: ../../INSTALL.md:187 5f851021e4c94d9ab37080a45d4dc0a7
+msgid ""
+"Run it at least once after any change to which QuantLib you are linking. "
+"Its two-session check is the only thing in the repository that "
+"distinguishes a *wrong* QuantLib from a missing one."
+msgstr ""
+
+#: ../../INSTALL.md:191 e3601da5cc2e4a7586c66946f4869ad8
+msgid ""
+"`GET /healthz` on the same port is the cheaper check either side of it: "
+"it answers JSON carrying the QuantLib version the binary linked, its "
+"uptime, and how many connections and sessions are open. It says which "
+"QuantLib you got — not whether that one has sessions enabled, which is "
+"what the paragraph above is for."
+msgstr ""
+

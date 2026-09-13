@@ -1,7 +1,8 @@
 # Build the documentation:
 #   python3 -m venv .venv && .venv/bin/pip install -r doc/requirements.txt
-#   .venv/bin/python -m sphinx -b html doc doc/_build/html
+#   sh doc/build.sh    (English, and Traditional Chinese under zh-tw/)
 sphinx>=7
 sphinx-rtd-theme>=2
 myst-parser>=2
 sphinxcontrib-mermaid>=0.9
+sphinx-intl>=2

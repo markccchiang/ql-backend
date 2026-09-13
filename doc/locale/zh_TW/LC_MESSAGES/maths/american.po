@@ -1,0 +1,323 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../maths/american.md:1 bef2982ca7b4480fbc374a7a94c60660
+msgid "Early exercise: American and Bermudan"
+msgstr "提前履約：美式與百慕達式"
+
+#: ../../maths/american.md:3 8dfb233804ae4f6ca40c45570b9c0ba9
+msgid ""
+"An American option can be exercised at any time up to expiry, so its "
+"value is not the solution of the Black-Scholes equation but of a *free "
+"boundary* problem:"
+msgstr "美式選擇權在到期前的任何時點都可以履約，因此它的價值不是 Black-Scholes 方程式的解，而是一個*自由邊界*問題的解："
+
+#: ../../maths/american.md:7 fcedeb6639044bcc8052da4f5cc4825b
+#, python-brace-format
+msgid ""
+"V(S,t) = \\max\\Big(\\text{payoff}(S),\\ \\mathbb{E}\\big[e^{-r\\,dt} "
+"V(S_{t+dt}, t+dt)\\big]\\Big),"
+msgstr ""
+
+#: ../../maths/american.md:9 9f279e4512dd4fe6ae792f5ef1b3c15c
+#, python-brace-format
+msgid ""
+"with the continuation value satisfying the Black-Scholes equation "
+"wherever early exercise is not optimal. The boundary between the two "
+"regions — the critical price $S^{\\ast}(t)$ — is part of the answer, "
+"which is what makes the problem hard and why this build offers four "
+"routes to it."
+msgstr "其中在提前履約並非最適的區域，續持價值滿足 Black-Scholes 方程式。兩個區域之間的邊界——臨界價格 $S^{\\ast}(t)$——本身就是答案的一部分，這正是這個問題困難的原因，也是這個版本為它提供四條路徑的原因。"
+
+#: ../../maths/american.md:14 70df0b21899047debf03100cd9897ec1
+msgid ""
+"A **Bermudan** option is the same recursion with the maximum taken only "
+"on the exercise dates. It is a lattice or grid problem by nature; there "
+"is no closed form."
+msgstr "**百慕達式**選擇權是同一組遞迴，只是取極大值的動作只在各履約日進行。它本質上是格點或網格問題；沒有封閉解。"
+
+#: ../../maths/american.md:19 dd38a48d93f441cb9686116e8dd4b922
+msgid ""
+"For a call on a non-dividend-paying asset ($q = 0$) early exercise is "
+"never optimal and the American price equals the European one. If your "
+"American call prices identically to the European, check the dividend "
+"curve before assuming a bug."
+msgstr "對不配息資產（$q = 0$）的買權而言，提前履約永遠不是最適的，美式價格等於歐式價格。如果你的美式買權和歐式算出完全一樣的價格，先檢查股利曲線，再懷疑有 bug。"
+
+#: ../../maths/american.md:25 f96d4b07bc6d41b3b7296d5b5e9e912d
+msgid "The three approximations"
+msgstr "三種近似法"
+
+#: ../../maths/american.md:27 7b9a902c82084eebbc350547a7d35413
+msgid ""
+"QuantLib has three closed-form approximations and they **disagree in the "
+"third decimal**, so this service refuses to pick one for you. Each "
+"assumes a different simplification of the exercise boundary."
+msgstr "QuantLib 有三種封閉解近似法，而它們**在小數第三位就不一致**，所以本服務拒絕替你挑一個。每一種對履約邊界所做的簡化都不同。"
+
+#: ../../maths/american.md:31 71b08a2854514c1a8c0c423e6972c2ca
+msgid ""
+"**Barone-Adesi-Whaley (1987).** Writes the American value as the European"
+" value plus an early-exercise premium, and drops a term that is small "
+"when the discount factor is close to one:"
+msgstr "**Barone-Adesi-Whaley（1987）。**把美式價值寫成歐式價值加上一項提前履約溢價，並捨去一個在折現因子接近一時很小的項："
+
+#: ../../maths/american.md:35 9a19736ddd104516864122f7dec3b195
+msgid ""
+"V_{\\text{Am}} = V_{\\text{Eu}} + "
+"A_2\\left(\\frac{S}{S^{\\ast}}\\right)^{q_2},\n"
+"\\qquad\n"
+"q_2 = \\frac{-(N-1) + \\sqrt{(N-1)^2 + 4M/k}}{2},"
+msgstr ""
+
+#: ../../maths/american.md:39 910a67de0e964738853c55dfbd6af240
+#, python-brace-format
+msgid ""
+"with $M = 2r/\\sigma^2$, $N = 2b/\\sigma^2$ and $k = 1 - e^{-rT}$. The "
+"critical price $S^{\\ast}$ is found by a one-dimensional iteration. Fast,"
+" and least accurate for long maturities where $k$ is far from small."
+msgstr "其中 $M = 2r/\\sigma^2$、$N = 2b/\\sigma^2$、$k = 1 - e^{-rT}$。臨界價格 $S^{\\ast}$ 以一維迭代求得。快，但在 $k$ 離小很遠的長天期上最不準。"
+
+#: ../../maths/american.md:43 02e9fc396e1448feb191eeb022eb2316
+msgid ""
+"**Bjerksund-Stensland (1993/2002).** Approximates the exercise boundary "
+"by a *flat* trigger $X$ and prices the resulting barrier-like claim in "
+"closed form, with"
+msgstr "**Bjerksund-Stensland（1993/2002）。**以一個*平坦*的觸發水準 $X$ 近似履約邊界，再以封閉解為由此得到的類障礙請求權計價，其中"
+
+#: ../../maths/american.md:47 86f5beff52134473aced9cd0000d14cf
+msgid ""
+"\\beta = \\left(\\frac{1}{2} - \\frac{b}{\\sigma^2}\\right)\n"
+"        + \\sqrt{\\left(\\frac{b}{\\sigma^2} - \\frac{1}{2}\\right)^2 + "
+"\\frac{2r}{\\sigma^2}}."
+msgstr ""
+
+#: ../../maths/american.md:50 a4f08c4bba2b4768b10509e702b53aba
+msgid ""
+"Generally the better of the two originals, and the usual default "
+"elsewhere in the industry."
+msgstr "一般而言是兩個原始方法中較好的一個，也是業界其他地方常見的預設值。"
+
+#: ../../maths/american.md:53 eca9a5b372154c3388e7c4a96433ba9f
+msgid ""
+"**Ju-Zhong (1999).** A correction to the quadratic method that restores "
+"the term Barone-Adesi-Whaley drops, at the cost of one more evaluation. "
+"Usually closest to a fine lattice, which is the practical test."
+msgstr "**Ju-Zhong（1999）。**對二次法的修正，把 Barone-Adesi-Whaley 捨去的那一項補回來，代價是多算一次。通常最接近細格點的結果，而那正是實務上的判準。"
+
+#: ../../maths/american.md:57 2575a592f44a4536a554cffce551cb45
+msgid ""
+"If a number has to be defensible rather than fast, price the same trade "
+"on a lattice with several thousand steps and use that as the reference."
+msgstr "如果要的是一個站得住腳而不是快的數字，就用幾千步的格點為同一筆交易計價，並以它為基準。"
+
+#: ../../maths/american.md:60 4c49c367de524046b87f0e90d3301e49
+msgid "Binomial trees"
+msgstr "二元樹"
+
+#: ../../maths/american.md:62 a3569a65d749433a835a0b03824a4de9
+msgid ""
+"A lattice discretises the log-price $x = \\ln S$ into steps of $\\Delta t"
+" = T/n$ and solves the recursion backwards from the payoff, taking the "
+"maximum against intrinsic value at every node (or at the Bermudan dates "
+"only):"
+msgstr "格點把對數價格 $x = \\ln S$ 離散成 $\\Delta t = T/n$ 的步伐，並從收益函數由後往前解遞迴，在每個節點（或僅在百慕達式的各履約日）與內含價值取極大："
+
+#: ../../maths/american.md:66 e630ccc8ea264fb1aa12dcca366e4033
+#, python-brace-format
+msgid ""
+"V_{i,j} = \\max\\Big(\\text{payoff}(S_{i,j}),\\ e^{-r\\Delta t}\\big(p_u "
+"V_{i+1,j+1} + p_d V_{i+1,j-1}\\big)\\Big)."
+msgstr ""
+
+#: ../../maths/american.md:68 840d7698822e4dd8974ea1621715d7b5
+msgid "All seven trees are built on the **log process** with per-step drift"
+msgstr "七種樹全都建立在**對數過程**上，每一步的漂移為"
+
+#: ../../maths/american.md:70 879700df31484e3eb0310eb67f3a91a6
+#, python-brace-format
+msgid "\\nu\\,\\Delta t = \\left(r - q - \\tfrac{1}{2}\\sigma^2\\right)\\Delta t,"
+msgstr ""
+
+#: ../../maths/american.md:72 dbaa79604759443ea8fa0cc0145dccfe
+#, python-brace-format
+msgid ""
+"which is why the probabilities below carry $\\nu$ rather than "
+"$e^{(r-q)\\Delta t}$. These are QuantLib's own parameterisations, from "
+"`ql/methods/lattices/binomialtree.cpp`:"
+msgstr "這也是為什麼下面的機率帶的是 $\\nu$ 而不是 $e^{(r-q)\\Delta t}$。以下是 QuantLib 自己的參數化，出自 `ql/methods/lattices/binomialtree.cpp`："
+
+#: ../../maths/american.md:18 1057989db1554648857d350eecb004f1
+msgid "Tree"
+msgstr "樹"
+
+#: ../../maths/american.md:18 7f9e955d7c1e4b009d80e27d35aa8825
+msgid "Jump"
+msgstr "跳幅"
+
+#: ../../maths/american.md:18 b3815c27e7bd492b8dbecc8e76692248
+msgid "Probability"
+msgstr "機率"
+
+#: ../../maths/american.md:18 39e427c49b904453a594ec604e34c815
+msgid "Cox-Ross-Rubinstein"
+msgstr "Cox-Ross-Rubinstein"
+
+#: ../../maths/american.md:18 8a884e32c5ed42d2abefdb84d6fe2515
+#, python-brace-format
+msgid "$\\Delta x = \\sigma\\sqrt{\\Delta t}$"
+msgstr ""
+
+#: ../../maths/american.md:18 f5b8b7328c044647bd8bd8c19308a22e
+#, python-brace-format
+msgid "$p_u = \\tfrac{1}{2} + \\tfrac{1}{2}\\dfrac{\\nu \\Delta t}{\\Delta x}$"
+msgstr ""
+
+#: ../../maths/american.md:18 37c70faf581c44ebbc7ec7fefc2309fe
+msgid "Jarrow-Rudd"
+msgstr "Jarrow-Rudd"
+
+#: ../../maths/american.md:18 6a885397269940dc81f83f9b5e0e65e6
+#, python-brace-format
+msgid "$\\Delta x = \\sigma\\sqrt{\\Delta t}$, nodes drift by $\\nu\\Delta t$"
+msgstr ""
+
+#: ../../maths/american.md:18 ac046766f6f84cc69168b8dfec23f809
+#: e0fcf2df1cd1416ab7a182387f5f361b
+#, python-brace-format
+msgid "$p_u = \\tfrac{1}{2}$"
+msgstr ""
+
+#: ../../maths/american.md:18 ebb0cfa98b4646bcb78c2add56fbbd8d
+msgid "Additive equiprobabilities"
+msgstr "加法等機率"
+
+#: ../../maths/american.md:18 13a93fee9eeb436aa04063488bfb8e9a
+#, python-brace-format
+msgid ""
+"$\\Delta x = -\\tfrac{1}{2}\\nu\\Delta t + "
+"\\tfrac{1}{2}\\sqrt{4\\sigma^2\\Delta t - 3\\nu^2\\Delta t^2}$"
+msgstr ""
+
+#: ../../maths/american.md:18 4c1456526d1b4434b194ae8d1591834c
+msgid "Trigeorgis"
+msgstr "Trigeorgis"
+
+#: ../../maths/american.md:18 14211963e67645a3a2e9146d6b8c887d
+#, python-brace-format
+msgid "$\\Delta x = \\sqrt{\\sigma^2\\Delta t + \\nu^2\\Delta t^2}$"
+msgstr ""
+
+#: ../../maths/american.md:18 3d15f5a2c53b492b9cc342d5e8c283bd
+#, python-brace-format
+msgid "$p_u = \\tfrac{1}{2} + \\tfrac{1}{2}\\dfrac{\\nu\\Delta t}{\\Delta x}$"
+msgstr ""
+
+#: ../../maths/american.md:18 9669d85ed1f2437fb03112bb468f3c1a
+msgid "Tian"
+msgstr "Tian"
+
+#: ../../maths/american.md:18 f97c415e5ff94516ab940e8e017b896e
+#, python-brace-format
+msgid "moment-matched $u, d$ from $q = e^{\\sigma^2\\Delta t}$"
+msgstr "由 $q = e^{\\sigma^2\\Delta t}$ 動差匹配出的 $u, d$"
+
+#: ../../maths/american.md:18 61abb4181215431d81752bee9fdefab7
+#, python-brace-format
+msgid "$p_u = \\dfrac{\\tilde r - d}{u - d}$"
+msgstr ""
+
+#: ../../maths/american.md:18 0ec3a0eeae304f139d40bc96a986cf23
+msgid "Leisen-Reimer"
+msgstr "Leisen-Reimer"
+
+#: ../../maths/american.md:18 f31298e6667d4491873f437294210034
+#: f32d7e7f564c4997ad05589ae0d8c138
+msgid "derived from the probability"
+msgstr "由機率反推而得"
+
+#: ../../maths/american.md:18 f992cdf33f82447c9b5db429ecd20567
+msgid "Peizer-Pratt inversion of $d_2$"
+msgstr "對 $d_2$ 做 Peizer-Pratt 反轉"
+
+#: ../../maths/american.md:18 4afcb015c2fd47c490a514f5a54b96f9
+msgid "Joshi4"
+msgstr "Joshi4"
+
+#: ../../maths/american.md:18 7ee9d993a6d84b1aacb5e3e58c958ba7
+msgid "a fourth-order variant of the same inversion"
+msgstr "同一種反轉的四階變體"
+
+#: ../../maths/american.md:86 4ee0190baaf64478b3e06d8131ffba89
+msgid ""
+"The classic $u = e^{\\sigma\\sqrt{\\Delta t}},\\ d = 1/u, p = "
+"(e^{(r-q)\\Delta t} - d)/(u - d)$ agrees with the Cox-Ross-Rubinstein row"
+" to first order in $\\Delta t$; QuantLib's form is the drift-adjusted "
+"one."
+msgstr "經典的 $u = e^{\\sigma\\sqrt{\\Delta t}},\\ d = 1/u, p = (e^{(r-q)\\Delta t} - d)/(u - d)$ 與 Cox-Ross-Rubinstein 那一列在 $\\Delta t$ 的一階上一致；QuantLib 用的是漂移調整過的形式。"
+
+#: ../../maths/american.md:90 e5a882301f9247be89b53c569460114b
+msgid "Which tree to use"
+msgstr "該用哪一種樹"
+
+#: ../../maths/american.md:92 1dcf3889c89c47c390320d701c76faaf
+msgid ""
+"The first five converge to the true price as $O(1/n)$ **with "
+"oscillation**: the error changes sign as the strike moves between nodes, "
+"so a price plotted against step count zig-zags around the answer. "
+"Averaging two adjacent step counts is a cheap way to kill most of that."
+msgstr "前五種以 $O(1/n)$ 收斂到真值，但**帶震盪**：當履約價在節點之間移動時誤差會變號，因此把價格對步數畫出來會在答案附近來回鋸齒。取相鄰兩個步數的平均，是消掉其中大部分的便宜做法。"
+
+#: ../../maths/american.md:97 254b3446b62040b5a2453cc614adbb5b
+msgid ""
+"**Leisen-Reimer** and **Joshi4** are built to remove it. Both invert the "
+"binomial probability so that the strike sits exactly between two terminal"
+" nodes, both force an **odd** number of steps, and both need the strike —"
+" which is why they are strike-aware and the others are not. Their "
+"convergence is smooth and roughly $O(1/n^2)$, so a few hundred steps "
+"beats a few thousand of the others."
+msgstr "**Leisen-Reimer** 與 **Joshi4** 就是為了消除它而設計的。兩者都反推二項機率，使履約價恰好落在兩個期末節點之間；兩者都強制**奇數**步數；兩者都需要履約價——這也是它們會參考履約價而其他樹不會的原因。它們的收斂平滑，約為 $O(1/n^2)$，因此幾百步就勝過其他樹的幾千步。"
+
+#: ../../maths/american.md:104 73b991b86f874c7bb1cfa7ddc9db4750
+msgid ""
+"For a **barrier** the lattice is Cox-Ross-Rubinstein only, with the "
+"Derman-Kani correction that shifts the effective barrier onto the nearest"
+" node layer. Barrier lattices converge badly when the barrier falls "
+"between nodes, which is exactly what that correction is for; if a barrier"
+" price looks unstable in the step count, the finite-difference grid is "
+"the better tool."
+msgstr "對**障礙**而言，格點僅支援 Cox-Ross-Rubinstein，並帶 Derman-Kani 修正，把有效障礙移到最近的一層節點上。當障礙落在節點之間時，障礙格點收斂得很糟，而那正是這項修正的用途；若某個障礙價格隨步數看起來不穩定，有限差分網格是更好的工具。"
+
+#: ../../maths/american.md:110 03719f57afb248e4b04ee474a4de3b5f
+msgid "The alternative: a grid"
+msgstr "另一條路：網格"
+
+#: ../../maths/american.md:112 8c070de0b9414329bd51f9e708b1ad71
+#, python-brace-format
+msgid ""
+"Finite difference solves the same free boundary problem by discretising "
+"the Black-Scholes equation directly and applying the exercise constraint "
+"at every time step. It is the more robust route for a barrier, and the "
+"only route this build offers for an American *double* barrier — which it "
+"does not have, since the double-barrier engine is analytic and European. "
+"See {doc}`numerics`."
+msgstr "有限差分直接把 Black-Scholes 方程式離散化，並在每個時間步施加履約條件，藉此求解同一個自由邊界問題。對障礙商品而言它比較穩健，也是這個版本為美式*雙*障礙提供的唯一路徑——而它並不提供，因為雙障礙引擎是解析解且僅限歐式。見 {doc}`numerics`。"
+

@@ -1,0 +1,23 @@
+{% extends "!layout.html" %}
+
+{# The language switch. Both builds come out of one source tree — English at
+   the root, Traditional Chinese under zh-tw/ — so the other language's copy of
+   the page you are on is a relative path away, and the link keeps you on the
+   same page rather than dropping you at a translated front door. #}
+{% block sidebartitle %}
+{{ super() }}
+{%- set depth = pagename.count('/') %}
+{%- if language and language.startswith('zh') %}
+  {%- set other_href = ('../' * (depth + 1)) ~ pagename ~ '.html' %}
+  {%- set other_label = 'English' %}
+  {%- set here_label = '繁體中文' %}
+{%- else %}
+  {%- set other_href = ('../' * depth) ~ 'zh-tw/' ~ pagename ~ '.html' %}
+  {%- set other_label = '繁體中文' %}
+  {%- set here_label = 'English' %}
+{%- endif %}
+<div class="lang-switch" role="navigation" aria-label="language">
+  <span class="lang-current">{{ here_label }}</span>
+  <a class="lang-other" href="{{ other_href }}" rel="alternate">{{ other_label }}</a>
+</div>
+{% endblock %}

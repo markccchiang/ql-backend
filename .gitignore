@@ -12,6 +12,9 @@ __pycache__/
 
 # Sphinx build output, and the venv the doc/ build page suggests
 doc/_build/
+
+# Compiled message catalogues: sphinx-build rebuilds them from the .po files.
+doc/locale/**/*.mo
 .venv/
 
 # Agent instructions, kept local

@@ -1,0 +1,117 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../api/bindings.md:1 f22d30666f84410b81092e7c39944372
+msgid "Generating bindings"
+msgstr ""
+
+#: ../../api/bindings.md:3 2718c8ddcdb641cfbbac9a76d89e8134
+msgid ""
+"The schema is a repository of its own, [ql-"
+"protobuf](https://github.com/markccchiang/ql-protobuf), mounted here as "
+"the `proto/` submodule. **No generated code is checked in anywhere** — "
+"each consumer runs its own generator, so there is one source of truth and"
+" no stale binding sitting beside a schema that moved."
+msgstr ""
+
+#: ../../api/bindings.md:13 392bd54ac17347dba04635426bf21821
+msgid "The layout is what you import against:"
+msgstr ""
+
+#: ../../api/bindings.md:24 0a37a6be60e94227bfab88072c309557
+msgid ""
+"`v2` imports `v1`'s `conventions.proto`, so generate both even though "
+"only `v2` is served."
+msgstr ""
+
+#: ../../api/bindings.md:27 aff1958f33494d6c84838a0bc5bb7207
+msgid "Python"
+msgstr ""
+
+#: ../../api/bindings.md:36 d5cb029690ce4495b2710129f6bd3ad5
+msgid ""
+"The `touch` is not optional: `protoc` writes the package directories "
+"without `__init__.py`, and the import fails without them. Put `pb` on "
+"`sys.path` and the modules are `quantlib.v2.envelope_pb2` and friends."
+msgstr ""
+
+#: ../../api/bindings.md:40 fad8595124a34ceabb246c8c901eca55
+msgid ""
+"Two names catch people out. `ResultKind` lives in `results_pb2`, not in "
+"`envelope_pb2` where the request that carries it lives; and the `Value` "
+"variant's oneof is called `v`, so the accessor is "
+"`value.WhichOneof(\"v\")`."
+msgstr ""
+
+#: ../../api/bindings.md:44 da56fdc9fd434b32b068fb3c25c12f31
+msgid "TypeScript"
+msgstr ""
+
+#: ../../api/bindings.md:46 8d6b75e6cf8a40e2950b05dd08ac535c
+msgid ""
+"The frontend generates with [buf](https://buf.build) and `protoc-gen-es`,"
+" which produces plain ES modules with no runtime service dependency:"
+msgstr ""
+
+#: ../../api/bindings.md:66 70431795bfd84c199065a21da988efac
+msgid ""
+"Encode and decode with the schema objects rather than methods on the "
+"message:"
+msgstr ""
+
+#: ../../api/bindings.md:76 a39c66d00b5d42d7a0ea88c8883188a1
+msgid ""
+"Keep the output directory out of version control and regenerate on "
+"install — the frontend gitignores `src/gen` and runs its `gen` script "
+"from `prepare`, so a moved schema cannot be shadowed by a checked-in "
+"binding."
+msgstr ""
+
+#: ../../api/bindings.md:80 6af8198cf44946a899bc45013dc972d4
+msgid "C++"
+msgstr ""
+
+#: ../../api/bindings.md:82 f648c11084214f7c9964a0efeedfd3b6
+msgid ""
+"This repository generates its own at build time; `CMakeLists.txt` is the "
+"worked example. `protobuf_generate` is given the `.proto` files directly "
+"and writes into `<builddir>/generated/`, whose root goes on the include "
+"path so a header is included by its package path:"
+msgstr ""
+
+#: ../../api/bindings.md:91 ead74c59be8e4057997066178fad2d62
+msgid ""
+"Find Protobuf in CONFIG mode (`find_package(Protobuf CONFIG REQUIRED)`) —"
+" the deprecated `FindProtobuf` module misses the abseil dependencies "
+"libprotobuf now carries."
+msgstr ""
+
+#: ../../api/bindings.md:95 7249772d55514e0ea2cda317c506574d
+msgid "Versions"
+msgstr ""
+
+#: ../../api/bindings.md:97 1ca453b92ed1442583192e2b8c307b00
+msgid ""
+"The schema is clean under `protoc 34.0`. Anything recent enough to know "
+"about `optional` in proto3 will do; the schema uses no extensions, no "
+"services and no `Any`."
+msgstr ""
+

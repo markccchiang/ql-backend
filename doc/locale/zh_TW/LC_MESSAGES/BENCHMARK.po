@@ -1,0 +1,304 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../BENCHMARK.md:1 d13addb029584b77937e550c0fa104bb
+msgid "Quanto barrier benchmark"
+msgstr ""
+
+#: ../../BENCHMARK.md:3 1a9d34a4e4a6499396924e01bf027d87
+msgid ""
+"The benchmark `smoke_v2.py` runs, and the numbers it produced. Extracted "
+"from [the smoke tests page](TESTING.md), which now points here."
+msgstr ""
+
+#: ../../BENCHMARK.md:6 5ec2b0cac1344cae98717c486c89e785
+msgid "What is being benchmarked, and why"
+msgstr ""
+
+#: ../../BENCHMARK.md:8 84dce2c8f32348e69036e7a63e9d621a
+msgid ""
+"`testBarrierValues` in QuantLib's `test-suite/quantooption.cpp` carries a"
+" `TODO: bench results against an existing prop calculator` and a "
+"tolerance of `0.5` to match — its three values have no provenance. We "
+"have no vendor pricer either, but the same file shows the substitute: "
+"`testPDEOptionValues` benchmarks the analytic quanto vanilla against a "
+"PDE at `2e-4`. `FdBlackScholesBarrierEngine` is single-argument "
+"constructible, so `QuantoEngine` can wrap it and the same trick works for"
+" barriers. That is what `FdParameters` exists for."
+msgstr ""
+
+#: ../../BENCHMARK.md:17 b3aa43dbbe1b4b4d9d1dd0d8f7510655
+msgid "The market"
+msgstr ""
+
+#: ../../BENCHMARK.md:19 fabd917a69af4ad19bd2e2ef9e7d2022
+msgid ""
+"All three rows share one market, from `QUANTO_BARRIER` in "
+"`reference_tables.py`, itself extracted from `quantooption.cpp`:"
+msgstr ""
+
+#: ../../BENCHMARK.md 45346f3a796749eb8d0c68dc0a082dac
+msgid "spot"
+msgstr ""
+
+#: ../../BENCHMARK.md 30eb872cc9d64825bfcc29aacd22652a
+msgid "100.0"
+msgstr ""
+
+#: ../../BENCHMARK.md cb2ec5f6c4074f9c8e46488d7e3baecf
+msgid "strike"
+msgstr ""
+
+#: ../../BENCHMARK.md 17afa86885ba4e33b42e73022a58e2b5
+msgid "90.0"
+msgstr ""
+
+#: ../../BENCHMARK.md c78a22293134450b99ec0a826fb02b56
+msgid "barrier"
+msgstr "障礙"
+
+#: ../../BENCHMARK.md 99a79484428742edbc8bd4ecdf4c32df
+msgid "95.0"
+msgstr ""
+
+#: ../../BENCHMARK.md 31886d0284b74936adbfcbbf75ee580f
+msgid "dividend yield `q`"
+msgstr ""
+
+#: ../../BENCHMARK.md 48a0e55fd45d4f1bb9c68deeece65500
+msgid "0.04"
+msgstr ""
+
+#: ../../BENCHMARK.md f83b190b85764558b0145f3cbf3b3b44
+msgid "risk-free `r`"
+msgstr ""
+
+#: ../../BENCHMARK.md c797c2581893404ab6b6156bbf1abb1b
+msgid "0.0212"
+msgstr ""
+
+#: ../../BENCHMARK.md 551adee1bd2a482ea7fa0498478e7f2b
+msgid "maturity `t`"
+msgstr ""
+
+#: ../../BENCHMARK.md 45e8f50661784c90a9913aa1af78a70c
+msgid "0.50"
+msgstr ""
+
+#: ../../BENCHMARK.md 166c708f68234438bd1f77b3388c61b2
+msgid "volatility `v`"
+msgstr ""
+
+#: ../../BENCHMARK.md eeb691cf62cb4286aa22211b3d24c153
+msgid "0.25"
+msgstr ""
+
+#: ../../BENCHMARK.md f2b93ee579784bbebfebfc92f31a7e6f
+msgid "FX risk-free `fxr`"
+msgstr ""
+
+#: ../../BENCHMARK.md 5e74535b128644d387bfd9802167d3c1
+msgid "0.05"
+msgstr ""
+
+#: ../../BENCHMARK.md 1af5c5f0475043098f8e6bfe927c49b6
+msgid "FX volatility `fxv`"
+msgstr ""
+
+#: ../../BENCHMARK.md e3d671d0395541f2ba3f8ce444992d08
+msgid "0.2"
+msgstr ""
+
+#: ../../BENCHMARK.md edae275ad4b04bbe965ab96d345d308e
+msgid "correlation"
+msgstr ""
+
+#: ../../BENCHMARK.md 4a4a09c648514b9d998dbfb3327b8aa8
+msgid "0.3"
+msgstr ""
+
+#: ../../BENCHMARK.md:35 82a6f855453446feb1a742a3d35b85c9
+msgid ""
+"The two `DOWN_OUT` rows carry a rebate of 3.0; the `DOWN_IN` row carries "
+"none."
+msgstr ""
+
+#: ../../BENCHMARK.md:37 75e6bf2bc9f44350b3f8a64548375e74
+msgid "Results"
+msgstr ""
+
+#: ../../BENCHMARK.md 20721f5a37ce498d8a4623a4e9b40247
+msgid "Row"
+msgstr ""
+
+#: ../../BENCHMARK.md 94b0b52e1e1b445a92fdc5b09bda1b02
+msgid "Recorded"
+msgstr ""
+
+#: ../../BENCHMARK.md 5f4afc805ed047908e8a480d5e482d1e
+msgid "Ours (analytic)"
+msgstr ""
+
+#: ../../BENCHMARK.md 7aa4f24cffd5449d9d82e18a08175348
+msgid "PDE, fine grid"
+msgstr ""
+
+#: ../../BENCHMARK.md 76627bf883544d2bb23da3663a49fafe
+msgid "Analytic vs PDE"
+msgstr ""
+
+#: ../../BENCHMARK.md f0957c62e44549689607d1caf49e6a7b
+msgid "Recorded vs ours"
+msgstr ""
+
+#: ../../BENCHMARK.md d058553b1ea64ad1aff188c15e794c88
+msgid "DownOut call"
+msgstr ""
+
+#: ../../BENCHMARK.md c331780dfbd64a8d948a5ac8afcc2810
+msgid "8.247"
+msgstr ""
+
+#: ../../BENCHMARK.md bd5cb02b97f0431cb52eeb28afbcc8f6
+msgid "8.244498"
+msgstr ""
+
+#: ../../BENCHMARK.md e69fbda5630641f5860b56434a9173cb
+msgid "8.244557"
+msgstr ""
+
+#: ../../BENCHMARK.md 7eff2ef63cec41ae8104bbf69b441699
+msgid "5.9e-05"
+msgstr ""
+
+#: ../../BENCHMARK.md 73b977da45284410b490cb2a368d46dc
+msgid "2.5e-03"
+msgstr ""
+
+#: ../../BENCHMARK.md 0ca49f9e09f9481081f7654e22b073bb
+msgid "DownOut put"
+msgstr ""
+
+#: ../../BENCHMARK.md 3d2e870034d545a5b4f164dc8cf39370
+msgid "**2.274**"
+msgstr ""
+
+#: ../../BENCHMARK.md 7a04eee69d644fe385f9facaf7a0a2cd
+msgid "**2.377326**"
+msgstr ""
+
+#: ../../BENCHMARK.md 2917119cd6694372a49141e02c42e3e7
+msgid "**2.377241**"
+msgstr ""
+
+#: ../../BENCHMARK.md c6d7ce1497294cb1aa8f93e4ceaa32ef
+msgid "8.6e-05"
+msgstr ""
+
+#: ../../BENCHMARK.md 1a98a415e7b748bda2b387e70b35c3f2
+msgid "**0.103**"
+msgstr ""
+
+#: ../../BENCHMARK.md 5f4507bac5fa44998725156d0ddeb34c
+msgid "DownIn put"
+msgstr ""
+
+#: ../../BENCHMARK.md 793726902c114802aa88f0663cbe9066
+msgid "2.85"
+msgstr ""
+
+#: ../../BENCHMARK.md 51c09f5fd783433c9688d335abef8864
+msgid "2.872743"
+msgstr ""
+
+#: ../../BENCHMARK.md 3a1e139efb4147df98ab0e5a8071cdcf
+msgid "2.872753"
+msgstr ""
+
+#: ../../BENCHMARK.md 4fbf810a0dee4995acac68a08670586f
+msgid "1.0e-05"
+msgstr ""
+
+#: ../../BENCHMARK.md 96caf00f08d34ee9be5825d466ee0f4f
+msgid "2.3e-02"
+msgstr ""
+
+#: ../../BENCHMARK.md:45 760e519ae2304f90ada21c718aaf5209
+msgid ""
+"Rows 1 and 3 differ from the recorded values by amounts consistent with "
+"values recorded to four and three significant figures. Row 2 is a "
+"different matter: 0.103, and the PDE sides with us to 8.6e-05. The error "
+"also shrinks by about 4x per grid refinement, so the two methods are "
+"converging to the same number rather than agreeing by accident."
+msgstr ""
+
+#: ../../BENCHMARK.md:51 96c211a9becd4783b49d67f16559811a
+msgid ""
+"The three grids are `PRESET_COARSE` (100 x 100, QuantLib's own defaults),"
+" `PRESET_STANDARD` (400 x 200) and `PRESET_FINE` (2000 x 800). The script"
+" asserts `coarse > standard > fine` on the gap to the analytic price, and"
+" that `PriceResult.engine` echoes the grid the number came from."
+msgstr ""
+
+#: ../../BENCHMARK.md:56 a081e4fe84e14bc4ba57321b5c93e5ab
+msgid "What this establishes, precisely"
+msgstr ""
+
+#: ../../BENCHMARK.md:58 e77db8c82889455fbee770a841ff46c7
+msgid ""
+"Both routes take the quanto adjustment from the same "
+"`QuantoTermStructure`, so the cross-check does *not* test the quanto "
+"wrapper — it tests the barrier closed form on top of it. The wrapper is "
+"covered separately and independently, by the quanto vanilla rows "
+"reproducing Haug's published values to 2e-05 through that same code, and "
+"those rows are cross-checked against the PDE as well: the analytic side "
+"there is already pinned to Haug, so a disagreement would indict the PDE "
+"rather than the closed form. It agrees, which is what makes the barrier "
+"result above worth anything. The two legs together cover the price."
+msgstr ""
+
+#: ../../BENCHMARK.md:67 b5eaf55d469347d98095d6b43166ac03
+msgid ""
+"Two guardrails that need no second engine agree as well: in-out parity "
+"(`down_in + down_out == vanilla` at zero rebate) holds to 1e-9, and an "
+"unreachable barrier degrades to the vanilla price exactly."
+msgstr ""
+
+#: ../../BENCHMARK.md:71 6c7b5d88635a49f985c638f4786d5b15
+msgid ""
+"The script reports the recorded-value gaps rather than asserting on them."
+" The table check stays at the C++ test's own `0.5`: those numbers are "
+"what is under test, and tightening the tolerance against a value we "
+"believe is wrong would be backwards."
+msgstr ""
+
+#: ../../BENCHMARK.md:76 a1a0ca812e1b4f2e9b8c92b6a7bb38fc
+msgid "Reproducing it"
+msgstr ""
+
+#: ../../BENCHMARK.md:78 e0b86065135540668373cc74446b8998
+msgid ""
+"Run `smoke_v2.py` as [the smoke tests page](TESTING.md) describes; the "
+"benchmark is the \"quanto barriers: analytic against the PDE\" section "
+"near the end. The three grid presets it sweeps are `FdParameters` "
+"`PRESET_COARSE`, `PRESET_STANDARD` and `PRESET_FINE`."
+msgstr ""
+

@@ -1,0 +1,2040 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../HANDLERS.md:1 dcc5dc8a442d45758d69786a300c674a
+msgid "Handlers"
+msgstr ""
+
+#: ../../HANDLERS.md:3 562c6302870b4b09a40719deeb67cfc7
+msgid "What the running service accepts today, and how to drive it."
+msgstr ""
+
+#: ../../HANDLERS.md:5 bdd839988a674a0687c0f2681584b21b
+msgid ""
+"This page is the flat list, derived from the code rather than from the "
+"schema. The [design document](DESIGN.md) says *why* each handler is "
+"shaped the way it is, and cites the QuantLib constraint that forces it. "
+"The distinction matters: the schema describes more than the service "
+"builds, and everything in it that is not on this page is **rejected as "
+"`UNSUPPORTED` naming the field**, never priced on a substitute."
+msgstr ""
+
+#: ../../HANDLERS.md:12 fa4c65d7821141deb1a896a6d2fcbd75
+msgid ""
+"The schema itself is a separate repository, mounted here as the "
+"[`proto/`](https://github.com/markccchiang/ql-protobuf) submodule."
+msgstr ""
+
+#: ../../HANDLERS.md:15 d6fbaee5b9bd4f13a299a46d6d3c561e
+msgid "The protocol"
+msgstr ""
+
+#: ../../HANDLERS.md:17 b3d727bd83004b8682f9e7ce86dae7a5
+msgid "The frames"
+msgstr ""
+
+#: ../../HANDLERS.md:19 ea3ea580200f4042ad3cbc0ea72f717d
+msgid ""
+"One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly "
+"one, including for failures and for the cancel itself — a client that "
+"never sees a terminal frame waits forever (DESIGN §9.5)."
+msgstr ""
+
+#: ../../HANDLERS.md 47cfa161c2294f8694c1987119ddfd82
+msgid "`ClientFrame.payload`"
+msgstr ""
+
+#: ../../HANDLERS.md cd1e798e181545f3873c30b1ec1057fa
+msgid "Handled in"
+msgstr ""
+
+#: ../../HANDLERS.md 997d21432b1d40f5bde57ca838401401
+msgid "Terminal reply"
+msgstr ""
+
+#: ../../HANDLERS.md 688889ea8f634cef9e58b4189cf9ae87
+msgid "`open_session`"
+msgstr ""
+
+#: ../../HANDLERS.md c4df2a33f24549578e21487aeeadabd5
+msgid "`Supervisor::dispatch` → `Worker::serve`"
+msgstr ""
+
+#: ../../HANDLERS.md 3520a1cd63e84db2a49ae6339d8dba32
+msgid "`SessionOpened`"
+msgstr ""
+
+#: ../../HANDLERS.md cfadd9bd5c8a40b7b1d525e5dcb6bd8b
+msgid "`update_market`"
+msgstr ""
+
+#: ../../HANDLERS.md dc88edd7a7b141c1bb429997c6afbbec
+msgid "`Worker::serve`, under one `UpdateGuard`"
+msgstr ""
+
+#: ../../HANDLERS.md 440eaa70a8d84d4bb70c463f0c4f9881
+#: 7c704cab9f024bbfb624b74e703a9407 cf40a7df9c884dc8ad9b1e3f49522b37
+msgid "`Ack`"
+msgstr ""
+
+#: ../../HANDLERS.md 14b348aeba4b4bc3967658b2120fcf55
+msgid "`price`"
+msgstr ""
+
+#: ../../HANDLERS.md 56a76f9a03b24ca896752e064c2c7717
+msgid "`Worker::serve` → `Session::price`"
+msgstr ""
+
+#: ../../HANDLERS.md 35aa33220e8a400e9a81d8b39d3c3e9d
+msgid "`PriceResult`, or `ScenarioResult` when `scenarios` is non-empty"
+msgstr ""
+
+#: ../../HANDLERS.md 4c338fc8969d41fabd28ac04dda6b3d2
+msgid "`batch`"
+msgstr ""
+
+#: ../../HANDLERS.md 95416d116dd9416cb46b524427798afe
+msgid "`Worker::serveBatch` → `Session::price`, once per entry"
+msgstr ""
+
+#: ../../HANDLERS.md c2c33d035aaa49649b2968056dd523fa
+msgid "`BatchResult`"
+msgstr ""
+
+#: ../../HANDLERS.md 291835494a534f528840e3117a0aa202
+msgid "`cancel`"
+msgstr ""
+
+#: ../../HANDLERS.md 12ed9232e13744f1a97aa9698de17612
+#: 7886fc8ea09f42229882f7c65c3cb8ec f23e11e63ceb4583b1eeb4496bc21778
+msgid "`Gateway`, which answers it itself"
+msgstr ""
+
+#: ../../HANDLERS.md b76edc3d67cd4dcaa2a9fa2fdd30cf53
+msgid "`hello`"
+msgstr ""
+
+#: ../../HANDLERS.md ef04ba8719a14e8ba8a5dd020cd01c03
+msgid "`Capabilities`"
+msgstr ""
+
+#: ../../HANDLERS.md d5abfbbf013e481894284d205bdb8793
+msgid "`close_session`"
+msgstr ""
+
+#: ../../HANDLERS.md 9f6da571eb264d898a79746dbd049f80
+msgid "`Gateway` / `Supervisor`"
+msgstr ""
+
+#: ../../HANDLERS.md 74dc2233ee7a41deaa25ef1f10ba3ae6
+msgid "`resume_session`"
+msgstr ""
+
+#: ../../HANDLERS.md e4f437523e224118b88c09e9c5600198
+msgid "`SessionOpened` with `resumed` set"
+msgstr ""
+
+#: ../../HANDLERS.md:34 2d74b62edee447858b9bf74e214f936d
+msgid ""
+"There is one thing that is not a frame at all: `GET /healthz` answers "
+"over plain HTTP, for a proxy or an orchestrator that cannot speak this "
+"protocol. See [Liveness](#liveness)."
+msgstr ""
+
+#: ../../HANDLERS.md:38 194145b740424144afca9312256f7175
+msgid ""
+"`hello` needs no session: what the build can price is a property of the "
+"service, and a client has to be able to ask before it opens one. The "
+"reply carries **sets** — the styles, methods, trees, approximations, "
+"result kinds, market shapes and leg kinds this build implements — and "
+"deliberately not the combinations: whether an analytic barrier takes an "
+"American exercise is a rule about a pair, and there are more pairs than "
+"are worth putting on the wire. What the handshake removes is the drift "
+"that actually happens, which is a value entering or leaving one of these "
+"lists while every client's copy of this page says otherwise. "
+"`src/session/capabilities.cpp` is where the lists live, next to the "
+"dispatch they describe."
+msgstr ""
+
+#: ../../HANDLERS.md:49 e029d60062f9491d825ab671d98aea62
+msgid ""
+"`Progress` is the one non-terminal frame. Three shapes emit it: a batched"
+" Monte Carlo (`engine.mc.progress_every_paths`), a scenario sweep, and a "
+"batch. Those are also the three that can be stopped where they stand — "
+"see [Cancellation](#cancellation)."
+msgstr ""
+
+#: ../../HANDLERS.md:54 8ac68b37c2db4c578123a02ffbbbacd8
+msgid ""
+"Every frame carries `request_id` (yours, echoed on every reply) and "
+"`session_id` (set on every server frame, because one socket can hold "
+"several sessions)."
+msgstr ""
+
+#: ../../HANDLERS.md:58 486b9d93b1e64acb80fa5b712d84e76e
+msgid "A session, end to end"
+msgstr ""
+
+#: ../../HANDLERS.md:60 7e80c38724a94be682b616d57528d256
+msgid ""
+"The wire is Protobuf over WebSocket. This is the idiom `test/smoke_v2.py`"
+" uses:"
+msgstr ""
+
+#: ../../HANDLERS.md:114 e8dccb5c4db84fea82566420fed9bfe7
+msgid ""
+"The session holds the live QuantLib graph. `update_market` writes quotes "
+"and reprices off the same objects; anything that changes graph "
+"*structure* — a new curve shape, a new index — is a new session."
+msgstr ""
+
+#: ../../HANDLERS.md:118 2c8b42830ced412bb1e8c7d56412b14a
+msgid "Market objects"
+msgstr ""
+
+#: ../../HANDLERS.md:120 ffb5031b36b440659d45ccf06f789434
+msgid ""
+"`OpenSession.market` is an ordered, id-addressed namespace. Ids are "
+"unique within the session and are what instruments name."
+msgstr ""
+
+#: ../../HANDLERS.md 6b90623c16104d6bb785ea735cdcd58e
+msgid "`MarketObject.kind`"
+msgstr ""
+
+#: ../../HANDLERS.md 90f61922a43f41a9952f5c34a38a49e7
+msgid "Built"
+msgstr ""
+
+#: ../../HANDLERS.md 4fdbb52ae7ae4fbb91878055f93b2b6f
+msgid "`quote`"
+msgstr ""
+
+#: ../../HANDLERS.md de5c8c6a67644171b949e4f05691dd23
+msgid "yes — the concrete `SimpleQuote`s everything else observes"
+msgstr ""
+
+#: ../../HANDLERS.md c60843eb434d4535aa658a9ccb7240c5
+msgid "`yield_curve`"
+msgstr ""
+
+#: ../../HANDLERS.md 40a15443363047b5813e29375c1c0e18
+msgid "yes, four of six shapes"
+msgstr ""
+
+#: ../../HANDLERS.md 2439fd5b61f045a6987a182badcdd9b0
+msgid "`volatility`"
+msgstr ""
+
+#: ../../HANDLERS.md 03eb179c1d0c4c5b92f1252c0c60477c
+msgid "yes, three of four shapes"
+msgstr ""
+
+#: ../../HANDLERS.md b85c0aa042f849ffabc8f776a57048a5
+msgid "`index`"
+msgstr ""
+
+#: ../../HANDLERS.md dc3816270af74ea1b8fb7a8193635ee7
+msgid "yes, two of six families"
+msgstr ""
+
+#: ../../HANDLERS.md c5df00b6554e49a19bcf8f2e9ec1a5ce
+msgid "`fixings`"
+msgstr ""
+
+#: ../../HANDLERS.md 1e12f02de4b348f48d32948102534f1d
+#: 48c63395e9c841ab9c24e26593e75811
+msgid "yes"
+msgstr "可以"
+
+#: ../../HANDLERS.md 4253c80c61ae4f158bca1789e9219c04
+msgid "`correlation`"
+msgstr ""
+
+#: ../../HANDLERS.md 36c514c24c89441babdb4ca47ef2e3f8
+msgid "yes — a basket names one"
+msgstr ""
+
+#: ../../HANDLERS.md 070fa0c1282d45969b423708777a6f13
+msgid "`default_curve`, `inflation_curve`"
+msgstr ""
+
+#: ../../HANDLERS.md d378526887ed47a491e220f2d46436cd
+msgid "no — `UNSUPPORTED`"
+msgstr ""
+
+#: ../../HANDLERS.md:133 7da13285d7594d899a93deaa798ee5cd
+msgid ""
+"**Objects must arrive in dependency order**, because the session resolves"
+" ids against its maps as it fills. One exception: "
+"`Index.forwarding_curve_id` may name a curve defined *later*, since a "
+"bootstrapped curve's pillars name the index and the index names the "
+"curve. The index is built on a `RelinkableHandle` and linked when its "
+"curve appears; one that never appears is `UNKNOWN_ID` against "
+"`Index.forwarding_curve_id`."
+msgstr ""
+
+#: ../../HANDLERS.md:140 d4963530801d4ae7a544c0a84f6db530
+msgid "Yield curves"
+msgstr ""
+
+#: ../../HANDLERS.md ae0598e10149407e8cccd7e3bb127243
+msgid "`YieldCurve.shape`"
+msgstr ""
+
+#: ../../HANDLERS.md afc365886dad4fac969c9cae8c44da52
+msgid "Live pillars?"
+msgstr ""
+
+#: ../../HANDLERS.md d2d55ca457c14bfe8c4e7271d73139ef
+msgid "`flat`"
+msgstr ""
+
+#: ../../HANDLERS.md 544c19cc18e549beb7dd621b30ed606c
+msgid "**yes** — `rate` may be a `quote_id`"
+msgstr ""
+
+#: ../../HANDLERS.md 12d2a3bae5d845a2a620b7b0f6071dde
+msgid "`bootstrap`"
+msgstr ""
+
+#: ../../HANDLERS.md 58985cf5a7f54f4d8d9a15b53bb328cb
+msgid "**yes** — helper quotes are live"
+msgstr ""
+
+#: ../../HANDLERS.md 3ee487e3544c493ea961f5bae313155c
+msgid "`zero`"
+msgstr ""
+
+#: ../../HANDLERS.md 01097063b18c4f45849fb9127c331643
+#: 16624e9af4ad4e7885c724b8eab4d23c
+msgid "no — nodes must be `Number.fixed`"
+msgstr ""
+
+#: ../../HANDLERS.md ce51dd1fec8342c08475f6a9431e7204
+msgid "`discount`"
+msgstr ""
+
+#: ../../HANDLERS.md 06eef5ab9e4f4f2d9790a9a9d3148d24
+msgid "`forward`, `spread`"
+msgstr ""
+
+#: ../../HANDLERS.md 247cb89ea28f44b8a17c0854cfd27aeb
+#: 672325c0a6674e3eac5e093366a43871
+msgid "not built — `UNSUPPORTED`"
+msgstr ""
+
+#: ../../HANDLERS.md:150 b64d1486b9114c6f931a58ac7430d8d0
+msgid ""
+"A `quote_id` on an interpolated node is rejected rather than accepted and"
+" never observed: QuantLib's interpolated curves copy their nodes at "
+"construction. The first node must also equal the session's evaluation "
+"date, because `InterpolatedZeroCurve` takes `dates[0]` as its reference."
+msgstr ""
+
+#: ../../HANDLERS.md:155 3fb9d27557c944a9877e4b6d20d08494
+msgid ""
+"`bootstrap` is an explicit instantiation table — three traits × three "
+"interpolators, nine compiled types:"
+msgstr ""
+
+#: ../../HANDLERS.md 94b3840febb04a5ea122aba54b721f86
+msgid "`traits`"
+msgstr ""
+
+#: ../../HANDLERS.md c00960936910415aa88c5fae442fc6fd
+msgid "`interpolator`"
+msgstr ""
+
+#: ../../HANDLERS.md 6f0a0528c9444ba08239ba62f27ee48d
+msgid "`DISCOUNT`, `ZERO_YIELD`, `FORWARD_RATE`"
+msgstr ""
+
+#: ../../HANDLERS.md 159e1383a7e54950bd4e8ae6aafe5a79
+msgid "`LINEAR`, `LOG_LINEAR`, `CUBIC`"
+msgstr ""
+
+#: ../../HANDLERS.md:162 41373b3755334cb2a72a5ee53e74c950
+msgid ""
+"Adding a pair is a line of source and a recompile (DESIGN §6.1). Deposit "
+"helpers take their tenor from the pillar and their conventions from the "
+"named index — one index can therefore back pillars of several tenors."
+msgstr ""
+
+#: ../../HANDLERS.md:166 a3a92a5e9a204cc8aa239167a95bd4fd
+msgid "Volatility"
+msgstr ""
+
+#: ../../HANDLERS.md af3717df271b4e978d33c623a561c5b8
+msgid "`VolatilitySurface.shape`"
+msgstr ""
+
+#: ../../HANDLERS.md b6c8f7328a9f431e86073beb4d8ef13c
+msgid "Live?"
+msgstr "可即時更新？"
+
+#: ../../HANDLERS.md aa3440f032654626bdcc5d28365fc839
+msgid "`constant`"
+msgstr ""
+
+#: ../../HANDLERS.md 5094ecd5753e4f978c25ede0817d6c9b
+msgid "**yes** — `volatility` may be a `quote_id`"
+msgstr ""
+
+#: ../../HANDLERS.md df8dc786470442629b0cc59b84f21aca
+msgid "`variance_curve`"
+msgstr ""
+
+#: ../../HANDLERS.md 781700b939634b9884fc991769af96b8
+msgid "built, frozen"
+msgstr ""
+
+#: ../../HANDLERS.md 0ecf431ab5004305b18a5c602dc4fc0e
+msgid "`variance_surface`"
+msgstr ""
+
+#: ../../HANDLERS.md d18f979511d3436d855bc3be69353006
+msgid ""
+"built, frozen (wire is row-major expiries × strikes; transposed on the "
+"way in)"
+msgstr ""
+
+#: ../../HANDLERS.md 13af3b95e4624e5ba3f338f570f23b27
+msgid "`local`"
+msgstr ""
+
+#: ../../HANDLERS.md:175 8802b740d60f46b69d632b925349afda
+msgid "Indices and fixings"
+msgstr ""
+
+#: ../../HANDLERS.md:177 c31753a1928347cf927845ef5a1e7659
+msgid ""
+"`FAMILY_IBOR` and `FAMILY_OVERNIGHT` build. `SWAP`, `INFLATION_ZERO` and "
+"`INFLATION_YOY` are `UNSUPPORTED`. `name` is required — the service "
+"builds the index from the conventions you send rather than looking it up "
+"in a table of hardcoded indices, because that table is what goes stale."
+msgstr ""
+
+#: ../../HANDLERS.md:182 f6364a66c8b442ec8d2905a889a14e7b
+msgid ""
+"`FixingSeries` may arrive in `OpenSession` or in `UpdateMarket`: past "
+"fixings are graph input, not graph structure, so a leg that cannot price "
+"without one does not need a new session to get it."
+msgstr ""
+
+#: ../../HANDLERS.md:186 b33133fbcc744a328a27c9c13e468180
+msgid "Correlation matrices"
+msgstr "相關係數矩陣"
+
+#: ../../HANDLERS.md:188 cf11cdbbf0374372b89846379a6f0fb2
+msgid ""
+"`labels` names the rows and columns, and an `Underlying.label` is what "
+"finds a row; `values` is row-major, `labels²` entries, each a `Number` so"
+" an off-diagonal can be a live `quote_id` and drag like anything else in "
+"the quote bar. The diagonal must be exactly 1, the matrix symmetric, "
+"every entry within [-1, 1] and the whole thing positive semi-definite."
+msgstr ""
+
+#: ../../HANDLERS.md:194 08f284937b974156a809316266d1ae9f
+msgid ""
+"All four are checked **when the object is built and again on every "
+"request that uses it**, because the entries are quotes: a matrix that was"
+" a correlation matrix when the session opened can be dragged into one "
+"that is not. This is the one market object where QuantLib would not have "
+"complained. `StulzEngine` takes rho as a bare `Real`; "
+"`StochasticProcessArray` factorises with `SalvagingAlgorithm::Spectral`, "
+"which *repairs* a matrix that is not positive semi-definite by zeroing "
+"the negative eigenvalues and renormalising. An impossible market is "
+"therefore neither refused nor mispriced — it is silently replaced by the "
+"nearest possible one and priced correctly for that."
+msgstr ""
+
+#: ../../HANDLERS.md:204 8e1dcdf49ae34f92926fccada17978c2
+msgid "Instruments"
+msgstr ""
+
+#: ../../HANDLERS.md:206 2c7776525df54ec1bec583ee34c3c512
+msgid ""
+"Two of the nine `Instrument.kind` arms are dispatched: `option` and "
+"`swap`. The rest — `swaption`, `cap_floor`, `bond`, "
+"`credit_default_swap`, `fra`, `fx_forward`, `variance_swap` — are "
+"`UNSUPPORTED`."
+msgstr ""
+
+#: ../../HANDLERS.md:210 b85316f2fc7b47efa98781dcd453a04e
+msgid "Option"
+msgstr ""
+
+#: ../../HANDLERS.md:212 c393f28c259f493dba6d09ab894fc4d3
+msgid ""
+"An option is **payoff × exercise × underlying × style**, with quanto "
+"orthogonal to all four. Ten of twelve styles are built:"
+msgstr ""
+
+#: ../../HANDLERS.md 63bcd7d17d114d99a06179c73e9d7733
+msgid "`Option.style`"
+msgstr ""
+
+#: ../../HANDLERS.md 71b8e71791eb47f0b518a781f1668b5d
+msgid "Exercise"
+msgstr "履約"
+
+#: ../../HANDLERS.md 2a48c477d27349c19b251c78fb37fa3c
+msgid "Engine methods"
+msgstr ""
+
+#: ../../HANDLERS.md d3bd82ba32364e71a8b080375f546a72
+msgid "Quanto"
+msgstr "Quanto"
+
+#: ../../HANDLERS.md c9a35e2a697a45e18813a9f8181aeb4b
+msgid "`vanilla`"
+msgstr ""
+
+#: ../../HANDLERS.md fa02bf345ca74208b9f338155125c9f8
+msgid "European, American, Bermudan"
+msgstr "歐式、美式、百慕達式"
+
+#: ../../HANDLERS.md b3c7e544d7ac44dab51c79abcbf5178d
+msgid ""
+"`ANALYTIC`, `LATTICE`, `FINITE_DIFFERENCE`; `INTEGRAL` and `MONTE_CARLO` "
+"European only"
+msgstr ""
+
+#: ../../HANDLERS.md aff39dcd787a42299aeb9eca1c31d7da
+#: deb1c9ccb1ab4aa28376287bcfcd3872
+msgid "`ANALYTIC` or `FINITE_DIFFERENCE`, European"
+msgstr ""
+
+#: ../../HANDLERS.md f71daa77b0c24d17b385f486b2e9fe82
+msgid "`barrier`"
+msgstr ""
+
+#: ../../HANDLERS.md a41a57d4cbe74ee78ab9d6895f657e16
+msgid "European; American via lattice or FD"
+msgstr "歐式；美式須走格點或有限差分"
+
+#: ../../HANDLERS.md 41ed256f33ed46c3b322cb5fc834cc66
+msgid "`ANALYTIC` (European only), `LATTICE`, `FINITE_DIFFERENCE`, `MONTE_CARLO`"
+msgstr ""
+
+#: ../../HANDLERS.md 9cbbe0d4dfe540dca7589b8681d2225e
+msgid "`double_barrier`"
+msgstr ""
+
+#: ../../HANDLERS.md 1f46db7d2f1c4b47aee6efef1733c6ac
+#: 49d62f9256a841629f1c0a8d881ef995 5aacd439659a4fe5a801b2f0896420be
+#: ca0d0eaf76b74032b5fa48fdc687c790 fbcaaf0221a64a1e96eca7c201f1b160
+msgid "European"
+msgstr "歐式"
+
+#: ../../HANDLERS.md 0c772c26301d4f90995c9e738eb9ce4e
+#: 109a7da749cc42b4ae214bf32646a53b 58f2b5800d9742669ba5977f615ee9f8
+#: 680a3a74689f42d2983d0c2de5f66ee9 8a8e7ba76b6548179de1f147666ef4ea
+msgid "`ANALYTIC`"
+msgstr ""
+
+#: ../../HANDLERS.md 717f9d870298444fb9efa411203e97f8
+msgid "yes, `ANALYTIC`"
+msgstr ""
+
+#: ../../HANDLERS.md 4f8692754efc46ee8397962a6939d28e
+msgid "`forward_start`"
+msgstr ""
+
+#: ../../HANDLERS.md 0d55c3f63ff9454f93c0044430fb0c79
+msgid "`asian`"
+msgstr ""
+
+#: ../../HANDLERS.md f29b14d1a29d499880e614e59ee70a38
+msgid "`ANALYTIC` (geometric), `MONTE_CARLO` (arithmetic)"
+msgstr ""
+
+#: ../../HANDLERS.md 2d359e38fe1d45c4ab4016935906989f
+msgid "no — QuantLib has no quanto Asian engine"
+msgstr ""
+
+#: ../../HANDLERS.md f63fd56b0cb245e080714a2911854ffd
+msgid "`lookback`"
+msgstr ""
+
+#: ../../HANDLERS.md 6530024e9b9b4851a52394642b13aa71
+msgid "no"
+msgstr "不行"
+
+#: ../../HANDLERS.md eadcd9885fac410da924c9df29213d9d
+msgid "`compound`"
+msgstr ""
+
+#: ../../HANDLERS.md 082584905a114e9a93795a05d1429639
+#: 8da58b7340b5435ba3d51938260f862c
+msgid "European, on both legs"
+msgstr "兩腳都是歐式"
+
+#: ../../HANDLERS.md fd9b124d1d71477fb8c8a8aee641ced5
+msgid "no — QuantLib has no quanto compound engine"
+msgstr ""
+
+#: ../../HANDLERS.md 4bda4ae1d90c429785b4293eaedf89cc
+msgid "`chooser`"
+msgstr ""
+
+#: ../../HANDLERS.md cdc93089e00648cb949c7df0a008db9c
+msgid "no — QuantLib has no quanto chooser engine"
+msgstr ""
+
+#: ../../HANDLERS.md efcb38204446431583eed03c2727b38c
+msgid "`cliquet`"
+msgstr ""
+
+#: ../../HANDLERS.md 430d1c2b66194a6db307d09542d8e280
+msgid "`ANALYTIC`; `MONTE_CARLO` for the performance form"
+msgstr ""
+
+#: ../../HANDLERS.md 9f5d4e0101c044099c21bdc54da7e02b
+msgid "no — QuantLib has no quanto cliquet engine"
+msgstr ""
+
+#: ../../HANDLERS.md cfc4e61ecd59431baf57ba14d6432487
+msgid "`basket`"
+msgstr ""
+
+#: ../../HANDLERS.md ad7403ef0c0d42bb9c08755db05365ca
+msgid "European, **two or more underlyings**"
+msgstr ""
+
+#: ../../HANDLERS.md b7956fbbbb1941a9946e5bb945da9cb7
+msgid "`ANALYTIC` on two assets; `MONTE_CARLO` on any number"
+msgstr ""
+
+#: ../../HANDLERS.md 6e19c9ae93c540e3b1a035923dfbdd03
+msgid "no — QuantLib has no quanto basket engine"
+msgstr ""
+
+#: ../../HANDLERS.md 827b416e29c641e1ab657e5bccc11b44
+msgid "`spread`, `digital`"
+msgstr ""
+
+#: ../../HANDLERS.md 6e4a9a65f43343c7ab77f84426bbfd28
+#: b76295d6144c42fb9225b25c5997359c e6c44ea225264357b5f7ab2b71890ff1
+msgid "—"
+msgstr ""
+
+#: ../../HANDLERS.md 135c90f8b9104e6aaa3a274c8a561b02
+msgid ""
+"not built — `UNSUPPORTED`; a spread is a `basket` with `KIND_SPREAD`, a "
+"knock digital a `barrier` with a binary payoff"
+msgstr ""
+
+#: ../../HANDLERS.md:229 0323c2e4b872417d8c2552745cffa140
+msgid "Style-specific rules worth knowing before you send one:"
+msgstr ""
+
+#: ../../HANDLERS.md:231 9df775b501b247109fbf2ed9fdc9db44
+msgid ""
+"**Barrier.** `ANALYTIC` is European only and takes a `plain` payoff; an "
+"American barrier goes to `LATTICE` or `FINITE_DIFFERENCE`. The barrier "
+"lattice is **Cox-Ross-Rubinstein only** (with the Derman-Kani correction)"
+" — the engine takes a second template argument for the discretisation, so"
+" a full menu would be trees × discretisations. `monitoring_dates` and "
+"`window_start` are `UNSUPPORTED`: discrete and partial-time barriers are "
+"not built."
+msgstr ""
+
+#: ../../HANDLERS.md:238 416715e447e6463286da91692f809849
+msgid ""
+"**Double barrier.** Needs `0 < lower < upper`. `ANALYTIC` only — "
+"QuantLib's sole FD double-barrier engine is Heston, which takes a "
+"calibrated model rather than a process."
+msgstr ""
+
+#: ../../HANDLERS.md:241 4243bd9f51f74e80a686f8de09ec1442
+msgid ""
+"**Forward start.** Send no strike: it is `moneyness` × the spot at "
+"`reset`, filled in by the forward engine, and a struck payoff would be "
+"silently overwritten. `performance` is a `Flag` — it pays the return "
+"rather than the amount, a different price for the same trade description."
+msgstr ""
+
+#: ../../HANDLERS.md:245 8524a73fcb1940fab107804f6ca0a77c
+msgid ""
+"**Asian.** No `fixing_dates` means continuously averaged, which has a "
+"closed form for the **geometric** average only. With fixing dates, "
+"geometric goes to `ANALYTIC` and arithmetic to `MONTE_CARLO`."
+msgstr ""
+
+#: ../../HANDLERS.md:248 eb34a08421a547418b7c6759b49f204e
+msgid ""
+"**Lookback.** Continuous only; `window_start` is `UNSUPPORTED`. "
+"`running_extremum` is required and must be positive — an option already "
+"running whose extremum is dropped prices as if it had just started. A "
+"`floating` payoff selects the floating-strike instrument."
+msgstr ""
+
+#: ../../HANDLERS.md:252 1866da29ebbb4c8d9496de8514129a12
+msgid ""
+"**Knock digital.** A `barrier` carrying a `cash_or_nothing` or "
+"`asset_or_nothing` payoff, priced by `AnalyticBinaryBarrierEngine`. It "
+"takes `ANALYTIC`, an `AMERICAN` exercise with `payoff_at_expiry` "
+"**true**, no `earliest_date` after the evaluation date, and **no rebate**"
+" — the engine never reads one, so a rebate sent here would be taken and "
+"dropped. The `digital` style arm is `UNSUPPORTED` and says this: its "
+"three fields re-declare `Barrier.type`, `Barrier.level` and "
+"`CashOrNothingPayoff.cash_payoff`, which the request already carries."
+msgstr ""
+
+#: ../../HANDLERS.md:260 0ee5d911fef24186b2e96f47625bad49
+msgid ""
+"**Compound.** The mother option *is* the option's own `payoff` and "
+"`exercise` — `CompoundOption` hands those straight to `OneAssetOption` — "
+"so `Compound.mother_payoff` and `Compound.mother_exercise` re-declare "
+"fields the request already carries and are `UNSUPPORTED`; send the mother"
+" where every other style takes it and put only `daughter_payoff` and "
+"`daughter_exercise` in the style block. Both legs are `plain` and "
+"European, and the compound has to expire **on or before** the option it "
+"is written on."
+msgstr ""
+
+#: ../../HANDLERS.md:267 eb65dd3a15fc4fa4ab882f362de1b1c1
+msgid ""
+"**Chooser.** The strike and the expiry are the option's own `payoff` and "
+"`exercise`, for the same reason the compound's mother is — both chooser "
+"instruments hand a `PlainVanillaPayoff` and the (call) exercise to "
+"`OneAssetOption` — so `Chooser.call_strike` and `Chooser.call_expiry` are"
+" `UNSUPPORTED`. Send `payoff.plain.strike` with **`payoff.type` unset**: "
+"a chooser has no side until the choice date, and that is the one place in"
+" the schema where a set `type` would be read and thrown away. A "
+"`put_expiry` in the style block is what makes it the *complex* chooser, "
+"with `put_strike` beside it; without one it is the simple chooser, which "
+"shares a single strike and expiry, and a `put_strike` alone is "
+"`INVALID_ARGUMENT`. `choice_date` must fall after the evaluation date and"
+" before every expiry. Three further rules are the engines', not the "
+"product's: all three curves must count days the same way (the simple "
+"engine requires it, the complex one assumes it unchecked); the exercise "
+"must be `EUROPEAN`, since neither engine reads the type and an American "
+"one would price as European; and each complex leg must expire more than "
+"**twice** the choice time out, because `AnalyticComplexChooserEngine` "
+"solves for the critical spot at `maturity - 2 × choice time`. - "
+"**Cliquet.** A series of forward starts, so it takes a "
+"`percentage_strike` payoff for the same reason one does, plus "
+"`reset_dates` — in order, distinct, each on or after the evaluation date "
+"and before the expiry. `performance` is a `Flag` and selects the engine, "
+"exactly as it does on a forward start: false is `AnalyticCliquetEngine` "
+"(the ratchet), true is `AnalyticPerformanceEngine`, and `MONTE_CARLO` "
+"reaches `MCPerformanceEngine`, which is the only sampled cliquet engine "
+"QuantLib has — a `MONTE_CARLO` ratchet is `UNSUPPORTED` and says so. "
+"**`local_cap`, `local_floor`, `global_cap` and `global_floor` are "
+"`UNSUPPORTED`**, and not for want of an engine: "
+"`CliquetOption::setupArguments` copies the reset dates and nothing else "
+"(`cliquetoption.cpp:32`), so a cap would reach no engine at all and the "
+"price would be the uncapped ratchet under a capped description. Both "
+"closed forms write `results_.gamma += 0.0` — and the performance one does"
+" the same to delta — so those come back in `unavailable_results` rather "
+"than as a zero nobody computed."
+msgstr ""
+
+#: ../../HANDLERS.md:299 6bfcc59c0fb54813a6fa9851a5385e8d
+msgid ""
+"**Basket.** The only style that takes more than one underlying, and the "
+"only one that names a `correlation` market object. Every underlying needs"
+" a **`label`**, because the matrix indexes on labels rather than on "
+"position. `ANALYTIC` is two assets and closed-form: `StulzEngine` for "
+"`KIND_MIN` and `KIND_MAX`, `KirkEngine` for `KIND_SPREAD` — Kirk is a "
+"formula on futures, so the reference rows send `PROCESS_BLACK`. "
+"`KIND_AVERAGE` and any third asset take `MONTE_CARLO`. `weights` are read"
+" by `AverageBasketPayoff` and by nothing else, so they are `UNSUPPORTED` "
+"on the other three kinds rather than taken and dropped. "
+"`FINITE_DIFFERENCE` is `UNSUPPORTED`: `Fd2dBlackScholesVanillaEngine` "
+"wants two space grids and `FdParameters` describes one. The five greeks "
+"`MultiAssetOption` does not declare — `thetaPerDay`, `deltaForward`, "
+"`elasticity`, `strikeSensitivity`, `itmCashProbability` — come back named"
+" absent."
+msgstr ""
+
+#: ../../HANDLERS.md:312 621d00b5687a47a89d350d76306d53a1
+msgid ""
+"**Vanilla.** A binary payoff on an American exercise is a one-touch and "
+"goes to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price "
+"**must** name an approximation (below)."
+msgstr ""
+
+#: ../../HANDLERS.md:316 12cea5b042384f94bf6fdc5bd4c2e4fc
+msgid ""
+"**Payoffs.** Seven build: `plain`, `percentage_strike`, "
+"`asset_or_nothing`, `cash_or_nothing`, `gap`, `super_fund`, "
+"`super_share`. `floating` is valid on a lookback only, and the two binary"
+" payoffs select an engine rather than a formula: on a `vanilla` with an "
+"American exercise they give a one-touch, and on a `barrier` a knock "
+"digital."
+msgstr ""
+
+#: ../../HANDLERS.md:322 dcabc63f4dc1438bac60443d9f844dc7
+msgid ""
+"**Exercise.** `EUROPEAN`, `AMERICAN` and `BERMUDAN` all build. "
+"`Exercise.dates` carries one date for European and American and every "
+"exercise date for Bermudan. `payoff_at_expiry` is a `Flag` read on "
+"American and Bermudan only, where it must be set explicitly."
+msgstr ""
+
+#: ../../HANDLERS.md:327 962f5a16f73444b5a2dae60589cc10f7
+msgid ""
+"**Underlying.** `PROCESS_BLACK_SCHOLES_MERTON` (the default), "
+"`PROCESS_BLACK_SCHOLES` and `PROCESS_BLACK` build; `GARMAN_KOHLHAGEN`, "
+"`HESTON`, `BATES` and `LOCAL_VOL` are `UNSUPPORTED`. "
+"`PROCESS_BLACK_SCHOLES` rejects a `dividend_curve_id` rather than "
+"ignoring it. **Omitting `dividend_curve_id` means a flat zero dividend "
+"yield**, not the risk-free curve. Exactly one underlying — a second is "
+"`INVALID_ARGUMENT` on `instrument.option.underlyings`."
+msgstr ""
+
+#: ../../HANDLERS.md:335 85c94902d3f04b7a92dde514de2acaac
+msgid ""
+"**Quanto** needs all three of `fx_risk_free_curve_id`, `fx_volatility_id`"
+" and `correlation_id`, and is not a product: it wraps the *engine*, so it"
+" composes over any style whose engine is constructible from a process "
+"alone. That is also why a quanto FD path takes only an `engine.fd.preset`"
+" — `QuantoEngine` builds its inner engine as "
+"`make_shared<Engine>(process)` and leaves no seam for grid sizes, so "
+"`engine.fd.custom` is `UNSUPPORTED` there."
+msgstr ""
+
+#: ../../HANDLERS.md:342 2e8a59d4531b47bda31990c8f3af1ae2
+msgid "Swap"
+msgstr ""
+
+#: ../../HANDLERS.md:344 fd1f6063019c457b8993b3dad5e37e09
+msgid ""
+"A general n-leg `Swap`. Two of the leg kinds build — `KIND_FIXED` and "
+"`KIND_IBOR` — and `engine.method` must be `METHOD_DISCOUNTING`."
+msgstr ""
+
+#: ../../HANDLERS.md:347 236d2c7e22d24357bdf7c00fc2c298e7
+msgid "`pays` is a `Flag` on every leg and must be set."
+msgstr ""
+
+#: ../../HANDLERS.md:348 2f80c919d9f9413f998ad6464910ebb8
+msgid ""
+"`RESULT_KIND_FAIR_RATE` requires exactly two legs, **fixed first, then "
+"Ibor**; any other arrangement is `UNSUPPORTED` on `instrument.swap.legs` "
+"rather than a fair rate computed off the wrong leg."
+msgstr ""
+
+#: ../../HANDLERS.md:351 fe1fbd19c5114d32b78ffeabc069ef8f
+msgid ""
+"Per-leg `caps`, `floors`, `discount_curve_id` and `currency` are "
+"`UNSUPPORTED`."
+msgstr ""
+
+#: ../../HANDLERS.md:353 84e8b927227f4ae9840ebe4cc3afb1ba
+msgid ""
+"**A fixed leg freezes its rate.** `FixedRateLeg` takes a value rather "
+"than a handle, so `rate_quote_id` is read once at construction; bumping "
+"that quote needs a new `PriceRequest`, not an `UpdateMarket`. It is the "
+"one place the Handle discipline of DESIGN §5 is knowingly not kept."
+msgstr ""
+
+#: ../../HANDLERS.md:358 94f88f9b878948ceb76895306f0e5eea
+msgid "Engines"
+msgstr ""
+
+#: ../../HANDLERS.md:360 30408b79a3454c9784fe0b2d8bc42cd0
+msgid ""
+"`method` selects the parameter block. A field that does not apply cannot "
+"be set, rather than being set and dropped."
+msgstr ""
+
+#: ../../HANDLERS.md fa6771df70fa4e75ac03544890cb165c
+msgid "`Engine.Method`"
+msgstr ""
+
+#: ../../HANDLERS.md fb8165ec9b684b7bb3ebe28da70cd1f2
+msgid "Parameters"
+msgstr "參數"
+
+#: ../../HANDLERS.md 50d7b13b89f94b68b0159e8e61cc0659
+msgid "Notes"
+msgstr "備註"
+
+#: ../../HANDLERS.md 98e3a5b68c494651920163afebfd49ba
+msgid "`METHOD_ANALYTIC`"
+msgstr ""
+
+#: ../../HANDLERS.md 44306de9409d47b2997e33e27d0645d7
+msgid "`analytic`"
+msgstr ""
+
+#: ../../HANDLERS.md f4faecc9044e4c78bc07e216568824d4
+msgid "`approximation` required for an American vanilla"
+msgstr ""
+
+#: ../../HANDLERS.md ff717d357e13458c8d930ec79db6d4a9
+msgid "`METHOD_LATTICE`"
+msgstr ""
+
+#: ../../HANDLERS.md bb011c1c642b4f80a9b150045758f487
+msgid "`lattice`"
+msgstr ""
+
+#: ../../HANDLERS.md e46ee3da2a1a4cd7814ff92221e88969
+msgid "`tree` and non-zero `steps` both required"
+msgstr ""
+
+#: ../../HANDLERS.md 988e05d97ad04bafb2bebae0332c964e
+msgid "`METHOD_FINITE_DIFFERENCE`"
+msgstr ""
+
+#: ../../HANDLERS.md dbf46c6297b64c649f10b079fd6fa738
+msgid "`fd`"
+msgstr ""
+
+#: ../../HANDLERS.md 53cd3f7036c545ae83d3dc0ebea06a1b
+msgid "`preset` or `custom`"
+msgstr ""
+
+#: ../../HANDLERS.md 3ab88e1dcc2444daa975cfacd8427ec2
+msgid "`METHOD_MONTE_CARLO`"
+msgstr ""
+
+#: ../../HANDLERS.md 4d7ba6c61aa743dcbfeea6255c0e0ca4
+msgid "`mc`"
+msgstr ""
+
+#: ../../HANDLERS.md 04ee1658e34c4a599bde21de956dfd50
+msgid "non-zero `seed` required"
+msgstr ""
+
+#: ../../HANDLERS.md c0e2358da237434f898fc0bfeb63006d
+msgid "`METHOD_INTEGRAL`"
+msgstr ""
+
+#: ../../HANDLERS.md 1ccd245d41df409eb6d56c984625d87f
+msgid "European vanilla only"
+msgstr "僅歐式一般型"
+
+#: ../../HANDLERS.md 399e6f891b8b4f77a6fffc6a2b8da172
+msgid "`METHOD_DISCOUNTING`"
+msgstr ""
+
+#: ../../HANDLERS.md b93504af90594587aec4ed3f9a54cb1b
+msgid "swaps"
+msgstr "利率交換"
+
+#: ../../HANDLERS.md 183dce6f3b324df9bfd7e2d3ea4079f3
+msgid "`METHOD_FOURIER`"
+msgstr ""
+
+#: ../../HANDLERS.md 10560a0fa2164cc482c4ca2667aa958d
+msgid "`fourier`"
+msgstr ""
+
+#: ../../HANDLERS.md ae8e9734df504407b7ccf671dc9d6ebf
+msgid "not built — the models it exists for are not built"
+msgstr ""
+
+#: ../../HANDLERS.md:373 4d8e35e3e2494b5cad4b348e90265d52
+msgid ""
+"`Engine.model` is carried but only `MODEL_BLACK_SCHOLES` is reachable, "
+"since Heston, Bates and local vol are not built."
+msgstr ""
+
+#: ../../HANDLERS.md:376 c080fc9ff7d7492293b2092ace5a5a87
+msgid ""
+"**American approximations.** QuantLib has three and they disagree in the "
+"third decimal, so the client names one rather than inheriting a default: "
+"`BARONE_ADESI_WHALEY`, `BJERKSUND_STENSLAND`, `JU_QUADRATIC`. Omitting it"
+" is `UNSPECIFIED_ENUM` on `engine.analytic.approximation`."
+msgstr ""
+
+#: ../../HANDLERS.md:381 c4a30e57ccae44beae1ee34dfadec889
+msgid ""
+"**Lattice trees.** Seven compile for a vanilla — `COX_ROSS_RUBINSTEIN`, "
+"`JARROW_RUDD`, `ADDITIVE_EQUIPROBABILITIES`, `TRIGEORGIS`, `TIAN`, "
+"`LEISEN_REIMER`, `JOSHI4`. A barrier takes `COX_ROSS_RUBINSTEIN` only."
+msgstr ""
+
+#: ../../HANDLERS.md:385 37953a54b1a74481a08ddacfd705400a
+msgid ""
+"**Finite difference.** `preset` is `COARSE` (100×100), `STANDARD` "
+"(400×200) or `FINE` (2000×800), each of them Douglas with no damping. "
+"`custom` — explicit `time_steps`, `asset_steps`, `damping_steps` and "
+"`scheme` — works on the plain paths and is `UNSUPPORTED` under quanto. "
+"All four fields are read: a custom grid that named a scheme and got "
+"Douglas anyway would be a defect rather than a simplification."
+msgstr ""
+
+#: ../../HANDLERS.md:392 e636923d7aa34b7f8804ef6b1a0838ab
+msgid ""
+"`scheme` has no default, for the reason the grid has none: two schemes "
+"are two prices for one trade. Five of the six arms build."
+msgstr ""
+
+#: ../../HANDLERS.md 262a4e7e5559448eb4d8c0676c459b24
+msgid "`Scheme`"
+msgstr ""
+
+#: ../../HANDLERS.md 12e2b7efcb2f49ef81b359d2c9e94eda
+msgid "What it is here"
+msgstr "在這裡是什麼"
+
+#: ../../HANDLERS.md 0fb83f06f61943e6b0112cbec77f4d78
+msgid "`DOUGLAS`"
+msgstr ""
+
+#: ../../HANDLERS.md 91ea2e90307246e6a58838bb79068f13
+msgid "QuantLib's own default, second order. What to send with no opinion"
+msgstr ""
+
+#: ../../HANDLERS.md 847a1378c64749ec819a2d7a9a539609
+msgid "`CRANK_NICOLSON`"
+msgstr ""
+
+#: ../../HANDLERS.md 67d369a74a8f4065bb35327f586a57b4
+msgid "Douglas to within a bit in one dimension"
+msgstr ""
+
+#: ../../HANDLERS.md 38184e02b5954503b7e327155751fc84
+msgid "`CRAIG_SNEYD`"
+msgstr ""
+
+#: ../../HANDLERS.md cd329de710f74b8da1550a07f63d559f
+msgid "Douglas *exactly* in one dimension — there are no directions to alternate"
+msgstr ""
+
+#: ../../HANDLERS.md a49a2efa90554e50a5d73bdadd4a70b0
+msgid "`HUNDSDORFER`"
+msgstr ""
+
+#: ../../HANDLERS.md 33c30c39a794463d8bf263bf196d3aa5
+msgid "A different theta; differs from Douglas in the seventh digit"
+msgstr ""
+
+#: ../../HANDLERS.md b30cd2cb042642189a707e56b79381a9
+msgid "`IMPLICIT_EULER`"
+msgstr ""
+
+#: ../../HANDLERS.md 7ee648fe2bde4dbab2386eb889aaf1d6
+msgid "First order, unconditionally stable; differs in the third digit"
+msgstr "一階，無條件穩定；在第三位數字就有差異"
+
+#: ../../HANDLERS.md bd139ad948594fbcade7104a9060a8c6
+msgid "`EXPLICIT_EULER`"
+msgstr ""
+
+#: ../../HANDLERS.md 162dea1a77784cd59305d723bda36712
+#: 4946066c82374bc58b6fcca875f4a311
+msgid "`UNSUPPORTED`"
+msgstr ""
+
+#: ../../HANDLERS.md:404 671b541ca0ee4d4db8e09f0bee7dcbc3
+msgid ""
+"Explicit Euler is refused rather than offered because it is stable only "
+"while the time step is small against the square of the asset step, and "
+"the asset step belongs to a mesher QuantLib builds inside the engine "
+"rather than to anything on the frame. An unstable run does not fail: at "
+"100×200 this build answered 2.4e140 and at 400×200 a NaN. Implicit Euler "
+"is first order too, with no such condition."
+msgstr ""
+
+#: ../../HANDLERS.md:411 9471fa24c93b42f398409cc3e99c51d7
+msgid ""
+"`damping_steps` are Rannacher's fix for the oscillation a Crank-Nicolson-"
+"family scheme shows against a kinked payoff or a barrier — the first few "
+"steps taken fully implicit. They are counted out of `time_steps`, so a "
+"request with at least as many damping steps as time steps is "
+"`INVALID_ARGUMENT`."
+msgstr ""
+
+#: ../../HANDLERS.md:416 28cf9078ecb74c01846f78f422a2dc1d
+msgid ""
+"**Monte Carlo.** `seed` must be non-zero, because QuantLib otherwise "
+"seeds from the clock and the same inputs would price differently on every"
+" request. Give `samples` or `absolute_tolerance`, not both. Setting "
+"`progress_every_paths` switches to the batched path, which is what emits "
+"`Progress` frames and what lets a cancel stop the work rather than only "
+"the waiting — and it **changes the answer**, because batches draw from "
+"the RNG stream differently from one run of the same total. "
+"Reproducibility keys on `(seed, samples, progress_every_paths)`, which is"
+" why `PriceResult` echoes the whole `Engine` message back."
+msgstr ""
+
+#: ../../HANDLERS.md:426 ecad1c170ca541e29dea7ce32c60083b
+msgid "Results"
+msgstr ""
+
+#: ../../HANDLERS.md:428 4bb7779a2cd3439fad3f33887f5c2633
+msgid ""
+"`PriceResult.npv` always. `results` is a `map<string, Value>` keyed by "
+"QuantLib's own name for each `ResultKind` named in `PriceRequest.results`"
+" — `RESULT_KIND_DELTA` comes back under `delta` and "
+"`RESULT_KIND_THETA_PER_DAY` under `thetaPerDay`, so a client asking by "
+"kind and a client dumping an engine's `additionalResults` read one "
+"vocabulary. Nineteen are mapped:"
+msgstr ""
+
+#: ../../HANDLERS.md:434 e243ba0871334592b3599af12deada5c
+msgid ""
+"`NPV`, `DELTA`, `GAMMA`, `THETA`, `VEGA`, `RHO`, `DIVIDEND_RHO`, "
+"`THETA_PER_DAY`, `DELTA_FORWARD`, `ELASTICITY`, `STRIKE_SENSITIVITY`, "
+"`ITM_CASH_PROBABILITY`, `IMPLIED_VOLATILITY`, `QRHO`, `QVEGA`, `QLAMBDA`,"
+" `FAIR_RATE`, `LEG_NPV`, `LEG_BPS`."
+msgstr ""
+
+#: ../../HANDLERS.md:439 f6c2054b2a60425397a4c97fb77582f1
+msgid ""
+"`IMPLIED_VOLATILITY` is the one that takes an input of its own. It is a "
+"root find, not a published result, so `PriceRequest.implied_volatility` "
+"carries the price to invert and, optionally, the bracket and tolerance to"
+" look in; without a target the request is `INVALID_ARGUMENT`, because "
+"inverting the price the request is about to compute would hand back the "
+"volatility the client sent. QuantLib can invert a vanilla, a barrier and "
+"a double barrier; asked of any other style the kind comes back in "
+"`unavailable_results` like any other result an engine cannot supply."
+msgstr ""
+
+#: ../../HANDLERS.md:448 24a6c849a59e4f71902f82febf9961ab
+msgid ""
+"Anything else in the enum — the bond, credit and remaining cash-flow "
+"kinds — is `UNSUPPORTED`."
+msgstr ""
+
+#: ../../HANDLERS.md:451 6d752fe90d824a8db420457ffcf9731f
+msgid ""
+"An engine that cannot supply a result you asked for **names the "
+"absence**: the kind comes back in `PriceResult.unavailable_results` and "
+"the price comes back with it. Refusing the whole request would cost the "
+"price too, and a client that wanted the NPV would learn to ask for "
+"nothing. `AnalyticEuropeanEngine` has vega and the binomial one does not;"
+" a frontend should be able to ask both the same question and be told "
+"which answered."
+msgstr ""
+
+#: ../../HANDLERS.md:458 d2c47760d973409fa07f090f8631bec3
+msgid ""
+"The same field carries a kind that does not apply to the instrument at "
+"all — a fair rate asked of an option, a greek asked of a swap. A kind "
+"this build does not implement anywhere is a different matter, and `Hello`"
+" answers that before the request is sent."
+msgstr ""
+
+#: ../../HANDLERS.md:463 ae842009e3444b4ab8708f5a9fe8e446
+msgid ""
+"`include_additional_results` returns whatever the engine published in its"
+" own `additionalResults` map. Every value this layer reports is a "
+"**scalar** — the vector and matrix arms of `Value` are not filled. "
+"`error_estimate` is populated whenever the engine has one."
+msgstr ""
+
+#: ../../HANDLERS.md:468 de77cc11442549f2a0fea7b84bc26cb6
+msgid ""
+"`include_cashflows` is served for the cash-flow instruments, which today "
+"means swaps. Each row carries its payment date, amount, the discount the "
+"engine used and their product, so the **sum of the present-value column "
+"is the NPV** — that property is what makes the table worth showing rather"
+" than decorating, and `test/smoke_v2.py` checks it. Coupons add their "
+"accrual dates, notional and rate; floating coupons add the fixing date, "
+"the spread and the gearing, and say whether the fixing came from "
+"`IndexManager` or is still a forecast. Rows that have already been paid "
+"are left out. Asked of an **option** it is `UNSUPPORTED`: an empty table "
+"would read as an instrument that happens to have no cash flows rather "
+"than one that was never going to have any."
+msgstr ""
+
+#: ../../HANDLERS.md:479 564880e4cf6a428187939754afa8e0b6
+msgid ""
+"`curve_samples` is served. Each entry names a market object and a "
+"quantity and comes back as a `Series` on the result, sampled from the "
+"very handle the engine priced against — which is the point of it: the "
+"alternative is shipping the term structure and re-implementing QuantLib's"
+" interpolation in the client, which is how a frontend ends up drawing a "
+"curve the backend did not price with. A sample may ask for at most "
+"`Capabilities.max_curve_sample_points` points, on "
+"`curve_samples[n].dates` or `.times`: each point is a term-structure "
+"query on the live graph, and a chart shows hundreds. Four quantities are "
+"built:"
+msgstr ""
+
+#: ../../HANDLERS.md 5e29d03307d14eceb598bedb0ba0198c
+msgid "`CurveSample.Quantity`"
+msgstr ""
+
+#: ../../HANDLERS.md fd42c7f0acbd4761ba48c826114d5026
+msgid "On"
+msgstr "取樣對象"
+
+#: ../../HANDLERS.md 650241bde46249278cb13677b303cf37
+msgid "Needs"
+msgstr "需要什麼"
+
+#: ../../HANDLERS.md f59673039ef24835bf3d01fdf4a141b0
+msgid "`ZERO_RATE`"
+msgstr ""
+
+#: ../../HANDLERS.md 15c46ac488b94898905f082870ee67e4
+#: 6288afbf77554509a05bd02f2cf43fbf 8e69a878352d421c9b4736885335a8fe
+msgid "a yield curve"
+msgstr "殖利率曲線"
+
+#: ../../HANDLERS.md 27a1998c216d41de86f6fe916a49377c
+msgid "`compounding`, `frequency`, and `day_counter` when sampling by date"
+msgstr ""
+
+#: ../../HANDLERS.md 1b13a1894b7e419391c2e6b8df7bd368
+msgid "`FORWARD_RATE`"
+msgstr ""
+
+#: ../../HANDLERS.md a25d0572057f4c85a3fade434cd4e7dd
+msgid "the same"
+msgstr "同上"
+
+#: ../../HANDLERS.md 9b47e3ad6d1b405eb777493f54f2c17d
+msgid "`DISCOUNT_FACTOR`"
+msgstr ""
+
+#: ../../HANDLERS.md 91e89c949c274fb5ae666d956ccc060d
+msgid "nothing; a `compounding` set beside one is rejected rather than ignored"
+msgstr ""
+
+#: ../../HANDLERS.md 71c8c044ea674c6d9f033348d13ab0f5
+msgid "`BLACK_VOLATILITY`"
+msgstr ""
+
+#: ../../HANDLERS.md 58e5f630b9474f8ca9fe3e5bc6c2c799
+msgid "a volatility surface"
+msgstr "波動率曲面"
+
+#: ../../HANDLERS.md c4fbb07665844052b6e0105b8348fb03
+msgid "exactly one `strikes` entry"
+msgstr ""
+
+#: ../../HANDLERS.md:495 53893a68c41848a29e4737055606cbd1
+msgid ""
+"`dates` or `times`, one of the two. The other four quantities in the enum"
+" are `UNSUPPORTED` naming the field: `SURVIVAL_PROBABILITY`, "
+"`HAZARD_RATE` and `LOCAL_VOLATILITY` need term structures this build does"
+" not construct, and `VARIANCE` is the same surface `BLACK_VOLATILITY` "
+"samples, reported twice. Sampling a surface across several strikes is "
+"refused for a different reason — it would be a matrix rather than a "
+"series."
+msgstr ""
+
+#: ../../HANDLERS.md:502 4f100f03b35e4cf2af11f3408ca49a4f
+msgid "Pricing many at once"
+msgstr ""
+
+#: ../../HANDLERS.md:504 1051ae214e6245b38e372cc1b95a5fea
+msgid "Batches"
+msgstr ""
+
+#: ../../HANDLERS.md:506 342ead5828d1479585ec83f9317790ec
+msgid ""
+"`PriceBatch` prices a book of trades against one graph in one frame, and "
+"`BatchResult` answers one entry per request **in order**, so a client "
+"matches by position and needs no ids of its own."
+msgstr ""
+
+#: ../../HANDLERS.md:510 13df497613ec4df598bd19255bd30279
+msgid ""
+"A failing entry does not fail the batch. Refusing the whole book because "
+"trade seventeen names a curve that is not there would throw away sixteen "
+"prices that were computed correctly — the same argument that made an "
+"unsupplied result a named absence rather than a rejection. An entry "
+"carries either a `PriceResult` or the `Error` it would have been sent on "
+"its own, with `field_path` prefixed by `batch.requests[n]` so a blotter "
+"can put the complaint on the row it belongs to."
+msgstr ""
+
+#: ../../HANDLERS.md:517 8b882a9d744e4333a7c4f6052393969d
+msgid "Three things are refused rather than absorbed:"
+msgstr ""
+
+#: ../../HANDLERS.md 0223891d910d4ffbaaa1aa4448faaa58
+msgid "Refusal"
+msgstr ""
+
+#: ../../HANDLERS.md 2f21e98b645248a0aeb92f4d17673279
+msgid "Where it lands"
+msgstr ""
+
+#: ../../HANDLERS.md 603a1f7bd7f846ceb91e0fc6081def3c
+#: 8f0aa3eb825140aa978c10d6e6dda68d
+msgid "Why"
+msgstr ""
+
+#: ../../HANDLERS.md e9519b0167bc41cf857f322909b0f603
+msgid "an empty `requests`"
+msgstr ""
+
+#: ../../HANDLERS.md 0ff7b1c87c8747ef84aa18da2d2dc5fb
+#: 9626137157834b398b02c44d66448adc
+msgid "the whole frame, on `batch.requests`"
+msgstr ""
+
+#: ../../HANDLERS.md 9828f1c1454a4a95b13f17052560403b
+msgid "The request itself is wrong, not one of its rows"
+msgstr ""
+
+#: ../../HANDLERS.md 6901558ae9d04148805c21fa5e9418aa
+msgid "more entries than `Capabilities.max_batch_entries`"
+msgstr ""
+
+#: ../../HANDLERS.md 9bfd4728262d429c9ee03b1f3001fc41
+msgid ""
+"Each row runs to completion on the seat it starts on, and a frame can "
+"carry tens of thousands of Monte Carlos. The ceiling is advertised so a "
+"blotter can refuse the book before sending it"
+msgstr ""
+
+#: ../../HANDLERS.md 3cc8b4a468db431e9440a039ea2946bd
+msgid "a `scenarios` sweep inside an entry"
+msgstr ""
+
+#: ../../HANDLERS.md c420d452ff9c4256a8ecd3a1ed5edf8b
+msgid "that entry, `UNSUPPORTED`"
+msgstr ""
+
+#: ../../HANDLERS.md 67b1fa442c854bc08f97bade87130368
+msgid ""
+"Both shapes mean \"price this many times\", and nesting them is a product"
+" one `completed`/`total` pair cannot describe"
+msgstr ""
+
+#: ../../HANDLERS.md d04a0da89336400491d68bf60eac778f
+msgid "a failure that dirties the graph"
+msgstr ""
+
+#: ../../HANDLERS.md 35de2ac3f3474c858b856f5941416235
+msgid "the rest of the book"
+msgstr ""
+
+#: ../../HANDLERS.md 3cd4873d479a4180b9b1c339f6100046
+msgid "Every later price would be computed against a half-invalidated graph"
+msgstr ""
+
+#: ../../HANDLERS.md:526 fa37af96352f414b93a9ad156e0c0930
+msgid ""
+"`BatchResult.abandoned_after` is how many entries were attempted before a"
+" dirty graph or a cancel stopped the book, and zero when the whole of it "
+"priced. A count rather than an index, so \"the first entry broke it\" is "
+"1 rather than indistinguishable from the ordinary case. The abandoned "
+"entries are still present, carrying the reason rather than a price."
+msgstr ""
+
+#: ../../HANDLERS.md:532 989fdacc28194972b8c8129aed040a22
+msgid ""
+"A batch reports `Progress` per entry and checks the stop flag between "
+"them, so it is cancellable at trade boundaries in exactly the way a sweep"
+" is cancellable at point boundaries (see [Cancellation](#cancellation)). "
+"It also takes the placement decision over the whole book: a Monte Carlo "
+"eleven trades in moves the session to a sacrificial worker before the "
+"batch starts, because the batch runs to completion wherever it begins."
+msgstr ""
+
+#: ../../HANDLERS.md:539 2e2e0d0b366f4f58bb06691ff66f2259
+msgid "Scenario sweeps"
+msgstr ""
+
+#: ../../HANDLERS.md:541 7aadf01aae8f4dc7aed70218be04b6d0
+msgid ""
+"`PriceRequest.scenarios` prices N times off one live graph and replies "
+"with a `ScenarioResult` instead of a `PriceResult`. Points come three "
+"ways — exactly one of:"
+msgstr ""
+
+#: ../../HANDLERS.md 8b369b5dfd0d40538d356f89cfecb408
+msgid "`points`"
+msgstr ""
+
+#: ../../HANDLERS.md 97f776089331494190de37d1f89716d1
+msgid "Meaning"
+msgstr "意義"
+
+#: ../../HANDLERS.md 09c135c2630e4a40a6501ba4abc727c7
+msgid "`explicit`"
+msgstr ""
+
+#: ../../HANDLERS.md 84489632d5e64da8a0a8dc535c2be09c
+msgid "the values themselves"
+msgstr "直接給值"
+
+#: ../../HANDLERS.md 4f1ffc3595ea4109a3bcafa64248aa26
+msgid "`linear`"
+msgstr ""
+
+#: ../../HANDLERS.md 855f02b8ff444413bdd8c993a7d64b75
+msgid ""
+"`begin`, `end`, `steps` (named `begin`/`end` because `from` is a Python "
+"keyword)"
+msgstr ""
+
+#: ../../HANDLERS.md 602d94a15a2d4858a43a62e3b89f9ee7
+msgid "`relative`"
+msgstr ""
+
+#: ../../HANDLERS.md 76ecf0d5666d4d26be65b5e9caf018f5
+msgid "multipliers of the quote's current value"
+msgstr "對該報價目前值的倍數"
+
+#: ../../HANDLERS.md:551 242d3c3da93c475d9a18c33eee5de72a
+msgid ""
+"**More than one axis.** `scenarios` is repeated, and several axes sweep "
+"**as a product**: spot at 21 points against vol at 5 is 105 prices, in "
+"row-major order with the last axis varying fastest. `ScenarioResult.axes`"
+" names them outermost first, so `prices[i * len(axes[1].values) + j]` is "
+"`axes[0].values[i]` against `axes[1].values[j]`."
+msgstr ""
+
+#: ../../HANDLERS.md:557 5ebc1e8809c74b2dbb8108e85a75323b
+msgid "The rules a grid adds, each rejected by its own `scenarios[n]` path:"
+msgstr ""
+
+#: ../../HANDLERS.md e881cd87e9044ca9aa2f9099390ec8dc
+msgid "Rule"
+msgstr ""
+
+#: ../../HANDLERS.md fd28b4cbb534490bb40f49ef893dfd36
+msgid "A quote may appear on one axis only"
+msgstr ""
+
+#: ../../HANDLERS.md fce7c41d85f345ecabacb70762058428
+msgid ""
+"The later write would win at every point and the earlier axis would move "
+"nothing, which reads as a flat dimension rather than as a mistake"
+msgstr ""
+
+#: ../../HANDLERS.md 81bff704892e4f4ea5100d042c901a86
+msgid "Only `scenarios[0]` may set `plot`"
+msgstr ""
+
+#: ../../HANDLERS.md ed2240cd663b4379a6ac1c9eee494d96
+msgid ""
+"The plot is a property of the sweep. Taking it from whichever axis "
+"happened to set one would draw something the client did not ask for"
+msgstr ""
+
+#: ../../HANDLERS.md 9f6cd7bf1f94477bbb8910027d5a73cf
+msgid "The product must fit `Capabilities.max_scenario_points`"
+msgstr ""
+
+#: ../../HANDLERS.md db47e98b3bea4c07b7999cd0126862e0
+msgid ""
+"A grid multiplies, so a step count one digit too long is a session-length"
+" request rather than a slow one. The ceiling is advertised so a client "
+"can refuse it before spending the round trip"
+msgstr ""
+
+#: ../../HANDLERS.md:565 d870bf05372d45399141ecaeb24d1923
+msgid ""
+"What this is *not* is a lockstep shift — move these three quotes "
+"together. That is a market edit with an undo, which `UpdateMarket` "
+"already does."
+msgstr ""
+
+#: ../../HANDLERS.md:568 ef80fee8ac054845a4214d1972a7afd7
+msgid ""
+"`plot` names the single `ResultKind` to shape for drawing; leave it unset"
+" to get a full `PriceResult` per point and no plot. One axis fills "
+"`ScenarioResult.series`, two fill `ScenarioResult.surface` — a "
+"`DoubleMatrix` whose `row_labels` and `column_labels` are the axis "
+"values, so nothing else has to be sent to place a cell — and beyond two "
+"axes neither is filled and `prices` is the answer. A kind with no single "
+"value per point is `UNSUPPORTED` on `scenarios[0].plot`."
+msgstr ""
+
+#: ../../HANDLERS.md:576 20284edb5a81435594bd4524b2585e73
+msgid ""
+"`ScenarioResult.abandoned_after` is how many points were priced before a "
+"cancel stopped the sweep, and zero when the whole ladder ran. The axes "
+"are trimmed to what actually priced, so the series and the values still "
+"line up; a *grid* stopped mid-row has no rectangle to report, so its axes"
+" are cleared and `prices` is the whole of the answer."
+msgstr ""
+
+#: ../../HANDLERS.md:582 0a0736e81f1643b8b5e9cb09ef8ba78d
+msgid ""
+"Every swept quote is **restored by default**, on the way out of a failure"
+" as well as a success. `keep_final_value` leaves a quote at its last "
+"swept value instead, and is per axis, so a grid can keep spot where it "
+"ended and put vol back. Restoring is the default because proto3 defaults "
+"the flag to false and the safe reading has to be the one you get for "
+"free: a sweep is a question, not an edit. A kept sweep is folded into the"
+" session log as a synthetic `UpdateMarket`, so it survives a replay."
+msgstr ""
+
+#: ../../HANDLERS.md:591 1a869f1c39044c6b8d6ae4e66bcee3f6
+msgid "Cancelling and resuming"
+msgstr ""
+
+#: ../../HANDLERS.md:593 9f4466c9604748a48e2d5b73c5f7cc88
+msgid "Cancellation"
+msgstr ""
+
+#: ../../HANDLERS.md:595 dd936d681c69447281fd4844e4f87612
+msgid ""
+"A `CancelRequest` names one `request_id`. The cancel itself gets its own "
+"`Ack` from the gateway, because nothing downstream answers it, and the "
+"target gets exactly one terminal frame like every other request."
+msgstr ""
+
+#: ../../HANDLERS.md:599 e02557777c424a0192cb647d5777cf3b
+msgid ""
+"**Every request can be cancelled.** What differs is what the cancel "
+"costs, and that is worth knowing before offering the button."
+msgstr ""
+
+#: ../../HANDLERS.md 9b88e98849964dd8ab148e5013dcf3ef
+msgid "Where the request is"
+msgstr "請求正處於何處"
+
+#: ../../HANDLERS.md 231559e3c6534350830923c13f1777c4
+msgid "What a cancel does"
+msgstr "取消會做什麼"
+
+#: ../../HANDLERS.md ebde23d12a954e159d27a2bb5ccb54fa
+msgid "What it costs"
+msgstr "代價是什麼"
+
+#: ../../HANDLERS.md 5c31a8e310cf468a94be3d5133432fc7
+msgid "between Monte Carlo batches (`progress_every_paths > 0`)"
+msgstr ""
+
+#: ../../HANDLERS.md 9d6910dba7f84179a508f3f2998a2fc4
+msgid "the engine loop sees the stop flag and returns"
+msgstr ""
+
+#: ../../HANDLERS.md d0b3702f6f1247978c808d40cbb78e4a
+msgid "nothing: the worker is healthy, the graph is still warm"
+msgstr ""
+
+#: ../../HANDLERS.md bd66fe4a9adf4757b32f489b33c7162c
+msgid "between scenario sweep points"
+msgstr ""
+
+#: ../../HANDLERS.md f201f65663f9438d80c7221786cb732d
+msgid "the sweep stops and returns the points it priced"
+msgstr ""
+
+#: ../../HANDLERS.md 2870a63531644cdaaf6b8ba46373752d
+msgid "nothing, and the partial ladder is kept"
+msgstr ""
+
+#: ../../HANDLERS.md fd623fd36c8c4d699fce7d0bac24b989
+msgid "between batch entries"
+msgstr ""
+
+#: ../../HANDLERS.md 019ddaa44c6c4645b05eaaf02ce6bf56
+msgid "the book stops and returns the prices it managed"
+msgstr ""
+
+#: ../../HANDLERS.md 40cc81f118414d7f8e08de24991cbb76
+msgid "nothing, and the partial book is kept"
+msgstr ""
+
+#: ../../HANDLERS.md 584495cb6470419c97cc599d16332deb
+msgid "anywhere else — inside one engine call"
+msgstr ""
+
+#: ../../HANDLERS.md af729620a62343d09076f652417dcb8b
+msgid ""
+"the request is terminated for the client after a 250 ms grace and the "
+"session is replayed into a fresh worker"
+msgstr ""
+
+#: ../../HANDLERS.md a6465118047847e2b7f58c9f6a87e341
+msgid ""
+"one bootstrap, and the abandoned calculation runs to completion on a "
+"thread nobody is listening to"
+msgstr ""
+
+#: ../../HANDLERS.md:609 b07c44b7a64c4351badf897d7953eb8d
+msgid ""
+"That last row is the one to be honest about. QuantLib cannot be "
+"interrupted inside an engine call, and this build hosts workers as "
+"threads, so the \"kill\" in `Supervisor::onStopGraceExpired` is a disown "
+"rather than a kill: `ThreadProcessHost::kill` asks the worker to stop, "
+"marks its seat dead and detaches it. The client is freed in 250 ms and "
+"the session survives, but the CPU is not given back until that engine "
+"call ends on its own."
+msgstr ""
+
+#: ../../HANDLERS.md:616 647b9bd6385b4e52a95142946cd81176
+msgid ""
+"So a cancel is always worth offering, and a UI that says \"cancel\" on a "
+"finite-difference price is not lying — it is promising to give the user "
+"their session back, not to stop the machine. The three boundary rows are "
+"the ones where it also stops the work."
+msgstr ""
+
+#: ../../HANDLERS.md:621 567fa2aa19f44aab8efa3b5c02046c7c
+msgid ""
+"A stop taken at a boundary reports `CANCELLED` rather than "
+"`CALCULATION_FAILED`: the client asked for it, and telling a user their "
+"trade failed to price would be a different and wrong statement. A sweep "
+"and a batch each terminate with their own result message carrying "
+"`abandoned_after`, not with an error, because the part they finished is "
+"worth having."
+msgstr ""
+
+#: ../../HANDLERS.md:627 b691a92e34b64905b09f1d075dc04633
+msgid "Resuming a session"
+msgstr ""
+
+#: ../../HANDLERS.md:629 f8367ce553b94207a0c5d43751fbbc27
+msgid ""
+"A socket that dies takes nothing with it for `resume_grace_seconds` — 60 "
+"by default, `--session-grace 0` to turn it off. Inside that window the "
+"session keeps its graph, its worker seat **and its running requests**, "
+"which is the point of it: the bootstrap it saves costs 0.009 ms on this "
+"market, and the Monte Carlo it saves can cost a minute."
+msgstr ""
+
+#: ../../HANDLERS.md:635 f81df56c0df8449aa98506422303432d
+msgid "`SessionOpened` carries what a resume needs:"
+msgstr ""
+
+#: ../../HANDLERS.md 8791e143c37340338aade923ee5b2ccf
+msgid "Field"
+msgstr ""
+
+#: ../../HANDLERS.md cb11086339ef4957bcd623d7e80f060f
+msgid "What it is"
+msgstr "是什麼"
+
+#: ../../HANDLERS.md 9176a10812ab4394a42d208b8821b061
+msgid "`resume_token`"
+msgstr ""
+
+#: ../../HANDLERS.md f80f792a721142ada2e9ad23494cee1e
+msgid "128 bits, minted per session, empty when the window is off"
+msgstr ""
+
+#: ../../HANDLERS.md a4ee285d0ec741e2932aa77bd5317c40
+msgid "`resume_grace_seconds`"
+msgstr ""
+
+#: ../../HANDLERS.md 1b845c97dfd54ca8adba6e201a30cb57
+msgid "How long the session outlives its socket"
+msgstr ""
+
+#: ../../HANDLERS.md 61c3c52561db4c29b3c0de8a6cdb0f0f
+msgid "`resumed`"
+msgstr ""
+
+#: ../../HANDLERS.md d27e8ae511a742d3a69c2ee3ae04e84a
+msgid ""
+"True when this frame answers a `ResumeSession` rather than an "
+"`OpenSession`"
+msgstr ""
+
+#: ../../HANDLERS.md:643 3913b7ca410945b0a8fe991685b54100
+#, python-brace-format
+msgid ""
+"`ResumeSession{session_id, resume_token}` needs no session of its own — "
+"the socket it arrives on has none yet. The reply is the *original* "
+"`SessionOpened`, replayed with `resumed` set: the same id, the same "
+"`market_ids`, and the `bootstrap_seconds` that bootstrap actually cost, "
+"then. A resume does not build anything, and reporting a second bootstrap "
+"that never happened would make the field a lie."
+msgstr ""
+
+#: ../../HANDLERS.md:650 0513a99872e142e4a392fbed62ef3c45
+msgid ""
+"Then whatever finished while nobody was attached arrives, in the order it"
+" finished. `Progress` frames from that period are gone — shed for the "
+"reason §9.3 sheds them under backpressure — so a client that resumes into"
+" a running calculation sees progress resume mid-stream, and one that "
+"resumes after it finished gets the terminal frame straight away."
+msgstr ""
+
+#: ../../HANDLERS.md:656 2c9baf04aa1447efad11850a4783730b
+msgid ""
+"Three refusals, one answer. A wrong token, an expired window and a "
+"session closed with `CloseSession` all come back `SESSION_NOT_FOUND`, "
+"because telling them apart would let a guess be a probe. The client's "
+"move is the same in every case: `OpenSession` and replay the market."
+msgstr ""
+
+#: ../../HANDLERS.md:661 359904a46dbd4d72839c7d091ec05683
+msgid ""
+"The token is a bearer secret. A WebSocket upgrade is not subject to the "
+"same-origin policy (DESIGN §9.6), so any page on the machine can reach "
+"this socket; the token is the only thing that stops one adopting "
+"another's session. Hold it in memory, keep it out of logs and out of "
+"URLs."
+msgstr ""
+
+#: ../../HANDLERS.md:666 7b77eae9749b439594ceef79d2696ca4
+msgid ""
+"Held sessions are seats nobody is sitting in, so there is a cap on them —"
+" 16 by default. Past it the longest-waiting session is closed rather than"
+" the newest refused. `GET /healthz` reports the count as `detached`."
+msgstr ""
+
+#: ../../HANDLERS.md:670 a6dd81a6a4fc4b98950e276340b85239
+msgid "Running the service"
+msgstr ""
+
+#: ../../HANDLERS.md:672 8118028610314f06a624add342b986ee
+msgid "Liveness"
+msgstr ""
+
+#: ../../HANDLERS.md:680 a1c2600f67fd48b2b2a266fa885928b9
+msgid ""
+"What this answer proves is that **the loop is turning**. The gateway is "
+"single-threaded and everything below it runs on worker threads, so a "
+"reply here means frames are being served and says nothing about whether "
+"any particular graph is healthy. That is the honest scope of a liveness "
+"check, and it is the one an orchestrator wants: restarting on it is "
+"right, and it will not restart the process because a client sent a bad "
+"trade."
+msgstr ""
+
+#: ../../HANDLERS.md:687 bf80f50321c74d16a9e34fff93ecfcca
+msgid ""
+"The counts are live rather than a fixed string: `connections` and "
+"`sessions` are what the gateway is actually holding, and `maxConnections`"
+" is what it will hold before refusing. There is deliberately **no** "
+"`Access-Control-Allow-Origin`. A browser may send this request from any "
+"page; without the header it cannot read the reply, and these numbers are "
+"not something a random tab should be able to poll."
+msgstr ""
+
+#: ../../HANDLERS.md:694 ac0f270632e347f4aec478ed8459f052
+msgid ""
+"Started with `--token-file`, the reply carries `status`, `build`, "
+"`quantlib` and `uptimeSeconds` and stops there. This endpoint cannot ask "
+"a caller for the token — a container runtime holds no secret and still "
+"has to decide whether to restart the process — so what an unauthenticated"
+" caller may read is trimmed to liveness rather than left open."
+msgstr ""
+
+#: ../../HANDLERS.md:700 8175eda9cf504e428d9d8e70824f650b
+msgid "Origin, limits and the token"
+msgstr ""
+
+#: ../../HANDLERS.md:702 de197e643a6541af8fbe4c255ea228fb
+msgid ""
+"There is no notion of *who* a client is. This section is what stands in "
+"for that: a door that closes the browser, and a lock that can close "
+"everything else on the machine."
+msgstr ""
+
+#: ../../HANDLERS.md:706 28ea65335ce14a4d841f16dac49687db
+msgid ""
+"**Origin.** A WebSocket upgrade is not subject to the same-origin policy,"
+" so binding to loopback is not a boundary against a *browser*: any page "
+"in any tab can open `ws://127.0.0.1:9111` and drive this service. There "
+"is nothing here to steal and a great deal to spend — one frame can commit"
+" a hundred thousand engine calls. So an `Origin` header that is "
+"**present** must be on the allowed list, and one that is **absent** is "
+"let through: only browsers send it, which means the check closes the "
+"browser path and leaves `test/smoke_v2.py`, any CLI and any proxy that "
+"has already checked exactly as they were."
+msgstr ""
+
+#: ../../HANDLERS.md:720 2c37acfbb6324e40a03ac0be0ab3a675
+msgid ""
+"The defaults are the development server's origins (`5173`, `4173` on both"
+" `localhost` and `127.0.0.1`). A refused upgrade is `403 Forbidden` with "
+"a reason, not a dropped connection."
+msgstr ""
+
+#: ../../HANDLERS.md:724 fd257a0a126344b7bb67120d875604b1
+msgid ""
+"**Limits.** The other half of having no identity is that nothing stops "
+"one client taking everything:"
+msgstr ""
+
+#: ../../HANDLERS.md 2e18144ca8c54a36a20100a952404619
+msgid "Limit"
+msgstr ""
+
+#: ../../HANDLERS.md 8e0768290e834891aa88c81cb4ab403e
+msgid "Default"
+msgstr ""
+
+#: ../../HANDLERS.md 51fa94e3a02d459c82f921338bc93f74
+msgid "Refused with"
+msgstr ""
+
+#: ../../HANDLERS.md 82710682f7d64686a9fb67c0d1a31dea
+msgid "Why this is the unit"
+msgstr ""
+
+#: ../../HANDLERS.md 2e83f3499cbd4892862bf8b022da442c
+msgid "sockets served at once"
+msgstr ""
+
+#: ../../HANDLERS.md 38a3a6bb3e0a49a196c779dd242811d2
+msgid "32"
+msgstr ""
+
+#: ../../HANDLERS.md e2bf45611df6470b8e534b1b11a43d54
+msgid "`503` at the upgrade"
+msgstr ""
+
+#: ../../HANDLERS.md b548018ef38140488d43737d82864390
+msgid ""
+"A refused connection is a better failure than a gateway that cannot "
+"accept the one that matters"
+msgstr ""
+
+#: ../../HANDLERS.md 039a62f8f7d6484aa2466d406107009b
+msgid "sessions per socket"
+msgstr ""
+
+#: ../../HANDLERS.md ac06eb80efcf4ab78f44e31cae26cb76
+msgid "16"
+msgstr ""
+
+#: ../../HANDLERS.md ef2d4084f89948529a74b3d793b49c06
+msgid "`OVERLOADED`"
+msgstr ""
+
+#: ../../HANDLERS.md 34306fdcb0264b12af047b07d6218c49
+msgid ""
+"A session is a live QuantLib graph on a worker seat, so this is what "
+"protects the pool rather than the socket"
+msgstr ""
+
+#: ../../HANDLERS.md 65eb2ee531e94500b37d949af5a07982
+msgid "frame size"
+msgstr ""
+
+#: ../../HANDLERS.md 29fbcf1853bd4f05b4f485ded886bc6b
+msgid "4 MB"
+msgstr ""
+
+#: ../../HANDLERS.md 9d17c0c7ee9d49678d035727ee4bd97e
+msgid "closed by the transport"
+msgstr ""
+
+#: ../../HANDLERS.md df984290178d47899ce4c99afd7c86e7
+msgid ""
+"An `OpenSession` with a few hundred pillars exceeds uWebSockets' 16 KB "
+"default"
+msgstr ""
+
+#: ../../HANDLERS.md 59c5e06e8ca64d0092d219b290ce246b
+msgid "points per sweep"
+msgstr ""
+
+#: ../../HANDLERS.md 9605567bea45408ca174c88b9026dbe8
+msgid "100,000"
+msgstr ""
+
+#: ../../HANDLERS.md 11cd898786f74171a408a1bad00de60a
+#: 43ed337985f24d4b9c3fa0bfe55fbeb5
+msgid "`INVALID_ARGUMENT`"
+msgstr ""
+
+#: ../../HANDLERS.md a5614e972d5f4837b406b11f68d584fc
+msgid "A grid multiplies; see [Scenario sweeps](#scenario-sweeps)"
+msgstr ""
+
+#: ../../HANDLERS.md:734 2d3fb6f3ebea47afabfca44287ff2257
+msgid ""
+"`--max-connections` and `--max-sessions` move the first two. Both are "
+"refusals rather than breakages: close a session and the next one opens."
+msgstr ""
+
+#: ../../HANDLERS.md:737 8b80cb297d77424f8d2594328bd9a652
+msgid ""
+"**The token.** `Origin` bets that whoever might abuse the service is a "
+"page rather than a process, which is the right bet on a machine with one "
+"user on it and the wrong one otherwise. No proxy closes that gap, because"
+" a proxy stands beside this service rather than in front of its loopback "
+"socket, so the secret has to live here:"
+msgstr ""
+
+#: ../../HANDLERS.md:747 a3ce6a5bb13c4ce69250479522a634d4
+msgid ""
+"Every client then presents it at the upgrade or is answered `401`, before"
+" a socket, a session or a worker seat exists. A file rather than a flag, "
+"because arguments are world-readable through `ps` and a token there would"
+" be published to exactly the local processes it excludes; refused "
+"outright when anyone but its owner can read it."
+msgstr ""
+
+#: ../../HANDLERS.md ddbb7585e957405b85d1199bd86fae27
+msgid "Client"
+msgstr ""
+
+#: ../../HANDLERS.md 5753e84a3a344fcdad5d673de43b59ed
+msgid "Where the token goes"
+msgstr ""
+
+#: ../../HANDLERS.md 0d08f0da608b4a4e80b4cd4fbadee16c
+msgid "anything that can set headers"
+msgstr ""
+
+#: ../../HANDLERS.md c65ab98393fc4337b1f4b2d64e95a056
+msgid "`Authorization: Bearer <token>`"
+msgstr ""
+
+#: ../../HANDLERS.md c8aff25ed9bb43ca92148ced52b29ed5
+msgid "a browser"
+msgstr ""
+
+#: ../../HANDLERS.md 44ebf90626d84855a4e7e36a8a6ca6ac
+msgid "`token.<token>` in the subprotocol list, beside `qlservice.v2`"
+msgstr ""
+
+#: ../../HANDLERS.md:758 8f5b3a88541b4c009867904cfb226d44
+msgid ""
+"A browser gets the second row because it cannot set headers: `new "
+"WebSocket` takes a URL and a list of subprotocols and nothing else. The "
+"service answers with exactly one protocol, never the token, since a "
+"browser fails a handshake in which it named protocols and the server "
+"selected none. A URL query string would be the third option and is the "
+"worst of the three: a URL reaches logs, history and referrers."
+msgstr ""
+
+#: ../../HANDLERS.md:765 99ef2017ac2b4bd7ab4a685c52643fdb
+msgid ""
+"A wrong token and a missing one are the same `401`, for the reason a "
+"refused resume is one answer. The log says which."
+msgstr ""
+
+#: ../../HANDLERS.md:768 9fe5437074e64a258a95d151b95aefdc
+msgid ""
+"**Fail closed on the address.** `--host` anywhere but loopback, with no "
+"token, is refused at startup with exit code 2 rather than served. "
+"Everything above is a door against a page and none of it is a boundary "
+"against the network, so an unauthenticated pricing engine answering a "
+"routable address is an accident far more often than a decision."
+msgstr ""
+
+#: ../../HANDLERS.md:774 b27e34c7ebb14216b0e62986fec97d30
+msgid ""
+"**What is deliberately not here.** TLS, and users. The token is one "
+"shared secret rather than an identity, and anything that can read the "
+"token file can present it, so it keeps out another user's process and not"
+" one running as that user. If this is ever served off the machine it runs"
+" on, a reverse proxy terminates TLS, authenticates and checks origin, and"
+" `ql-backend` goes on binding to loopback behind it. A pricing engine "
+"that grew its own TLS stack would be a worse pricing engine and a worse "
+"edge server."
+msgstr ""
+
+#: ../../HANDLERS.md:782 6bc08c6913f14122ba214e4134e7eeb8
+msgid "Errors"
+msgstr ""
+
+#: ../../HANDLERS.md:784 0f432243e00842558d7d7bc5cceb36e2
+msgid ""
+"Every rejection carries a `Code` and, where it is attributable to a wire "
+"field, a dotted proto path — "
+"`\"instrument.vanilla_swap.fixed_leg.frequency\"`."
+msgstr ""
+
+#: ../../HANDLERS.md d7d07abeebf94a4fab0b82fe49a9467e
+msgid "Code"
+msgstr "錯誤碼"
+
+#: ../../HANDLERS.md 6869cbae16bb4f2496cda8f5e662545e
+msgid "What it means for the client"
+msgstr ""
+
+#: ../../HANDLERS.md 62ee5d5144ab4d1f92bcba8e797d7177
+msgid "the field is set to something that cannot work — fix the value"
+msgstr ""
+
+#: ../../HANDLERS.md 0d957fa71a8a4f9c85e62e85b96605a2
+msgid "`UNSPECIFIED_ENUM`"
+msgstr ""
+
+#: ../../HANDLERS.md 71bb60f4323c48c19312b7ff9905b8b2
+msgid "a `*_UNSPECIFIED` enum reached the registry — fill the field in"
+msgstr ""
+
+#: ../../HANDLERS.md f93f33ca68a3415e95f37909ce48c222
+msgid "`UNKNOWN_ID`"
+msgstr ""
+
+#: ../../HANDLERS.md 6377b8410e234a06a1330ebb7fb12033
+msgid "a quote, curve or index id that is not in the session"
+msgstr ""
+
+#: ../../HANDLERS.md 8817b51fabf14a15bcba437d30eb79b8
+msgid "the schema expresses it; this build does not price it"
+msgstr ""
+
+#: ../../HANDLERS.md dc6a2a28feb14f6c94e2015166101b95
+msgid "`SESSION_NOT_FOUND`"
+msgstr ""
+
+#: ../../HANDLERS.md 295e838df8af43f48b0dc96b175af31c
+msgid "the session is gone — open a new one and replay"
+msgstr ""
+
+#: ../../HANDLERS.md 59982c5107f24f0ebc710ef33b7fddec
+msgid "`BOOTSTRAP_FAILED`"
+msgstr ""
+
+#: ../../HANDLERS.md 2031b8cda353425ba9ba4c6fd0d9d00d
+msgid "the curve did not bootstrap"
+msgstr ""
+
+#: ../../HANDLERS.md 316a6864991d4af5b85487d0816468e7
+msgid "`CALCULATION_FAILED`"
+msgstr ""
+
+#: ../../HANDLERS.md ed228577447a4f689da07acf85e562d6
+msgid "the maths failed; no field, because it is not a field's fault"
+msgstr ""
+
+#: ../../HANDLERS.md 7c9e7f626e944a0dbf4cd9998c25f311
+msgid "`CANCELLED`"
+msgstr ""
+
+#: ../../HANDLERS.md 43c0f366dd994757bc0c8fe85afb6c41
+msgid "terminal frame for a request you cancelled"
+msgstr ""
+
+#: ../../HANDLERS.md c4e2b7490200464caf443a837e37c8cd
+msgid "`WORKER_DIED`, `OVERLOADED`, `INTERNAL`"
+msgstr ""
+
+#: ../../HANDLERS.md bee6a291edf34602b7275794bb8cc4b2
+msgid "infrastructure; retry or back off"
+msgstr ""
+
+#: ../../HANDLERS.md:799 0c03a6cf60684156b83cdf5db9f8f4b0
+msgid ""
+"The three that a frontend must tell apart are `UNSPECIFIED_ENUM` (you "
+"left a field out), `INVALID_ARGUMENT` (you filled it in wrongly) and "
+"`UNSUPPORTED` (the request is well-formed and this build refuses to price"
+" it on a substitute)."
+msgstr ""
+
+#: ../../HANDLERS.md:804 00e25f9fbddc40c9b07ee4803ab063d3
+msgid "Verification"
+msgstr ""
+
+#: ../../HANDLERS.md:806 ae46616bd3c24211853fe29849688558
+msgid ""
+"Every handler above is exercised by `test/smoke_v2.py`, which drives a "
+"running `ql-backend` over a real WebSocket: 369 rows of QuantLib's own "
+"reference values plus the rejection cases, 145 checks in all. [Smoke "
+"tests](TESTING.md) explains how to run it, and [the quanto barrier "
+"benchmark](BENCHMARK.md) is the analytic-vs-PDE cross-check."
+msgstr ""
+

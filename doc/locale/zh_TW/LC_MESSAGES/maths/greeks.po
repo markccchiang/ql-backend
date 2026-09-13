@@ -1,0 +1,367 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../maths/greeks.md:1 268a8c043cfe45b3b8156f920ba0b108
+msgid "Greeks and the other result kinds"
+msgstr "希臘字母與其他結果"
+
+#: ../../maths/greeks.md:3 0d19f3b37b2640b3a7ad09a3dc3ba072
+msgid ""
+"Nineteen result kinds are served. Fifteen of them are derivatives of the "
+"price; four are quantities of a different sort — a probability, an "
+"implied volatility, a fair rate and a basis-point value."
+msgstr "本服務提供十九種結果。其中十五種是價格的導數；另外四種是不同性質的量——一個機率、一個隱含波動率、一個公平利率，以及一個基點價值。"
+
+#: ../../maths/greeks.md:7 07c7949eb768469fb747b4987d116d3d
+#, python-brace-format
+msgid ""
+"Every formula below is the European analytic case, which is what "
+"QuantLib's `BlackCalculator` computes "
+"(`ql/pricingengines/blackcalculator.cpp`). Other engines either "
+"differentiate their own solution or **do not publish the quantity at "
+"all**, which is why so many rows come back \"not supplied\" "
+"({doc}`../HANDLERS`)."
+msgstr ""
+
+#: ../../maths/greeks.md:13 3fa4ce32c78048dda946bcec7f5ec0ef
+msgid "The derivatives"
+msgstr "各項導數"
+
+#: ../../maths/greeks.md:15 7c6676d48b2a41688b5bf864a4cad7da
+#, python-brace-format
+msgid ""
+"With $d_1, d_2$ as in {doc}`black-scholes`, $\\varphi$ the standard "
+"normal density, and the call forms given ($\\eta = +1$ for a call, $-1$ "
+"for a put, where the two differ):"
+msgstr "其中 $d_1, d_2$ 如 {doc}`black-scholes` 所定義，$\\varphi$ 為標準常態密度函數，並給出買權形式（兩者不同時，買權為 $\\eta = +1$、賣權為 $-1$）："
+
+#: ../../maths/greeks.md bedc8e89770b4278b8c61a8ed7dab081
+#: f61bc5220ece49f294f9209b6bd8cd8c ff28acb1b0ca4fc18ec954368922ad59
+msgid "Kind"
+msgstr "種類"
+
+#: ../../maths/greeks.md 7c21efa9899a47028f45e1891aa11281
+#: 975b9a9a8b3d461da47218b2936a40f8 b414536e75894bb194a26c820c43b107
+msgid "Definition"
+msgstr "定義"
+
+#: ../../maths/greeks.md 6da86f91e0de42b98cd4afea29bd5ebd
+msgid "Call value"
+msgstr "買權的值"
+
+#: ../../maths/greeks.md 6fac4b2644cd4b879ba18f0a3f58ca63
+msgid "delta"
+msgstr "delta"
+
+#: ../../maths/greeks.md 6a056980a9644e89a0b05c7d9c716bcc
+msgid "$\\partial V/\\partial S$"
+msgstr ""
+
+#: ../../maths/greeks.md f5ad7f11328d443a98472f2c3abc4f52
+msgid "$D_q N(d_1)$"
+msgstr ""
+
+#: ../../maths/greeks.md 60e254bfaacf4f6785352911b40bebc2
+msgid "gamma"
+msgstr "gamma"
+
+#: ../../maths/greeks.md e5a47039b0cf417eb0e6546c4f30b456
+msgid "$\\partial^2 V/\\partial S^2$"
+msgstr ""
+
+#: ../../maths/greeks.md e0aa3d817c0d4659bd500a7faf431838
+msgid "$\\dfrac{D_q\\,\\varphi(d_1)}{S\\sigma\\sqrt{T}}$"
+msgstr ""
+
+#: ../../maths/greeks.md af1e89b55d494024b7c267dc44c5cc15
+msgid "vega"
+msgstr "vega"
+
+#: ../../maths/greeks.md 98859838654e4532855daef0287f607b
+msgid "$\\partial V/\\partial \\sigma$"
+msgstr ""
+
+#: ../../maths/greeks.md 3396e7d68f9b485f81ba842f80309422
+#, python-brace-format
+msgid "$S D_q\\,\\varphi(d_1)\\sqrt{T}$"
+msgstr ""
+
+#: ../../maths/greeks.md 43100da9ed764bffbfdf4c35df2e04a0
+msgid "rho"
+msgstr "rho"
+
+#: ../../maths/greeks.md f7fccdfb3658470697077f4a068940ec
+msgid "$\\partial V/\\partial r$"
+msgstr ""
+
+#: ../../maths/greeks.md 451af0431c9343a7b9d60c742ddfdf3a
+msgid "$K T D_r N(d_2)$"
+msgstr ""
+
+#: ../../maths/greeks.md ed8241f5f504452ea4d21f4b5dd7aa44
+msgid "dividend rho"
+msgstr "股利 rho"
+
+#: ../../maths/greeks.md 8b7f0e508ec946dba372cbdc17c9962f
+msgid "$\\partial V/\\partial q$"
+msgstr ""
+
+#: ../../maths/greeks.md 042f735fc8d24d90bd143eed352d9957
+msgid "$-T S D_q N(d_1)$"
+msgstr ""
+
+#: ../../maths/greeks.md a545c6de03854bf49d914c9dc7f29056
+msgid "theta"
+msgstr "theta"
+
+#: ../../maths/greeks.md 644aefea12a74ef5ad3462861d9e32c4
+msgid "$\\partial V/\\partial t$"
+msgstr ""
+
+#: ../../maths/greeks.md 956e59c9f1674c698c09f64b54e083d1
+msgid ""
+"$-\\dfrac{S D_q \\varphi(d_1)\\sigma}{2\\sqrt{T}} + q S D_q N(d_1) - r K "
+"D_r N(d_2)$"
+msgstr ""
+
+#: ../../maths/greeks.md b770e5cb64ca4f04acf8a955103bf063
+msgid "theta per day"
+msgstr "每日 theta"
+
+#: ../../maths/greeks.md 84a546e904bb4ac5a582f4e9e2066859
+msgid "theta over 365"
+msgstr "theta 除以 365"
+
+#: ../../maths/greeks.md 84f03374318349be9225ac669142b8ef
+msgid "delta forward"
+msgstr "遠期 delta"
+
+#: ../../maths/greeks.md f703d49312f247e780896864f5cdf67f
+msgid "$\\partial V/\\partial F$"
+msgstr ""
+
+#: ../../maths/greeks.md 88354425c3164f48a787fb0db8a67266
+msgid "$D_r N(d_1)$"
+msgstr ""
+
+#: ../../maths/greeks.md e26948da06404d8f85060e03da4fcccd
+msgid "strike sensitivity"
+msgstr "履約價敏感度"
+
+#: ../../maths/greeks.md 78eee2ab71f941c0af840556782d3b75
+msgid "$\\partial V/\\partial K$"
+msgstr ""
+
+#: ../../maths/greeks.md f685a07e5b824598abc54abddaf60c37
+msgid "$-D_r N(d_2)$"
+msgstr ""
+
+#: ../../maths/greeks.md e21f0e9bbc3f4bffa8600b5eeb110dc4
+msgid "elasticity"
+msgstr "彈性"
+
+#: ../../maths/greeks.md a35896231f3a4ed6b1a36e8a72e454cc
+#, python-brace-format
+msgid "$\\dfrac{\\partial V}{\\partial S}\\dfrac{S}{V}$"
+msgstr ""
+
+#: ../../maths/greeks.md e890c2dbfe524861b64e34bff58f7c76
+msgid "$\\Delta\\,S/V$"
+msgstr ""
+
+#: ../../maths/greeks.md:32 90ebe23bbcc64317aaf43823cca526bf
+msgid "Three of these are worth a sentence each."
+msgstr "其中三項各值得一句話說明。"
+
+#: ../../maths/greeks.md:34 53502367770249c5ac27b8735869af04
+msgid ""
+"**Delta forward** is the delta with respect to the forward rather than "
+"the spot, which is the hedge ratio you want when the hedge instrument is "
+"a forward rather than the stock. The two differ by the carry: $\\partial "
+"V/\\partial S = (D_q/D_r)\\,\\partial V/\\partial F$."
+msgstr "**遠期 delta** 是對遠期價而非現貨的 delta，也就是當避險工具是遠期合約而不是股票時你要的避險比率。兩者差在持有成本：$\\partial V/\\partial S = (D_q/D_r)\\,\\partial V/\\partial F$。"
+
+#: ../../maths/greeks.md:39 a1e405de8212478cb1937c551e651951
+msgid ""
+"**Elasticity** is delta scaled into a percentage-for-percentage figure: "
+"how many percent the option moves for one percent on the underlying. It "
+"is large and negative for out-of-the-money puts, and it is the natural "
+"units for comparing options of very different premiums."
+msgstr "**彈性**把 delta 換算成百分比對百分比的數字：標的每動百分之一，選擇權動百分之幾。對價外賣權而言它又大又負，而它是比較權利金差異極大的選擇權時最自然的單位。"
+
+#: ../../maths/greeks.md:44 2e18ad04a4f749e1966f1f5f64522ed3
+msgid ""
+"**Theta per day** is simply the annual figure divided by 365 — a calendar"
+" convention, not a day count. Over a weekend the realised decay is three "
+"of these, not one."
+msgstr "**每日 theta** 就只是年化值除以 365——一種曆日慣例，不是日計方式。跨過一個週末，實現的耗損是三個這樣的量，不是一個。"
+
+#: ../../maths/greeks.md:48 6021ba3c5429452baae2183dabf5ed3e
+msgid "The probability"
+msgstr "機率"
+
+#: ../../maths/greeks.md:50 f33f8586728b413eb6e10d19598d27eb
+#, python-brace-format
+msgid ""
+"\\text{ITM cash probability} = N(d_2)\\ \\text{(call)},\\qquad N(-d_2)\\ "
+"\\text{(put)}."
+msgstr ""
+
+#: ../../maths/greeks.md:52 043fe68fe3884847a51076dc0ccec7a8
+msgid ""
+"This is the risk-neutral probability that the option finishes in the "
+"money — which is also, up to the discount factor, the price of a cash-or-"
+"nothing option paying one unit. It is *not* a real-world probability: it "
+"carries the risk-neutral drift $r-q$, not the asset's expected return."
+msgstr "這是選擇權到期落在價內的風險中立機率——它同時也是（差一個折現因子）支付一單位現金的現金或零選擇權的價格。它*不是*真實世界的機率：它帶的是風險中立漂移 $r-q$，不是資產的預期報酬。"
+
+#: ../../maths/greeks.md:57 31b3f34022fd4dc2b7cbda929a82a394
+msgid "Implied volatility"
+msgstr "隱含波動率"
+
+#: ../../maths/greeks.md:59 bc2031d202334ba4a68ef4e019164718
+#, python-brace-format
+msgid ""
+"The only result computed from an input the request carries rather than "
+"from the market. Given a target price $V^{\\ast}$, it solves"
+msgstr "唯一由請求自帶的輸入、而非由市場算出的結果。給定目標價格 $V^{\\ast}$，它求解"
+
+#: ../../maths/greeks.md:62 6fdcb85a2f6a4d058d9e5c2b163af005
+#, python-brace-format
+msgid "\\sigma^{\\ast}: \\quad V(\\sigma^{\\ast}) = V^{\\ast}"
+msgstr ""
+
+#: ../../maths/greeks.md:64 493cef02a4fa4eb3a8adcecdab66b334
+msgid ""
+"by a bracketed root find (QuantLib uses Brent). The price is strictly "
+"increasing in $\\sigma$ for a vanilla, so the root is unique when it "
+"exists; a target outside the no-arbitrage range has no root and the "
+"search fails rather than returning a boundary value."
+msgstr "以帶區間的求根法解出（QuantLib 使用 Brent 法）。對一般型而言價格對 $\\sigma$ 嚴格遞增，因此根存在時是唯一的；目標價落在無套利範圍之外時無解，搜尋會失敗，而不是回傳一個邊界值。"
+
+#: ../../maths/greeks.md:69 f7dc28049edb4db48daf04471b8f41b8
+#, python-brace-format
+msgid ""
+"Supply the bracket and tolerance if the default search is too wide or too"
+" loose. QuantLib can invert a vanilla, a barrier and a double barrier; on"
+" any other style the kind comes back named absent. See {doc}`numerics` "
+"for what the root find costs."
+msgstr "若預設的搜尋範圍太寬或容忍度太鬆，請自行提供區間與容忍度。QuantLib 能反推一般型、障礙與雙障礙；其他任何類型上，該種類會被指名為缺席。求根的代價見 {doc}`numerics`。"
+
+#: ../../maths/greeks.md:74 4eaa3e23ba0d47c2a34f6bc395c6235a
+msgid "The quanto trio"
+msgstr "quanto 三兄弟"
+
+#: ../../maths/greeks.md:76 803a714d11a74034bc8e6dad4d08f4bd
+#, python-brace-format
+msgid ""
+"These are sensitivities to the *foreign* leg of a quanto trade "
+"({doc}`quanto`):"
+msgstr "這三項是對 quanto 交易*外幣*那一側的敏感度（{doc}`quanto`）："
+
+#: ../../maths/greeks.md d54c37f678e74ef6b000d703f1db5dd7
+msgid "qrho"
+msgstr "qrho"
+
+#: ../../maths/greeks.md 0cba609584af425ca68ff6b2f2a4b6a2
+msgid "$\\partial V/\\partial r_f$, the foreign risk-free rate"
+msgstr "$\\partial V/\\partial r_f$，外幣無風險利率"
+
+#: ../../maths/greeks.md 6ca83b94b3104508812f1850f7d409af
+msgid "qvega"
+msgstr "qvega"
+
+#: ../../maths/greeks.md 03ffde3491b14462a747d64782b81627
+msgid "$\\partial V/\\partial \\sigma_X$, the FX volatility"
+msgstr "$\\partial V/\\partial \\sigma_X$，匯率波動率"
+
+#: ../../maths/greeks.md 7934435dc77f4f0795826196272684ba
+msgid "qlambda"
+msgstr "qlambda"
+
+#: ../../maths/greeks.md b179d06dab9a46e599d25ffb233f75de
+msgid "$\\partial V/\\partial \\rho$, the correlation between asset and FX rate"
+msgstr "$\\partial V/\\partial \\rho$，資產與匯率之間的相關係數"
+
+#: ../../maths/greeks.md:85 0d18fdf072ab43a98b9eb0330a971536
+msgid ""
+"They exist because the quanto adjustment enters the drift through exactly"
+" those three quantities, so their derivatives are the risk of the "
+"adjustment itself. On a non-quanto trade they come back unavailable."
+msgstr "它們之所以存在，是因為 quanto 調整正是透過這三個量進入漂移項，所以它們的導數就是這項調整本身的風險。在非 quanto 交易上，它們回來時標為無法提供。"
+
+#: ../../maths/greeks.md:89 1a5a17a8322c40819b28055e95b3a93b
+msgid "The swap kinds"
+msgstr "利率交換相關的結果"
+
+#: ../../maths/greeks.md 5d929d28bd154977a10603fe71f7e36f
+msgid "fair rate"
+msgstr "公平利率"
+
+#: ../../maths/greeks.md 1ec980f832984ec09309e4d50b223cfc
+msgid "The fixed rate that makes the swap worth zero"
+msgstr "使該筆交換價值為零的固定利率"
+
+#: ../../maths/greeks.md 1beb37bbc8f14d1aad06edb0c81a1540
+msgid "leg NPV"
+msgstr "各腳淨現值"
+
+#: ../../maths/greeks.md 3fff7888c6954d1f9fc73ee5982ccd44
+msgid "The present value of one leg"
+msgstr "單一計息腳的現值"
+
+#: ../../maths/greeks.md 420fbe1758c04190a9bca4cf2ced1e49
+msgid "leg BPS"
+msgstr "各腳 BPS"
+
+#: ../../maths/greeks.md 7254663b06684d6c963a764fb0d7073a
+msgid "The value of one basis point on a leg"
+msgstr "單一計息腳上一個基點的價值"
+
+#: ../../maths/greeks.md:97 5dd98db1e79d4f9ab5558526408b04ae
+#, python-brace-format
+msgid ""
+"The formulas are in {doc}`rates`. The fair rate needs exactly two legs, "
+"fixed first, then Ibor: any other arrangement is refused rather than "
+"answered off the wrong leg."
+msgstr "公式見 {doc}`rates`。公平利率需要恰好兩腳，固定腳在前、Ibor 腳在後：其他任何排列都會被拒絕，而不是拿錯的那一腳算給你。"
+
+#: ../../maths/greeks.md:101 05be60e5476848f182a29e6b9892a115
+msgid "Why a greek is missing"
+msgstr "為什麼少了某個希臘字母"
+
+#: ../../maths/greeks.md:103 5c4cadd2965c40c5bd82fb74374d9fd7
+msgid ""
+"An engine publishes what its solution gives it cheaply. The analytic "
+"European engine differentiates its closed form and has everything above. "
+"A binomial tree has delta, gamma and theta from the nodes around the root"
+" and **no vega**, because volatility is not a state variable in the tree."
+" The American approximations publish almost nothing beyond the price."
+msgstr "引擎只發布它的解能便宜給出的東西。歐式解析解引擎對自己的封閉解求導，因此上面每一項都有。二元樹從樹根附近的節點得到 delta、gamma 與 theta，卻**沒有 vega**，因為波動率不是樹裡的狀態變數。美式近似法除了價格之外幾乎什麼都不發布。"
+
+#: ../../maths/greeks.md:109 044cc8ce9fbb446d92935bc7884acc1f
+msgid ""
+"If you need a greek an engine will not give you, the honest options are "
+"to price the same trade on an analytic engine — reading the engine echo "
+"on both — or to bump the market yourself with a sweep and difference the "
+"ladder, which is a finite-difference greek and says so."
+msgstr "若你需要某個引擎不給的希臘字母，誠實的做法有兩個：用解析解引擎為同一筆交易計價——並讀兩邊的引擎回音——或是自己用掃描推動市場，再對階梯圖取差分，那就是一個有限差分的希臘字母，而且它明說自己是。"
+

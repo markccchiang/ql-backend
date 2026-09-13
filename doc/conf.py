@@ -38,8 +38,24 @@ myst_heading_anchors = 4
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
 
+# Translations, the same way the frontend guide does them. The English
+# Markdown is the source; Traditional Chinese lives in gettext catalogues under
+# locale/zh_TW/LC_MESSAGES/, one per page -- gettext_compact=False is what keeps
+# them per page, so `sphinx-intl stat` says which page has fallen behind. An
+# untranslated string falls back to English, which makes a partial translation
+# honest rather than broken. doc/build.sh builds both languages.
+locale_dirs = ["locale/"]
+gettext_compact = False
+gettext_uuid = True
+language = "en"
+
 html_theme = "sphinx_rtd_theme"
 html_title = "ql-backend"
+
+# The language switch under the search box, and the styles it needs.
+templates_path = ["_templates"]
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 
 # A page links to source files as ../src/..., which is outside the doc tree:
 # correct on GitHub, and not something Sphinx can resolve into the build.

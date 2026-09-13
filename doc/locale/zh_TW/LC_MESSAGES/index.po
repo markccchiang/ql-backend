@@ -1,0 +1,392 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../index.md:119
+msgid "Documentation"
+msgstr ""
+
+#: ../../index.md:130
+msgid "API"
+msgstr ""
+
+#: ../../index.md:142
+msgid "The mathematics"
+msgstr "數學原理"
+
+#: ../../index.md:1 9c67b950bc8c49829e00d88d8c82bf56
+msgid "ql-backend"
+msgstr ""
+
+#: ../../index.md:3 9081fec840f843dc8a92fd8abbfe4a6d
+msgid ""
+"A stateful C++ pricing backend driving a TypeScript frontend over "
+"WebSocket, with Protobuf as the wire format. A session keeps a live "
+"QuantLib object graph alive between requests, so a what-if from the UI "
+"moves a quote and recomputes only the instruments that depend on it."
+msgstr ""
+
+#: ../../index.md:8 b7b2b0f2a8634803abc63828dac9d169
+msgid ""
+"The design, and the QuantLib constraints that force it, are in the "
+"[design document](DESIGN.md)."
+msgstr ""
+
+#: ../../index.md:11 d89aa0884be14010a52f31b94d6d1fd5
+msgid ""
+"**Status.** It runs, and it prices correctly. `ql-backend` serves the "
+"protocol over a WebSocket: a session opens, a quote bump reprices off the"
+" live graph, one frame sweeps a quote across a spot ladder, Monte Carlo "
+"reports progress, and a cancel comes back as `CANCELLED` with the session"
+" still alive."
+msgstr ""
+
+#: ../../index.md:16 c62fa98dc50d4582b283ac32e9ac3904
+msgid ""
+"The wire schema is `v2` (DESIGN §6.3), derived from what QuantLib's own "
+"test suite shows a pricing request has to carry: an option is a payoff, "
+"an exercise, an underlying and a style, with quanto composing over the "
+"styles rather than multiplying them into their own messages. Eight "
+"payoffs, three exercises and ten of the schema's twelve styles are built,"
+" and they reach 49 distinct compiled engines — analytic, lattice, finite-"
+"difference, integral and Monte Carlo, of which 11 are quanto wrappers "
+"around another engine on the list. A `Hello` frame answers with the whole"
+" of that as data, from `src/session/capabilities.cpp`, so a client never "
+"has to send a request to find out what this build prices."
+msgstr ""
+
+#: ../../index.md:27 65d6776646774ba9aaa006cfe20aa1fb
+msgid ""
+"`test/smoke_v2.py` prices **369 rows of QuantLib's published reference "
+"values** over the wire, each within the tolerance its own test uses. The "
+"rows are not transcribed: `test/extract_tables.py` parses them out of "
+"`test-suite/*.cpp`. It also cross-checks the analytic quanto barriers "
+"against a PDE, which answers the `TODO: bench against an existing prop "
+"calculator` that `test-suite/quantooption.cpp` leaves open, and finds one"
+" of its three recorded values not reproducible ([the quanto barrier "
+"benchmark](BENCHMARK.md)). Builds warning-free under "
+"`QLSERVICE_WERROR=ON` on both routes — the vendored QuantLib v1.43 and a "
+"1.44-dev install — with AppleClang 21 at C++17, schema clean under "
+"`protoc 34.0`."
+msgstr ""
+
+#: ../../index.md:38 1f483974d7b64a328fee20769b50baf5
+msgid ""
+"A session now outlives its socket by a minute, and so does the work in "
+"it: a client that loses its connection takes the session back with "
+"`ResumeSession` and the token it was given, and the Monte Carlo that was "
+"running is still running (DESIGN §9.4). The bootstrap was never what a "
+"dropped socket cost."
+msgstr ""
+
+#: ../../index.md:43 5049f9a00fee4ca3b864d8f0204c6a1f
+msgid ""
+"What is missing is the process boundary. Workers are threads in the "
+"gateway process for now, so a cancel that has to kill cannot (DESIGN §3),"
+" and replay-after-death is never exercised."
+msgstr ""
+
+#: ../../index.md:55 460bcec1b95d4801bb4c7fd8909617bf
+msgid ""
+"The port is 9111 by convention rather than by default — every script and "
+"test in both repositories passes `--port 9111`, and the built-in default "
+"is 9001. A browser is let in from the Vite dev server's ports only; "
+"anything else needs `--allow-origin URL` (DESIGN §9.6), and `--help` "
+"lists that flag, the two caps, and `--any-origin` for a deployment behind"
+" a proxy that already checks."
+msgstr ""
+
+#: ../../index.md:61 ea16b9a5fdf24f0783d615c8333b7821
+msgid ""
+"On a machine with other users on it, add `--token-file FILE`: the origin "
+"check closes the browser, and the token is what closes their processes, "
+"which no proxy can do from in front of a loopback socket. It is read from"
+" the file, or minted into it at `0600` on first use, and every client "
+"presents it at the upgrade or is answered `401`. A `--host` that is not "
+"loopback is refused without one, because a pricing engine with no "
+"authentication answering the network is an accident rather than a "
+"decision."
+msgstr ""
+
+#: ../../index.md:69 f8235dff83c34bed9a53b7bb46baf9a0
+msgid ""
+"That builds QuantLib from the submodule, which is the route that works "
+"unmodified from a clean clone: `CMakeLists.txt` forces "
+"`QL_ENABLE_SESSIONS=ON`, without which two sessions in one process "
+"silently share one `Settings::evaluationDate()` (DESIGN §2). Linking an "
+"installed QuantLib instead is the default and is much faster to rebuild, "
+"but it can only be got right by hand."
+msgstr ""
+
+#: ../../index.md:76 e5aeb053e76042f6a1cbc50a7178418e
+msgid ""
+"[The build page](INSTALL.md) has both routes, the prerequisites, how to "
+"build a sessions-enabled QuantLib into a prefix of its own, and the "
+"failures that are silent rather than loud."
+msgstr ""
+
+#: ../../index.md:80 1daf17ef8db2408bb500c143eabbb60d
+msgid ""
+"Compiling it was worth doing. Four things in this code were wrong in ways"
+" no amount of re-reading would have shown: `namespace pb` collides with "
+"protobuf's own alias in `extension_set.h`, `RateHelper` is a typedef and "
+"cannot be forward declared, `ql/indexes/ibor/overnightindex.hpp` does not"
+" exist (`OvernightIndex` lives in `iborindex.hpp`), and `std::min` cannot"
+" deduce between `Size` and the `uint64` a proto field returns."
+msgstr ""
+
+#: ../../index.md 19ca0d25a40c408dbfd165906272861e
+msgid "File"
+msgstr ""
+
+#: ../../index.md a3d924dc7bba4313aa88cd6de9043d7a
+msgid "What it holds"
+msgstr "裝了什麼"
+
+#: ../../index.md 84511ef7d8864ef1983236c73c1e81b1
+msgid "[Build page](INSTALL.md)"
+msgstr ""
+
+#: ../../index.md f47670dacc004fb8bcfe442be9af40bc
+msgid "Prerequisites, both build routes, and what fails silently"
+msgstr ""
+
+#: ../../index.md cbb70d30af704d6d8fe65ef3c1f0cf58
+msgid "[Design document](DESIGN.md)"
+msgstr ""
+
+#: ../../index.md 1488644fe9b04d22a20612ba1a4c7a5c
+msgid ""
+"The architecture: what each component owns and which QuantLib constraint "
+"forces it"
+msgstr ""
+
+#: ../../index.md 6308408d506c4784a1b2ccccf2654893
+msgid "[Handlers](HANDLERS.md)"
+msgstr ""
+
+#: ../../index.md 71d91dbc335b4dd795ad066c4e56498d
+msgid "Every handler the service implements today, and how to drive it"
+msgstr ""
+
+#: ../../index.md df3c0acb03c143b889c4bfcf143f6013
+msgid ""
+"[`proto/quantlib/v2/envelope.proto`](https://github.com/markccchiang/ql-"
+"protobuf/blob/main/quantlib/v2/envelope.proto)"
+msgstr ""
+
+#: ../../index.md 36b211dbe02e4d69b4bfc27f0f02f658
+msgid "Transport envelope, session lifecycle, pricing, sweeps, cancellation"
+msgstr ""
+
+#: ../../index.md 0f8b9468b5b844638580a3d5c374a3b6
+msgid ""
+"[`proto/quantlib/v2/market.proto`](https://github.com/markccchiang/ql-"
+"protobuf/blob/main/quantlib/v2/market.proto)"
+msgstr ""
+
+#: ../../index.md 56a083c17e434e29bc923af4e82957f8
+msgid "The market namespace: quotes, curves, volatility, indices, fixings"
+msgstr ""
+
+#: ../../index.md 5ef9ea7b661b480ebbc85e249313c351
+msgid ""
+"[`proto/quantlib/v2/instrument.proto`](https://github.com/markccchiang"
+"/ql-protobuf/blob/main/quantlib/v2/instrument.proto)"
+msgstr ""
+
+#: ../../index.md 7b2eeacf05234ecab9a93f3487d7ba4f
+msgid "Payoff × exercise × underlying × style, and the legs"
+msgstr ""
+
+#: ../../index.md bab20d3799f14890af24a273ad7a32ab
+msgid ""
+"[`proto/quantlib/v2/engine.proto`](https://github.com/markccchiang/ql-"
+"protobuf/blob/main/quantlib/v2/engine.proto)"
+msgstr ""
+
+#: ../../index.md 38361a01699e400590c27f244358e82a
+msgid "Method × model, and the parameter block each one takes"
+msgstr ""
+
+#: ../../index.md b1d15ad8fcd844d49590973a30225fe2
+msgid ""
+"[`proto/quantlib/v2/results.proto`](https://github.com/markccchiang/ql-"
+"protobuf/blob/main/quantlib/v2/results.proto)"
+msgstr ""
+
+#: ../../index.md bacc60799b4241e8b6d0c99543acf11a
+msgid "What comes back: the `Value` variant, cash flows, plot series"
+msgstr ""
+
+#: ../../index.md f7ce6f11005d486482fe9dc4d6447f9e
+msgid ""
+"[`proto/quantlib/v1/conventions.proto`](https://github.com/markccchiang"
+"/ql-protobuf/blob/main/quantlib/v1/conventions.proto)"
+msgstr ""
+
+#: ../../index.md d80995edf5174dc2bcd7090a26159384
+msgid "Convention enums and messages — shared by both schema versions"
+msgstr ""
+
+#: ../../index.md 9204931cc5354fd3be98d17d3a668287
+msgid "[`src/conventions/registry.hpp`](../src/conventions/registry.hpp)"
+msgstr ""
+
+#: ../../index.md 7a51bda6d39d45269884119aa059766d
+msgid "Registry interface: proto → QuantLib objects"
+msgstr ""
+
+#: ../../index.md 505fccd0cdac4926af948991f17f4485
+msgid "[`src/conventions/registry.cpp`](../src/conventions/registry.cpp)"
+msgstr ""
+
+#: ../../index.md b8681e3476d249a4835e79502a35d476
+msgid "Reference implementation of the translation"
+msgstr ""
+
+#: ../../index.md aa1723928bc346b29ab164ff23134c1d
+msgid ""
+"[`src/session/session.hpp`](../src/session/session.hpp) / "
+"[`.cpp`](../src/session/session.cpp)"
+msgstr ""
+
+#: ../../index.md cf72a7ed8ca5420bb24a169dd9aabd9b
+msgid "One client's live object graph: quotes, curves, pricing"
+msgstr ""
+
+#: ../../index.md a2711765046d4fc999e5cb2d0589e9b9
+msgid "[`src/session/updateguard.hpp`](../src/session/updateguard.hpp)"
+msgstr ""
+
+#: ../../index.md 7d2677cc7d2a4a23b8a23842ed4764cd
+msgid "RAII batching of observer notifications"
+msgstr ""
+
+#: ../../index.md b6ee29972e4841a58b4ef52ca98a6d7b
+msgid ""
+"[`src/session/capabilities.hpp`](../src/session/capabilities.hpp) / "
+"[`.cpp`](../src/session/capabilities.cpp)"
+msgstr ""
+
+#: ../../index.md c4668343739d4a239c427f97dc710d03
+msgid "What this build prices, as data: the answer to `Hello`"
+msgstr ""
+
+#: ../../index.md 6a5bcb77b73e4210b80bf352554f90b9
+msgid ""
+"[`src/session/worker.hpp`](../src/session/worker.hpp) / "
+"[`.cpp`](../src/session/worker.cpp)"
+msgstr ""
+
+#: ../../index.md 84e997f5f81a471a8f5d68d410402d80
+msgid "The thread owning a session; serializes its requests"
+msgstr ""
+
+#: ../../index.md 5cbbf29f38ad431f9b9529bb31d77533
+msgid ""
+"[`src/session/supervisor.hpp`](../src/session/supervisor.hpp) / "
+"[`.cpp`](../src/session/supervisor.cpp)"
+msgstr ""
+
+#: ../../index.md a92e6e8b171b44bc937a71707a30d78a
+msgid "Session log, worker pool and placement, cancel-by-kill with replay"
+msgstr ""
+
+#: ../../index.md d854733a51794e86bdc7b1f46a439233
+msgid "[`src/errors/fielderror.hpp`](../src/errors/fielderror.hpp)"
+msgstr ""
+
+#: ../../index.md 2e35aff8f525421d9d9d2daf5843183d
+msgid "The exception that carries a wire code and the proto field to blame"
+msgstr ""
+
+#: ../../index.md ebca777be96d4ffca39e73a02151a66a
+msgid ""
+"[`src/gateway/gateway.hpp`](../src/gateway/gateway.hpp) / "
+"[`.cpp`](../src/gateway/gateway.cpp)"
+msgstr ""
+
+#: ../../index.md ebd259005bb74312908966982ebbe890
+msgid "The WebSocket front end: loop, session ids, backpressure, deadlines"
+msgstr ""
+
+#: ../../index.md a7aeaf9dd11246e49f7215f45a6f9421
+msgid ""
+"[`src/gateway/threadhost.hpp`](../src/gateway/threadhost.hpp) / "
+"[`.cpp`](../src/gateway/threadhost.cpp)"
+msgstr ""
+
+#: ../../index.md 3be609916b96443996a9f703afc4eadc
+msgid "The staging `ProcessHost`: workers as threads, so a kill only disowns"
+msgstr ""
+
+#: ../../index.md 4faaa125a7394eb799f44649f405e403
+msgid "[`src/app/main.cpp`](../src/app/main.cpp)"
+msgstr ""
+
+#: ../../index.md 47390d12d1844619948b2be46e86a693
+msgid "`ql-backend` entry point"
+msgstr ""
+
+#: ../../index.md 7c726cd316114d5391d19c7a023642d4
+msgid "[Smoke tests](TESTING.md)"
+msgstr ""
+
+#: ../../index.md 4839eb9ac1e5452e9678b8195fa235e5
+msgid ""
+"The end-to-end smoke script, the reference-table generator, and how to "
+"run them"
+msgstr ""
+
+#: ../../index.md 722d0a5464f041dca04996ad97e2ebc2
+msgid "[`CMakeLists.txt`](../CMakeLists.txt)"
+msgstr ""
+
+#: ../../index.md 425d536130f449f4b33cf8dd61d09834
+msgid "protoc invocation, the library, uSockets, and the executable"
+msgstr ""
+
+#: ../../index.md c7e2ccf673ed4a42926e91830cd74f36
+msgid "`proto`"
+msgstr ""
+
+#: ../../index.md 0cc3cc37c3794c828d5d938c895fc0d1
+msgid ""
+"Submodule: the wire schema, [ql-protobuf](https://github.com/markccchiang"
+"/ql-protobuf)"
+msgstr ""
+
+#: ../../index.md f38a4c8864cd41209478205c30830666
+msgid "`third_party/uWebSockets`"
+msgstr ""
+
+#: ../../index.md 584e6abab3654428ad72f6a582141c37
+msgid "Submodule pinned at v20.66.0, with uSockets nested inside"
+msgstr ""
+
+#: ../../index.md c2897c4322514a9189e16524e085171f
+msgid "`third_party/QuantLib`"
+msgstr ""
+
+#: ../../index.md 2552fe4424c24c7885c325d030bbed8e
+msgid "Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON`"
+msgstr ""
+

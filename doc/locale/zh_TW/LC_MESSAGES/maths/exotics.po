@@ -1,0 +1,684 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Cheng-Chin Chiang
+# This file is distributed under the same license as the ql-backend package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ql-backend \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh_TW\n"
+"Language-Team: zh_TW <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../maths/exotics.md:1 019e764d22e04bf3a7d172d0406c20cd
+msgid "The exotic styles"
+msgstr "新奇選擇權類型"
+
+#: ../../maths/exotics.md:3 5e89a0f66ab349f2887d800f6ce8d22c
+msgid ""
+"All nine exotic styles this build prices have closed forms inside the "
+"same Black-Scholes model — that is why each one's default engine is "
+"analytic rather than a grid. Each is a different set of boundary "
+"conditions on the same equation, and several are assembled out of the "
+"terms of the ones above them: the cliquet is a sum of forward starts, the"
+" knock digital is the barrier formula with a different payoff, and the "
+"one-touch is a single term of it."
+msgstr "這個版本計價的九種新奇類型，在同一個 Black-Scholes 模型內都有封閉解——這也是每一種的預設引擎都是解析解而不是網格的原因。每一種都是同一個方程式上的一組不同邊界條件，而且好幾種是用前面那幾種的項組裝出來的：棘輪式是一連串遠期起始的加總，敲出入二元選擇權是換了收益函數的障礙公式，而 one-touch 就是那條公式裡的一項。"
+
+#: ../../maths/exotics.md:10 0355f82e3729495caa2896b5f06e5c27
+msgid ""
+"Three of the nine also have a sampled engine, and none of the three is an"
+" approximation of a closed form for its own sake: the arithmetic-average "
+"Asian has no closed form at all, the performance cliquet's Monte Carlo "
+"engine is the only sampled cliquet engine QuantLib has, and a basket past"
+" two assets leaves the closed forms behind entirely."
+msgstr "九種當中有三種另外還有抽樣型引擎，而三個都不是為了近似某條封閉解而近似：算術平均的亞式根本沒有封閉解，表現型棘輪式的蒙地卡羅引擎是 QuantLib 唯一的抽樣型棘輪引擎，而一籃子只要超過兩個資產就完全離開了封閉解的範圍。"
+
+#: ../../maths/exotics.md:16 5b9837e1a1334fd3ac8031538ae3b818
+#, python-brace-format
+msgid "Throughout: $b = r - q$, $v = \\sigma\\sqrt{T}$, and"
+msgstr "以下通用：$b = r - q$、$v = \\sigma\\sqrt{T}$，以及"
+
+#: ../../maths/exotics.md:18 1819c9ed0932455d839dcd8e05b46540
+msgid ""
+"\\mu = \\frac{b - \\tfrac{1}{2}\\sigma^2}{\\sigma^2},\n"
+"\\qquad\n"
+"\\lambda = \\sqrt{\\mu^2 + \\frac{2r}{\\sigma^2}}."
+msgstr ""
+
+#: ../../maths/exotics.md:22 0400969f30f4488ca0dc78c82fdf1782
+msgid "Barrier"
+msgstr "障礙"
+
+#: ../../maths/exotics.md:24 a0878ba3b1704ef8982b33e322dfe089
+msgid ""
+"A barrier option is a vanilla that is switched on (*in*) or off (*out*) "
+"if the spot touches $H$ before expiry. The closed form is Merton (1973) "
+"and Reiner-Rubinstein (1991), and it is assembled from six terms. With "
+"$\\phi = \\pm 1$ for call/put and $\\eta = \\pm 1$ for down/up:"
+msgstr "障礙選擇權是一檔一般型選擇權，在現貨於到期前觸及 $H$ 時被開啟（*入*）或關閉（*出*）。封閉解出自 Merton（1973）與 Reiner-Rubinstein（1991），由六項組合而成。其中買權／賣權為 $\\phi = \\pm 1$，下／上為 $\\eta = \\pm 1$："
+
+#: ../../maths/exotics.md:29 69f39e599dcf4e3d95e819fdbe4fb6b3
+#, python-brace-format
+msgid ""
+"x_1 = \\frac{\\ln(S/K)}{v} + (1+\\mu)v, \\qquad\n"
+"x_2 = \\frac{\\ln(S/H)}{v} + (1+\\mu)v,"
+msgstr ""
+
+#: ../../maths/exotics.md:32 b40db8ed2fbd46868f2455e8333da8ef
+msgid ""
+"y_1 = \\frac{\\ln\\!\\big(H^2/(SK)\\big)}{v} + (1+\\mu)v, \\qquad\n"
+"y_2 = \\frac{\\ln(H/S)}{v} + (1+\\mu)v, \\qquad\n"
+"z = \\frac{\\ln(H/S)}{v} + \\lambda v,"
+msgstr ""
+
+#: ../../maths/exotics.md:36 3e0c4c53a47b427cb9ea77f5080f02a8
+#, python-brace-format
+msgid ""
+"\\begin{aligned}\n"
+"A &= \\phi S D_q N(\\phi x_1) - \\phi K D_r N(\\phi x_1 - \\phi v),\\\\\n"
+"B &= \\phi S D_q N(\\phi x_2) - \\phi K D_r N(\\phi x_2 - \\phi v),\\\\\n"
+"C &= \\phi S D_q (H/S)^{2(\\mu+1)} N(\\eta y_1) - \\phi K D_r "
+"(H/S)^{2\\mu} N(\\eta y_1 - \\eta v),\\\\\n"
+"D &= \\phi S D_q (H/S)^{2(\\mu+1)} N(\\eta y_2) - \\phi K D_r "
+"(H/S)^{2\\mu} N(\\eta y_2 - \\eta v),\\\\\n"
+"E &= R\\,D_r\\big[N(\\eta x_2 - \\eta v) - (H/S)^{2\\mu} N(\\eta y_2 - "
+"\\eta v)\\big],\\\\\n"
+"F &= R\\big[(H/S)^{\\mu+\\lambda} N(\\eta z) + (H/S)^{\\mu-\\lambda} "
+"N(\\eta z - 2\\eta\\lambda v)\\big],\n"
+"\\end{aligned}"
+msgstr ""
+
+#: ../../maths/exotics.md:45 53aa7734a5db423f8b8510503b2ae800
+msgid ""
+"where $R$ is the rebate. Each of the eight barrier types is a signed sum "
+"of these: a down-and-in call with $K > H$ is $C + E$; a down-and-out call"
+" with $K > H$ is $A - C + F$; and so on. $E$ is the rebate paid *at "
+"expiry*, $F$ the rebate paid *at hit*."
+msgstr "其中 $R$ 是回饋金。八種障礙型式各是這些項的帶號和：$K > H$ 的下入買權是 $C + E$；$K > H$ 的下出買權是 $A - C + F$，其餘依此類推。$E$ 是*到期時*支付的回饋金，$F$ 是*觸及時*支付的回饋金。"
+
+#: ../../maths/exotics.md:50 463c5210c9f6449da8b3171399af96f5
+msgid ""
+"Two properties are worth using as checks, and the service's own test "
+"suite uses both:"
+msgstr "有兩項性質值得拿來當檢查，服務自己的測試套件兩者都用："
+
+#: ../../maths/exotics.md:53 a1fbf74f60dc4d51b573330f446c837d
+msgid "V_{\\text{in}} + V_{\\text{out}} = V_{\\text{vanilla}} \\quad (R = 0),"
+msgstr ""
+
+#: ../../maths/exotics.md:55 85929418c2d543c5b4c11ac02415b1bb
+msgid "and an unreachable barrier degrades to the vanilla price exactly."
+msgstr "以及：一個永遠碰不到的障礙會恰好退化成一般型的價格。"
+
+#: ../../maths/exotics.md:57 216dd8cd632e497e938c289e3be717b2
+msgid ""
+"**What is not built:** discrete monitoring and partial-time (window) "
+"barriers. The formula above assumes the barrier is monitored "
+"*continuously*, which is worth remembering when comparing against a "
+"contract that is monitored daily — continuous monitoring is worth "
+"strictly more knock-out protection, so the prices differ systematically "
+"rather than randomly."
+msgstr "**沒有實作的部分：**離散觀察與部分期間（窗口）障礙。上面的公式假設障礙是*連續*觀察的，在與逐日觀察的合約比較時值得記住這一點——連續觀察提供的敲出保護嚴格更多，因此價格的差異是系統性的，而不是隨機的。"
+
+#: ../../maths/exotics.md:63 8435ea055c5c4883937bba5777460428
+msgid "Double barrier"
+msgstr "雙障礙"
+
+#: ../../maths/exotics.md:65 da7c4383d9964492a0151dd1635a7eea
+msgid ""
+"Two barriers, $0 < L < U$, both monitored continuously. The closed form "
+"is Ikeda-Kunitomo (1992): repeated reflection between the two levels "
+"produces an **infinite series of image terms**, each one a normal "
+"probability, converging geometrically. QuantLib truncates it; the "
+"truncation error is far below the tolerance you would price to."
+msgstr "兩個障礙 $0 < L < U$，兩者都連續觀察。封閉解出自 Ikeda-Kunitomo（1992）：在兩個水準之間反覆反射，會產生一個**無窮的鏡像項級數**，每一項都是一個常態機率，並以幾何速度收斂。QuantLib 對它做截斷；截斷誤差遠低於你會用來計價的容忍度。"
+
+#: ../../maths/exotics.md:71 6348eee9723e4226ba4891f209bd2dbf
+msgid ""
+"There is no finite-difference route for this style in the build, because "
+"QuantLib's only FD double-barrier engine is a Heston engine and takes a "
+"calibrated model rather than a process."
+msgstr "這個版本沒有為這個類型提供有限差分路徑，因為 QuantLib 唯一的有限差分雙障礙引擎是 Heston 引擎，它吃的是校準過的模型而不是隨機過程。"
+
+#: ../../maths/exotics.md:75 4f63f889849b46dc8367a456e88acb28
+msgid "Asian"
+msgstr "亞式"
+
+#: ../../maths/exotics.md:77 58dabcaca8e74dafba28c9cc084e9431
+msgid ""
+"An Asian option pays off against the **average** of the underlying rather"
+" than its terminal value. Whether there is a closed form depends entirely"
+" on which average."
+msgstr "亞式選擇權的收益是對標的的**平均值**計算，而不是對它的期末值。有沒有封閉解，完全取決於是哪一種平均。"
+
+#: ../../maths/exotics.md:81 c16d62f220d74501bfc451db882c9a28
+msgid ""
+"**Geometric, continuous.** The geometric average of a geometric Brownian "
+"motion is itself lognormal, so the option is a Black-Scholes option with "
+"adjusted parameters. QuantLib prices it as a Black formula with"
+msgstr "**幾何平均、連續。**幾何布朗運動的幾何平均本身仍是對數常態，因此這檔選擇權就是一檔參數經過調整的 Black-Scholes 選擇權。QuantLib 以 Black 公式為它計價，其中"
+
+#: ../../maths/exotics.md:85 652b32ef5abe478aa3cb9d4bcb7b2d00
+msgid ""
+"\\sigma_G = \\frac{\\sigma}{\\sqrt{3}},\n"
+"\\qquad\n"
+"q_G = \\frac{1}{2}\\left(r + q + \\frac{\\sigma^2}{6}\\right),"
+msgstr ""
+
+#: ../../maths/exotics.md:89 706a59f1c4624deca0b371da642ef1d9
+#, python-brace-format
+msgid ""
+"the second being an effective dividend yield "
+"(`ql/pricingengines/asian/analytic_cont_geom_av_price.cpp`). The "
+"$1/\\sqrt{3}$ is the whole story of an Asian: averaging over the life of "
+"the option cuts the variance of the terminal quantity to a third, so an "
+"Asian is always worth less than the corresponding vanilla."
+msgstr "第二式是一個等效股利收益率（`ql/pricingengines/asian/analytic_cont_geom_av_price.cpp`）。$1/\\sqrt{3}$ 就是亞式選擇權的整個故事：在選擇權存續期間取平均，把期末量的變異數削到三分之一，因此亞式永遠比對應的一般型便宜。"
+
+#: ../../maths/exotics.md:95 24d7abb2aa7049d594b95cb78049b907
+msgid ""
+"**Geometric, discrete.** With fixing dates the average is over a finite "
+"set, and $\\ln G$ is again normal — with mean and variance computed from "
+"the fixing times rather than from the closed-form limit. Same Black "
+"formula, different moments."
+msgstr "**幾何平均、離散。**有定盤日時，平均是對有限個點取的，而 $\\ln G$ 仍為常態——只是均值與變異數由各定盤時點算出，而不是取連續極限的封閉式。同一個 Black 公式，不同的動差。"
+
+#: ../../maths/exotics.md:100 291fc22f740349f495516dd23693f996
+msgid ""
+"**Arithmetic.** The sum of lognormals is not lognormal and there is no "
+"exact closed form, so this is the one style in the build that *must* go "
+"to Monte Carlo. QuantLib's engine can use the geometric average as a "
+"**control variate** — it is highly correlated with the arithmetic average"
+" and its value is known exactly, so subtracting its simulation error "
+"removes most of the noise. Turn it on when you have one; it is worth far "
+"more than the same time spent on extra paths."
+msgstr "**算術平均。**對數常態之和不是對數常態，也沒有精確的封閉解，因此這是這個版本中唯一*必須*走蒙地卡羅的類型。QuantLib 的引擎可以用幾何平均當**控制變量**——它與算術平均高度相關，而且它的值是精確已知的，因此扣掉它的模擬誤差就能消掉大部分噪音。有得用就打開它；它的價值遠高於把同樣的時間拿去多跑路徑。"
+
+#: ../../maths/exotics.md:108 a37cf34cf3374cd78126492acbd7a7a2
+msgid "Lookback"
+msgstr "回顧式"
+
+#: ../../maths/exotics.md:110 ec6a73432ef040c48f0e744df75bf217
+msgid ""
+"A lookback pays off against the running extremum of the path, which must "
+"be supplied: an option already part-way through its life whose extremum "
+"is dropped would price as though it had just started."
+msgstr "回顧式的收益是對路徑的累積極值計算，而該極值必須提供：一檔已經走了一段的選擇權若漏掉極值，會被當成剛剛才開始那樣計價。"
+
+#: ../../maths/exotics.md:114 89d48cb2cc0f4a61a64d52ad14634dbc
+msgid ""
+"**Floating strike:** a call pays $S_T - m$, where $m$ is the running "
+"minimum."
+msgstr "**浮動履約價：**買權支付 $S_T - m$，其中 $m$ 是累積最小值。"
+
+#: ../../maths/exotics.md:115 7c566d0132eb4831a8c673143dbd4737
+msgid ""
+"**Fixed strike:** a call pays $\\max(M - K, 0)$, where $M$ is the running"
+" maximum."
+msgstr "**固定履約價：**買權支付 $\\max(M - K, 0)$，其中 $M$ 是累積最大值。"
+
+#: ../../maths/exotics.md:118 cebf4b4d11ca4de1ba5279df7e9bcd30
+msgid ""
+"Both have closed forms under continuous monitoring — Goldman-Sosin-Gatto "
+"(1979) for the floating case, Conze-Viswanathan (1991) for the fixed. The"
+" floating call is"
+msgstr "在連續觀察下兩者都有封閉解——浮動的情形是 Goldman-Sosin-Gatto（1979），固定的情形是 Conze-Viswanathan（1991）。浮動買權為"
+
+#: ../../maths/exotics.md:122 37d664bd9eec42ecb35b371f0e714c7d
+msgid ""
+"c = S D_q N(a_1) - m D_r N(a_2)\n"
+" + S D_r "
+"\\frac{\\sigma^2}{2b}\\left[\\left(\\frac{S}{m}\\right)^{-2b/\\sigma^2} "
+"N\\!\\left(-a_1 + \\frac{2b\\sqrt{T}}{\\sigma}\\right) - "
+"e^{bT}N(-a_1)\\right],"
+msgstr ""
+
+#: ../../maths/exotics.md:125 ba4ad58b573f47edae90265380af5d18
+msgid ""
+"a_1 = \\frac{\\ln(S/m) + (b + "
+"\\tfrac{1}{2}\\sigma^2)T}{\\sigma\\sqrt{T}},\n"
+"\\qquad a_2 = a_1 - \\sigma\\sqrt{T}."
+msgstr ""
+
+#: ../../maths/exotics.md:128 cf7ead4ef8164dc1901b17610459a73d
+msgid ""
+"The third term is the value of the *option to have done better* — the "
+"part that distinguishes a lookback from a vanilla struck at the extremum."
+" Note it is singular as $b \\to 0$; the engine handles that limit, but it"
+" is why a lookback is unusually sensitive to the carry."
+msgstr "第三項是*本來可以做得更好*這個選擇權的價值——正是它把回顧式和一檔以極值為履約價的一般型區分開來。注意它在 $b \\to 0$ 時是奇異的；引擎會處理那個極限，但這也是回顧式對持有成本異常敏感的原因。"
+
+#: ../../maths/exotics.md:133 eb98834652dd44eca94b4d36dfbc810f
+msgid ""
+"Continuous monitoring again: a lookback priced against a daily-observed "
+"contract is an upper bound."
+msgstr "同樣是連續觀察：拿來為逐日觀察的合約計價時，回顧式的價格是一個上界。"
+
+#: ../../maths/exotics.md:136 3a06007dcbd14c65ba5bae8debc10f1e
+msgid "Forward start"
+msgstr "遠期起始"
+
+#: ../../maths/exotics.md:138 e65a2777dbd44261bde817257404ccd5
+#, python-brace-format
+msgid ""
+"The strike is not known yet. It is set at the reset date $t_1$ to a "
+"multiple of the spot then, $K = m\\,S_{t_1}$, so the option's *moneyness*"
+" is fixed but its strike is not — which is why the trade carries no "
+"strike and a struck payoff would be silently overwritten."
+msgstr "履約價目前還不知道。它會在重設日 $t_1$ 被設為當時現貨價的某個倍數 $K = m\\,S_{t_1}$，因此選擇權的*價內程度*是固定的，履約價卻不是——這也是為什麼這筆交易不帶履約價，而帶了履約價的收益函數會被無聲覆寫。"
+
+#: ../../maths/exotics.md:143 1b421e5265ea49509d74b38186346988
+#, python-brace-format
+msgid ""
+"Because the Black-Scholes price is homogeneous of degree one in $(S, K)$,"
+" the value at $t_1$ is $S_{t_1}$ times the value of a unit-spot option "
+"struck at $m$ over the remaining life $\\tau = T - t_1$. Discounting that"
+" back:"
+msgstr "由於 Black-Scholes 價格對 $(S, K)$ 是一階齊次的，在 $t_1$ 時的價值等於 $S_{t_1}$ 乘上一檔「現貨為一單位、履約價為 $m$、剩餘期限 $\\tau = T - t_1$」的選擇權價值。再把它折現回來："
+
+#: ../../maths/exotics.md:147 4da5d61607704caa85b6e207fd98fc0d
+msgid "V_0 = D_q(t_1)\\; S_0 \\; V_{\\text{BS}}\\big(1,\\ m,\\ \\tau\\big)."
+msgstr ""
+
+#: ../../maths/exotics.md:149 8426681ec9894edf9a252b8f491c5b3a
+msgid ""
+"QuantLib composes this literally: the forward engine prices the inner "
+"vanilla and multiplies by the dividend discount to the reset date "
+"(`ql/pricingengines/forward/forwardengine.hpp`)."
+msgstr "QuantLib 就是照字面組合出來的：遠期引擎為內層的一般型計價，再乘上到重設日的股利折現因子（`ql/pricingengines/forward/forwardengine.hpp`）。"
+
+#: ../../maths/exotics.md:153 1b01fbbaa40e4b42938f442e413d3578
+#, python-brace-format
+msgid ""
+"The **performance** variant pays the *return* rather than the amount — it"
+" settles $\\max(S_T/S_{t_1} - m, 0)$ — so the payoff is already unit-"
+"scaled and the discount to the reset date is the risk-free one instead:"
+msgstr "**performance** 變體支付的是*報酬率*而不是金額——它結算 $\\max(S_T/S_{t_1} - m, 0)$——因此收益已經是單位化的，到重設日的折現改用無風險折現因子："
+
+#: ../../maths/exotics.md:157 734f056177e94e9f9c245c9480b26610
+msgid ""
+"V_0^{\\text{perf}} = D_r(t_1)\\; V_{\\text{BS}}\\big(1,\\ m,\\ "
+"\\tau\\big)."
+msgstr ""
+
+#: ../../maths/exotics.md:159 3d04f1475cc14ed2b569a665fb1725d0
+msgid "Same trade description, different price. The switch is on the style card."
+msgstr "同一段交易描述，不同的價格。開關就在類型卡片上。"
+
+#: ../../maths/exotics.md:161 430e49f9fa71440693200077f81ff0c0
+msgid "Cliquet"
+msgstr "棘輪式"
+
+#: ../../maths/exotics.md:163 d2e97f671f374691b05dd5b2c8dc8f7e
+#, python-brace-format
+msgid ""
+"A cliquet — a *ratchet* — is a series of forward starts laid end to end. "
+"Reset dates $t_1 < \\dots < t_{n-1}$ split the life into $n$ periods, the"
+" last ending at expiry, and each period is struck at $m$ times the spot "
+"when that period opens. So it is the section above, once per period:"
+msgstr "棘輪式（cliquet，又稱 *ratchet*）是一連串首尾相接的遠期起始選擇權。重設日 $t_1 < \\dots < t_{n-1}$ 把存續期切成 $n$ 段，最後一段結束於到期日，而每一段的履約價都是該段開始時現貨價的 $m$ 倍。所以它就是上一節的東西，每一段來一次："
+
+#: ../../maths/exotics.md:168 385283a56de04a9186e8b17af59c848b
+msgid ""
+"V_0 = \\sum_{i=1}^{n} D_q(t_{i-1})\\; S_0\\; V_{\\text{BS}}\\big(1,\\ "
+"m,\\\n"
+"t_i - t_{i-1}\\big), \\qquad t_0 = 0,\\ t_n = T."
+msgstr ""
+
+#: ../../maths/exotics.md:171 185f7d1066124c8eb9eb101b6555412f
+msgid ""
+"QuantLib assembles it exactly that way — one Black calculation per "
+"period, at that period's forward and its *forward* variance, weighted by "
+"the dividend discount to the period's start "
+"(`analyticcliquetengine.cpp:70-84`) — and it appends the expiry to the "
+"reset list to close the final period. The **performance** form makes the "
+"same substitution the forward start does, discounting at the risk-free "
+"rate and paying the return:"
+msgstr "QuantLib 就是照這樣組出來的——每一段做一次 Black 計算，用該段的遠期價與該段的*遠期*變異數，再乘上折現到該段起點的股利折現因子（`analyticcliquetengine.cpp:70-84`）——並且把到期日接在重設日清單後面，好把最後一段收尾。**表現型**做的是和遠期起始相同的替換：改用無風險利率折現，支付的是報酬率："
+
+#: ../../maths/exotics.md:178 589e9c6aa8d84dd2b5ef9a040af0becb
+msgid ""
+"V_0^{\\text{perf}} = \\sum_{i=1}^{n} D_r(t_{i-1})\\; "
+"V_{\\text{BS}}\\big(1,\\\n"
+"m,\\ t_i - t_{i-1}\\big)."
+msgstr ""
+
+#: ../../maths/exotics.md:181 f18c3368fadb482891358c81cb606590
+msgid ""
+"**There are no caps or floors here, and that is a property of the library"
+" rather than of this page.** A capped cliquet truncates each period's "
+"return before summing, which is a different sum and not a scaling of this"
+" one. QuantLib's instrument carries the four fields and never passes them"
+" to an engine, so the price you would get is the uncapped sum above. The "
+"service refuses them by name rather than returning it."
+msgstr "**這裡沒有上下限，而這是函式庫的性質，不是這一頁的性質。**帶上限的棘輪式會在加總之前把每一段的報酬率截斷，那是另一個總和，不是這個總和的縮放。QuantLib 的商品類別帶著那四個欄位，卻從來不把它們交給引擎，所以你拿到的價格會是上面那個沒有上限的總和。服務會指名拒絕它們，而不是把那個價格給你。"
+
+#: ../../maths/exotics.md:188 891c563be8f6456ca2b07e72c94903fb
+msgid "Compound"
+msgstr "複合式"
+
+#: ../../maths/exotics.md:190 a0be92fb9e1c4231ac2777a80e10d743
+msgid ""
+"An option on an option. The mother, struck at $K_1$ and expiring at "
+"$\\tau_1$, buys the daughter, struck at $K_2$ and expiring at $\\tau_2 > "
+"\\tau_1$."
+msgstr "選擇權上的選擇權。母選擇權履約價 $K_1$、到期 $\\tau_1$，買到的是履約價 $K_2$、到期 $\\tau_2 > \\tau_1$ 的子選擇權。"
+
+#: ../../maths/exotics.md:193 fa8b09579f364c9f9cd9514b17622adc
+msgid ""
+"The whole difficulty is one number: the spot $S^*$ at which the mother is"
+" worth exercising, which is the spot at which the daughter is worth "
+"exactly what the mother costs,"
+msgstr "全部的難處就在一個數字：讓母選擇權值得履約的那個現貨價 $S^*$，也就是子選擇權的價值恰好等於母選擇權履約成本的那個現貨價，"
+
+#: ../../maths/exotics.md:197 33124563349a4fbeb56cb89d80311c88
+msgid "V_{\\text{daughter}}\\big(S^*,\\ K_2,\\ \\tau_2 - \\tau_1\\big) = K_1."
+msgstr ""
+
+#: ../../maths/exotics.md:199 653220c9f2ea4b4b8f26aca38bff7a4f
+#, python-brace-format
+msgid ""
+"That has no closed form, so QuantLib solves it with Brent "
+"(`analyticcompoundoptionengine.cpp:92-96`) and then the price is a Geske "
+"(1979) expression in two correlated normals — the daughter finishing in "
+"the money and the mother being exercised, correlated by $\\rho = "
+"\\sqrt{\\tau_1/\\tau_2}$ because the first period is contained in the "
+"second. With $\\phi = \\pm 1$ for a call or put daughter and $w = \\pm 1$"
+" for a call or put mother, one expression covers all four combinations:"
+msgstr "這個沒有封閉解，所以 QuantLib 用 Brent 法去解（`analyticcompoundoptionengine.cpp:92-96`），接著價格就是 Geske（1979）那個由兩個相關常態組成的式子——子選擇權到期在價內，以及母選擇權被履約，兩者的相關係數是 $\\rho = \\sqrt{\\tau_1/\\tau_2}$，因為第一段期間包含在第二段之內。以 $\\phi = \\pm 1$ 表示子選擇權是買權或賣權、$w = \\pm 1$ 表示母選擇權是買權或賣權，一個式子就涵蓋全部四種組合："
+
+#: ../../maths/exotics.md:207 4b0f0fd47b104379bd4072a724f11d40
+msgid ""
+"V = \\phi w\\, S D_q(\\tau_2)\\, N_2\\!\\big(\\!-\\phi w X', \\phi d_+; "
+"w\\rho\\big)\n"
+"\\; - \\; \\phi w\\, K_2 D_r(\\tau_2)\\, N_2\\!\\big(\\!-\\phi w X, \\phi"
+" d_-; w\\rho\\big)\n"
+"\\; - \\; w\\, K_1 D_r(\\tau_1)\\, N\\!\\big(\\!-\\phi w X\\big),"
+msgstr ""
+
+#: ../../maths/exotics.md:211 03cb0677104148268bbb4e8ee993f79b
+#, python-brace-format
+msgid ""
+"where $X$ is $S^*$ in the log-return coordinates Wystup uses, $X' = X - "
+"\\sigma\\sqrt{\\tau_1}$, and $d_\\pm$ are the usual daughter arguments at"
+" $\\tau_2$. Read it right to left: the last term is the premium paid, the"
+" middle one the strike paid on the daughter, the first the asset "
+"received."
+msgstr "其中 $X$ 是 $S^*$ 換算到 Wystup 所用的對數報酬座標，$X' = X - \\sigma\\sqrt{\\tau_1}$，而 $d_\\pm$ 是子選擇權在 $\\tau_2$ 的那組常見引數。從右往左讀：最後一項是付出的權利金，中間一項是子選擇權上付出的履約價，第一項是收到的標的資產。"
+
+#: ../../maths/exotics.md:216 2d6ae151c6bb4de58bbd94158e94d4c0
+msgid ""
+"**The compound must expire on or before the option it buys.** Not a "
+"modelling choice — there is nothing to exercise into otherwise, and "
+"QuantLib's instrument rejects it."
+msgstr "**複合式的到期日必須不晚於它所買到的那個選擇權。**這不是模型上的選擇——否則履約之後根本沒有東西可換，而 QuantLib 的商品類別也會拒絕。"
+
+#: ../../maths/exotics.md:220 29cba81812ae4cb2b236baea17df5401
+msgid "Chooser"
+msgstr "選擇者"
+
+#: ../../maths/exotics.md:222 de11d3105a964a648e015ff15685fe8c
+msgid ""
+"The holder decides at $t_c$ whether the option is a call or a put. Until "
+"then it is neither, which is why the trade carries no option type at all."
+msgstr "持有人在 $t_c$ 決定這是買權還是賣權。在那之前它兩者都不是，這就是為什麼這筆交易根本不帶選擇權型態。"
+
+#: ../../maths/exotics.md:225 ed3ab207b17e4a2daa86904fa531fabb
+msgid ""
+"**Simple chooser** — one strike $K$, one expiry $T$ for both sides. At "
+"$t_c$ the holder takes $\\max(c, p)$, and put-call parity turns that into"
+" a call plus a put on the *forward*, giving a closed form in two "
+"univariate normals (`analyticsimplechooserengine.cpp:74-87`):"
+msgstr "**簡單選擇者**——兩邊共用一個履約價 $K$ 與一個到期日 $T$。在 $t_c$ 持有人取 $\\max(c, p)$，而買賣權平價把它變成一個買權加上一個寫在*遠期價*上的賣權，於是得到一個由兩個單變量常態組成的封閉解（`analyticsimplechooserengine.cpp:74-87`）："
+
+#: ../../maths/exotics.md:230 2e2294a5f2784ffbbeed6d6b7e7332ac
+#, python-brace-format
+msgid ""
+"W = S D_q(T)\\,N(d) - K D_r(T)\\,N\\big(d - \\sigma\\sqrt{T}\\big)\n"
+"- S D_q(T)\\,N(-y) + K D_r(T)\\,N\\big(-y + \\sigma\\sqrt{t_c}\\big),"
+msgstr ""
+
+#: ../../maths/exotics.md:233 18768d6a2c0d429690461e91773cea2e
+msgid ""
+"d = \\frac{\\ln(S/K) + \\big(b + "
+"\\tfrac{1}{2}\\sigma^2\\big)T}{\\sigma\\sqrt{T}},\n"
+"\\qquad\n"
+"y = \\frac{\\ln(S/K) + bT + \\tfrac{1}{2}\\sigma^2 "
+"t_c}{\\sigma\\sqrt{t_c}}."
+msgstr ""
+
+#: ../../maths/exotics.md:237 4b53c935b87343d2bc54ebe334061781
+msgid ""
+"The first two terms are a call struck $K$ at $T$; the second two are a "
+"put on what is left, and they carry $t_c$ rather than $T$ because the "
+"choice is made then."
+msgstr "前兩項是一個履約價 $K$、到期 $T$ 的買權；後兩項是寫在剩下那部分上的賣權，而它們帶的是 $t_c$ 而不是 $T$，因為選擇就是在那時候做的。"
+
+#: ../../maths/exotics.md:241 3c430b6fb6e74c8a9ca7cdb614c430f3
+msgid ""
+"**Complex chooser** — the two sides have strikes and expiries of their "
+"own, $(X_c, T_c)$ and $(X_p, T_p)$. Parity no longer applies, so the "
+"holder's rule becomes a critical spot again: the $I$ at which the call "
+"and the put are worth the same at $t_c$,"
+msgstr "**複雜選擇者**——兩邊各有自己的履約價與到期日，$(X_c, T_c)$ 與 $(X_p, T_p)$。平價關係不再適用，所以持有人的決策規則又變成一個臨界現貨價：在 $t_c$ 讓買權與賣權價值相等的那個 $I$，"
+
+#: ../../maths/exotics.md:246 b49e6969c05849bd87a65eca91647df7
+msgid "c\\big(I, X_c, T_c\\big) = p\\big(I, X_p, T_p\\big),"
+msgstr ""
+
+#: ../../maths/exotics.md:248 10bf68cc94b044f4a7348d89eda0725e
+#, python-brace-format
+msgid ""
+"found by Newton-Raphson, after which the price is four bivariate normal "
+"terms with $\\rho_c = \\sqrt{t_c/T_c}$ and $\\rho_p = \\sqrt{t_c/T_p}$ "
+"(`analyticcomplexchooserengine.cpp:38-72`)."
+msgstr "以 Newton-Raphson 法求出，之後價格就是四個雙變量常態項，相關係數為 $\\rho_c = \\sqrt{t_c/T_c}$ 與 $\\rho_p = \\sqrt{t_c/T_p}$（`analyticcomplexchooserengine.cpp:38-72`）。"
+
+#: ../../maths/exotics.md:252 3ec45f78829e491cb958599610d69546
+msgid ""
+"That solver is where the one bound worth knowing comes from. QuantLib "
+"runs its inner Black-Scholes calculation to $T - 2t_c$ rather than $T - "
+"t_c$ (`analyticcomplexchooserengine.cpp:91,99`), so a leg expiring inside"
+" twice the choice date leaves it a negative time to work with. The "
+"service refuses that rather than letting the volatility surface throw "
+"from inside the iteration."
+msgstr "那個求解器正是唯一一條值得知道的界線的來源。QuantLib 內層的 Black-Scholes 計算跑到的是 $T - 2t_c$ 而不是 $T - t_c$（`analyticcomplexchooserengine.cpp:91,99`），所以某一腳如果在選擇日的兩倍之內就到期，就會留給它一個負的時間。服務會拒絕這種情況，而不是讓波動率曲面在迭代裡面拋出例外。"
+
+#: ../../maths/exotics.md:258 e00731dd583b46b3a4e8625da3c46af0
+msgid "Basket"
+msgstr "一籃子"
+
+#: ../../maths/exotics.md:260 c34c848876b749e7814d5153542d6b05
+msgid ""
+"Two or more assets, accumulated to one number and handed to a plain "
+"payoff. Which accumulation you choose is not a flavour of one formula — "
+"it decides which formula exists at all."
+msgstr "兩個以上的資產，先累加成一個數字，再交給底下那個一般型收益函數。你選哪一種累加方式，並不是同一條公式的不同口味——它決定的是究竟有沒有公式可用。"
+
+#: ../../maths/exotics.md:264 ef486abbd5b44c6b8f0a9e5d25a0dc37
+#, python-brace-format
+msgid ""
+"**Minimum and maximum**, two assets, are Stulz (1982). The whole engine "
+"is *one* closed form and two identities. The one form is the call on the "
+"minimum: with $\\sigma_i$ the standard deviations $\\sigma_i\\sqrt{T}$, "
+"$F_i$ the forwards, and"
+msgstr "**最小值與最大值**，兩個資產，走的是 Stulz（1982）。整個引擎就只有*一條*封閉解加上兩條恆等式。那一條就是寫在最小值上的買權：其中 $\\sigma_i$ 是標準差 $\\sigma_i\\sqrt{T}$，$F_i$ 是遠期價，並令"
+
+#: ../../maths/exotics.md:269 c6f19e0d55f3481e97e98b0215a24121
+msgid ""
+"\\sigma^2 = \\sigma_1^2 + \\sigma_2^2 - 2\\rho\\sigma_1\\sigma_2, \\qquad"
+"\n"
+"d = \\frac{\\ln(F_1/F_2) + \\tfrac{1}{2}\\sigma^2}{\\sigma},"
+msgstr ""
+
+#: ../../maths/exotics.md:272 e016d542a4424eed81e600fcfc92e723
+#, python-brace-format
+msgid ""
+"c_{\\min} = D_r\\Big[F_1 M\\big(d_1^{(1)}, -d;\\ \\rho_1'\\big)\n"
+"+ F_2 M\\big(d_1^{(2)},\\ d - \\sigma;\\ \\rho_2'\\big)\n"
+"- K\\,M\\big(d_1^{(1)} - \\sigma_1,\\ d_1^{(2)} - \\sigma_2;\\ "
+"\\rho\\big)\\Big],"
+msgstr ""
+
+#: ../../maths/exotics.md:276 d81e6858a1d34724946d2ae42d628814
+msgid ""
+"where $\\rho_1' = (\\rho\\sigma_2 - \\sigma_1)/\\sigma$ and $\\rho_2' = "
+"(\\rho\\sigma_1 - \\sigma_2)/\\sigma$. Note that $\\sigma$ is the "
+"volatility of the *ratio* of the two assets — the minimum is a question "
+"about which one is smaller, and that is a question about the ratio."
+msgstr "其中 $\\rho_1' = (\\rho\\sigma_2 - \\sigma_1)/\\sigma$、$\\rho_2' = (\\rho\\sigma_1 - \\sigma_2)/\\sigma$。注意 $\\sigma$ 是兩個資產*比值*的波動率——取最小值問的是哪一個比較小，而那正是一個關於比值的問題。"
+
+#: ../../maths/exotics.md:281 0d7c8e8841744314810b54434cef229d
+#, python-brace-format
+msgid ""
+"The two identities do the rest. A call on the maximum is $c_{\\max} = c_1"
+" + c_2 - c_{\\min}$, because $\\max + \\min = a + b$ "
+"(`stulzengine.cpp:63-79`). And each put comes from parity against a zero-"
+"strike call, which is the accumulation itself:"
+msgstr "其餘的由那兩條恆等式完成。寫在最大值上的買權是 $c_{\\max} = c_1 + c_2 - c_{\\min}$，因為 $\\max + \\min = a + b$（`stulzengine.cpp:63-79`）。而每一個賣權都來自與零履約價買權之間的平價關係，而那個零履約價買權就是累加本身："
+
+#: ../../maths/exotics.md:286 0a033610f78c48ba8a29c8571d928a7a
+msgid "p = K D_r - c(K = 0) + c(K)."
+msgstr ""
+
+#: ../../maths/exotics.md:288 96739843e9974b3ebbb136657ef224e8
+msgid ""
+"QuantLib's own source carries a warning here worth passing on: the line "
+"that discounts the dividend yields is commented *\"cannot handle non zero"
+" dividends, so don't believe this\"* (`stulzengine.cpp:129`). It is more "
+"cautious than the evidence — four of the reference rows this build prices"
+" carry dividend yields of 6% and 9% and reproduce Haug's published values"
+" to 1e-4 — but it is the library's own doubt about its own formula, and "
+"worth knowing before you trust a dividend-paying basket further than the "
+"table goes."
+msgstr "QuantLib 自己的原始碼在這裡帶著一句值得轉達的警告：折現股利收益率的那一行旁邊寫著 *\"cannot handle non zero dividends, so don't believe this\"*（`stulzengine.cpp:129`）。它比證據所顯示的更保守——這個版本計價的參考列裡，有四列帶著 6% 與 9% 的股利收益率，而且都把 Haug 公布的值重現到 1e-4——但那畢竟是函式庫對自己公式的懷疑，在你把配息一籃子信任到超出那張表的範圍之前，值得先知道。"
+
+#: ../../maths/exotics.md:296 d7f1039a55134d6fb092372123933ce9
+msgid ""
+"**Spread**, two assets, is Kirk, and it is the most economical trick on "
+"this page. A spread call pays $\\max(S_1 - S_2 - K, 0)$, which is not "
+"lognormal in anything. Kirk treats $F_2 + K$ as if it were, which turns "
+"the whole trade into a *single* Black call on the ratio:"
+msgstr "**價差**，兩個資產，走的是 Kirk，而它是本頁最經濟的一個技巧。價差買權支付 $\\max(S_1 - S_2 - K, 0)$，而這對任何東西都不是對數常態的。Kirk 把 $F_2 + K$ 當成是對數常態的，於是整筆交易就變成寫在比值上的*單一*一個 Black 買權："
+
+#: ../../maths/exotics.md:301 91c014e3addc401f8f6e6013081e0406
+msgid ""
+"F = \\frac{F_1}{F_2 + K}, \\qquad\n"
+"\\sigma_{\\text{eff}}^2 = \\sigma_1^2\n"
+"+ \\sigma_2^2\\left(\\frac{F_2}{F_2+K}\\right)^2\n"
+"- 2\\rho\\,\\sigma_1\\sigma_2\\left(\\frac{F_2}{F_2+K}\\right),"
+msgstr ""
+
+#: ../../maths/exotics.md:306 dcd2e412627c48fda5223cb455513688
+msgid ""
+"V = (F_2 + K)\\; \\text{Black}\\big(F,\\ 1,\\ \\sigma_{\\text{eff}},\\ "
+"D_r\\big)."
+msgstr ""
+
+#: ../../maths/exotics.md:308 058a8fa999974b62bc67d3b59e7dfd20
+msgid ""
+"At $K = 0$ the weight $F_2/(F_2+K)$ is 1 and $\\sigma_{\\text{eff}}$ is "
+"exactly the ratio's volatility — the approximation vanishes and Kirk is "
+"Margrabe's exchange option. It degrades as $K$ grows relative to $F_2$ "
+"(`kirkengine.cpp:35-49`)."
+msgstr "當 $K = 0$ 時，權重 $F_2/(F_2+K)$ 等於 1，而 $\\sigma_{\\text{eff}}$ 恰好就是比值的波動率——近似消失，Kirk 就是 Margrabe 的交換選擇權。$K$ 相對於 $F_2$ 越大，它就退化得越厲害（`kirkengine.cpp:35-49`）。"
+
+#: ../../maths/exotics.md:313 0f80ff51abc543d1a1506e8e80730786
+#, python-brace-format
+msgid ""
+"**Everything else is Monte Carlo.** A weighted average has no closed form"
+" here, and neither does any basket of three or more assets. The assets "
+"are evolved together through a `StochasticProcessArray`, which factorises"
+" the correlation matrix once and drives the whole system off one set of "
+"correlated normals. That factorisation is why the matrix has to be "
+"positive semi-definite, and why this build checks that it is: given one "
+"that is not, QuantLib repairs it rather than refusing it "
+"({doc}`../HANDLERS`)."
+msgstr ""
+
+#: ../../maths/exotics.md:321 33c33175427d4f279e05fe5782fe73d3
+msgid "One-touch digitals"
+msgstr "One-touch 二元選擇權"
+
+#: ../../maths/exotics.md:323 50b6bf43ea164bccbe38da6bfa75dc54
+msgid ""
+"A binary payoff on an *American* exercise is a one-touch: it pays as soon"
+" as the level is reached rather than at expiry, and it goes to QuantLib's"
+" digital American engine. Its value is exactly the $F$ term of the "
+"barrier formula above — a rebate paid at hit — which is the cleanest way "
+"to remember what a one-touch is: the rebate of a knock-out, sold on its "
+"own."
+msgstr "*美式*履約上的二元收益函數就是 one-touch：它在水準被觸及的當下就給付，而不是等到到期，並且會走 QuantLib 的二元美式引擎。它的價值恰好就是上面障礙公式中的 $F$ 項——觸及時支付的回饋金——這也是記住 one-touch 是什麼的最乾淨方式：把敲出選擇權的回饋金單獨拿出來賣。"
+
+#: ../../maths/exotics.md:329 23d311e6c9034d04aa1ec2dc8f9260cd
+msgid "Knock digitals"
+msgstr "敲出入二元選擇權"
+
+#: ../../maths/exotics.md:331 ad5b42d2d8f64155b473aad85cb9d612
+msgid ""
+"The same binary payoff on a **barrier** is a different trade and a "
+"different engine: it pays a fixed amount, or the asset, at expiry, but "
+"only if the barrier was touched (*in*) or was not (*out*). This is the "
+"trade the schema's `digital` style names, and it has no instrument of its"
+" own in QuantLib — the shape *is* the product."
+msgstr "同樣的二元收益函數放在**障礙**上，是另一筆交易、另一個引擎：它在到期日支付一筆固定金額或標的資產，但前提是障礙曾被觸及（*in*）或未曾被觸及（*out*）。這就是結構描述裡 `digital` 類型所指的交易，而它在 QuantLib 裡沒有自己的商品類別——這個組合*就是*那個商品。"
+
+#: ../../maths/exotics.md:337 3dae87d56bdd4edca584e8f020de1203
+msgid ""
+"The formula is the barrier assembly at the top of this page with the "
+"vanilla payoff swapped out, which is why the two look so alike:"
+msgstr "公式就是本頁最上方那組障礙選擇權的組裝，只是把一般型收益函數換掉，這也是為什麼兩者看起來如此相像："
+
+#: ../../maths/exotics.md:340 07cde046ca2d4efcab78e1fc4004a158
+msgid ""
+"x_1 = \\frac{\\ln(S/K)}{v} + \\mu v, \\qquad\n"
+"x_2 = \\frac{\\ln(S/H)}{v} + \\mu v, \\qquad\n"
+"y_1 = \\frac{\\ln\\!\\big(H^2/SK\\big)}{v} + \\mu v, \\qquad\n"
+"y_2 = \\frac{\\ln(H/S)}{v} + \\mu v,"
+msgstr ""
+
+#: ../../maths/exotics.md:345 e3cbed6f8425431d990080878b4e0ffa
+#, python-brace-format
+msgid ""
+"with $\\mu = \\ln\\!\\big(D_q/D_r\\big)/\\sigma^2 T - \\tfrac{1}{2}$. "
+"Sixteen cases fall out of four barrier types × two payoff kinds × call or"
+" put — Haug's pp. 176–180, and the sixteen rows this build prices as two "
+"reference tables."
+msgstr "其中 $\\mu = \\ln\\!\\big(D_q/D_r\\big)/\\sigma^2 T - \\tfrac{1}{2}$。四種障礙型態 × 兩種二元收益函數 × 買權或賣權，總共落出十六種情況——Haug 第 176–180 頁，也就是這個版本以兩張參考表計價的那十六列。"
+
+#: ../../maths/exotics.md:349 2bcf25616fbf4c20af6f3f72fa514e64
+msgid ""
+"The one thing worth carrying away is how little separates the two "
+"payoffs. A cash-or-nothing pays $K$; an asset-or-nothing pays the asset, "
+"and in the engine that is exactly $\\mu \\to \\mu + 1$ with the cash "
+"amount replaced by the forward (`analyticbinarybarrierengine.cpp:65-72`)."
+" The same six terms, one shift of the drift."
+msgstr "唯一值得記住的一點，是這兩種收益函數之間的差別有多小。現金或零支付 $K$；資產或零支付標的資產，而在引擎裡這恰好就是 $\\mu \\to \\mu + 1$，再把現金金額換成遠期價（`analyticbinarybarrierengine.cpp:65-72`）。同樣的六項，只是漂移項挪了一格。"
+
+#: ../../maths/exotics.md:355 08cdc01435f041b6bac46e02621b5cd8
+msgid ""
+"Two branches never reach the formula. An **out** option whose spot is "
+"already past the barrier is worth nothing, with every greek zero. An "
+"**in** option whose spot is already past it has knocked in, so it is "
+"simply a European digital, and QuantLib prices it with the ordinary "
+"analytic engine. Both are the honest answer rather than a special case."
+msgstr "有兩條分支根本走不到那條公式。現貨價已經越過障礙的 **out** 型選擇權一文不值，所有希臘字母都是零。現貨價已經越過障礙的 **in** 型則已經敲入，所以它就只是一個歐式二元選擇權，QuantLib 用一般的解析解引擎去算。這兩者都是誠實的答案，而不是特例處理。"
+
+#: ../../maths/exotics.md:361 edae9772d89a4571936c764056bd73e1
+msgid ""
+"**No rebate.** The engine never reads one. A rebate sent with a knock "
+"digital would have been taken and dropped and a price returned for a "
+"different trade, so the service refuses it — the only rule on this page "
+"that QuantLib itself would not have raised."
+msgstr "**沒有回饋金。**引擎根本不會去讀它。跟著敲出入二元選擇權一起送來的回饋金，會被收下、丟棄，然後回給你另一筆交易的價格，所以服務會拒絕它——這是本頁唯一一條 QuantLib 自己不會提出來的規則。"
+
