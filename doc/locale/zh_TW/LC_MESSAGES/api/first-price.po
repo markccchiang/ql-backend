@@ -43,7 +43,7 @@ msgid ""
 "**`Hello` needs no session.** What a build can price is a property of the"
 " service, so a client can ask before it commits a worker seat — and "
 "should, rather than hardcoding a list that will drift."
-msgstr "**`Hello` 不需要工作階段。**一個版本能計價什麼，是服務本身的屬性，所以用戶端可以在占用一個工作者座位之前先問——而且應該問，而不是寫死一份遲早會與實際脫節的清單。"
+msgstr "**`Hello` 不需要工作階段**。一個版本能計價什麼，是服務本身的屬性，所以用戶端可以在占用一個工作者座位之前先問——而且應該問，而不是寫死一份遲早會與實際脫節的清單。"
 
 #: ../../api/first-price.md:121 4c1286440eaa46c0bc6df8f265ea99d2
 msgid ""
@@ -52,7 +52,7 @@ msgid ""
 " one exception is an index naming a curve defined later, which is how a "
 "bootstrapped curve and the index its pillars quote can refer to each "
 "other."
-msgstr "**市場依相依順序送達。**工作階段一邊填入一邊解析代號，所以 `RC` 能指名報價 `R`，只因為 `R` 先到。唯一的例外是指名一條較晚才定義之曲線的指數：拔靴建構的曲線與其支柱所報價的指數，就是這樣彼此指涉的。"
+msgstr "**市場依相依順序送達**。工作階段一邊填入一邊解析代號，所以 `RC` 能指名報價 `R`，只因為 `R` 先到。唯一的例外是指名一條較晚才定義之曲線的指數：拔靴建構的曲線與其支柱所報價的指數，就是這樣彼此指涉的。"
 
 #: ../../api/first-price.md:126 a8e0e25785164caab6c479df8030e77f
 msgid ""
@@ -74,5 +74,5 @@ msgid ""
 "**Closing is optional but polite.** A session holds a worker seat until "
 "it is closed, the socket drops and its grace expires, or the cap evicts "
 "the longest-waiting one."
-msgstr "**關閉不是必要的，但算是禮貌。**工作階段會一直占著一個工作者座位，直到它被關閉、連線中斷且寬限期屆滿，或是上限機制把等待最久的那一個逐出為止。"
+msgstr "**關閉不是必要的，但算是禮貌**。工作階段會一直占著一個工作者座位，直到它被關閉、連線中斷且寬限期屆滿，或是上限機制把等待最久的那一個逐出為止。"
 

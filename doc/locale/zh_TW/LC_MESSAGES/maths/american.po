@@ -78,7 +78,7 @@ msgid ""
 "**Barone-Adesi-Whaley (1987).** Writes the American value as the European"
 " value plus an early-exercise premium, and drops a term that is small "
 "when the discount factor is close to one:"
-msgstr "**Barone-Adesi-Whaley（1987）。**把美式價值寫成歐式價值加上一項提前履約溢價，並捨去一個在折現因子接近一時很小的項："
+msgstr "**Barone-Adesi-Whaley**（1987）。把美式價值寫成歐式價值加上一項提前履約溢價，並捨去一個在折現因子接近一時很小的項："
 
 #: ../../maths/american.md:35 9a19736ddd104516864122f7dec3b195
 msgid ""
@@ -101,7 +101,7 @@ msgid ""
 "**Bjerksund-Stensland (1993/2002).** Approximates the exercise boundary "
 "by a *flat* trigger $X$ and prices the resulting barrier-like claim in "
 "closed form, with"
-msgstr "**Bjerksund-Stensland（1993/2002）。**以一個*平坦*的觸發水準 $X$ 近似履約邊界，再以封閉解為由此得到的類障礙請求權計價，其中"
+msgstr "**Bjerksund-Stensland**（1993/2002）。以一個*平坦*的觸發水準 $X$ 近似履約邊界，再以封閉解為由此得到的類障礙請求權計價，其中"
 
 #: ../../maths/american.md:47 86f5beff52134473aced9cd0000d14cf
 msgid ""
@@ -121,7 +121,7 @@ msgid ""
 "**Ju-Zhong (1999).** A correction to the quadratic method that restores "
 "the term Barone-Adesi-Whaley drops, at the cost of one more evaluation. "
 "Usually closest to a fine lattice, which is the practical test."
-msgstr "**Ju-Zhong（1999）。**對二次法的修正，把 Barone-Adesi-Whaley 捨去的那一項補回來，代價是多算一次。通常最接近細格點的結果，而那正是實務上的判準。"
+msgstr "**Ju-Zhong**（1999）。對二次法的修正，把 Barone-Adesi-Whaley 捨去的那一項補回來，代價是多算一次。通常最接近細格點的結果，而那正是實務上的判準。"
 
 #: ../../maths/american.md:57 2575a592f44a4536a554cffce551cb45
 msgid ""

@@ -288,7 +288,7 @@ msgid ""
 "the session log is then replayed into a fresh worker. `session_id` "
 "survives either path, and every request is cancellable — what differs is "
 "whether it keeps its partial results."
-msgstr "**取消先請求，再 kill。**工作者先被要求在下一步停下；只有當請求撐過寬限期時才會被 kill，之後工作階段日誌會重播到一個新的工作者中。無論哪條路徑，`session_id` 都會保留，而且每個請求都能取消——差別只在於它能不能保留部分結果。"
+msgstr "**取消先請求，再 kill**。工作者先被要求在下一步停下；只有當請求撐過寬限期時才會被 kill，之後工作階段日誌會重播到一個新的工作者中。無論哪條路徑，`session_id` 都會保留，而且每個請求都能取消——差別只在於它能不能保留部分結果。"
 
 #: ../../DESIGN.md:83 d0122aca0e114d419637edd8c8e92178
 msgid ""
@@ -426,7 +426,7 @@ msgid ""
 "is a single point of failure that nothing here mitigates. What makes that"
 " survivable is not in this process at all: the client holds the "
 "definition and replays it, which §1.2 sets out."
-msgstr "**失效範圍沿著行程邊界劃分，而且刻意不對稱。**工作者是可拋棄的：不管什麼東西殺了它，監督者都會把它的工作階段重播到另一個工作者，而用戶端保有它的 `session_id`。閘道則不然：它持有每個工作階段定義的唯一副本，失去它就失去這台機器上所有的工作階段。這種不對稱正是設計預期的樣子——昂貴的狀態放在可以丟掉的地方，便宜的狀態放在丟不得的地方——但這也確實意味著閘道是單點故障，而這裡沒有任何機制緩解它。讓它撐得過去的東西根本不在這個行程裡：用戶端持有定義並重播它，§1.2 會說明這一點。"
+msgstr "**失效範圍沿著行程邊界劃分，而且刻意不對稱**。工作者是可拋棄的：不管什麼東西殺了它，監督者都會把它的工作階段重播到另一個工作者，而用戶端保有它的 `session_id`。閘道則不然：它持有每個工作階段定義的唯一副本，失去它就失去這台機器上所有的工作階段。這種不對稱正是設計預期的樣子——昂貴的狀態放在可以丟掉的地方，便宜的狀態放在丟不得的地方——但這也確實意味著閘道是單點故障，而這裡沒有任何機制緩解它。讓它撐得過去的東西根本不在這個行程裡：用戶端持有定義並重播它，§1.2 會說明這一點。"
 
 #: ../../DESIGN.md:144 32e2f5eb0c094b3aa89941d13e4b5064
 msgid "1.2 Where state lives, and what it survives"
@@ -539,7 +539,7 @@ msgid ""
 "client's — and its price is the row in §1.1: the gateway is the single "
 "point of failure, and a process that dies takes every graph, every log "
 "and every in-flight calculation with it."
-msgstr "**這裡沒有任何東西會碰到磁碟。**沒有資料庫、沒有檔案、沒有日誌檔：用 `grep` 在服務裡找寫入，唯一找得到的是連線。這是一個決定，而不是疏漏——工作階段是由用戶端手上仍保有的訊息建構出來的物件圖，所以值得保留的副本是用戶端那份——而它的代價就是 §1.1 表中的那一列：閘道是單點故障，一個行程死掉，就會帶走所有的物件圖、所有的日誌，以及所有進行中的計算。"
+msgstr "**這裡沒有任何東西會碰到磁碟**。沒有資料庫、沒有檔案、沒有日誌檔：用 `grep` 在服務裡找寫入，唯一找得到的是連線。這是一個決定，而不是疏漏——工作階段是由用戶端手上仍保有的訊息建構出來的物件圖，所以值得保留的副本是用戶端那份——而它的代價就是 §1.1 表中的那一列：閘道是單點故障，一個行程死掉，就會帶走所有的物件圖、所有的日誌，以及所有進行中的計算。"
 
 #: ../../DESIGN.md:167 ec3351022e154d5db22672f1a1894042
 msgid "What follows from the split, in the order a client meets it:"
@@ -662,7 +662,7 @@ msgid ""
 " is already the liveness signal such a router needs, and is deliberately "
 "honest about its scope — it proves the loop is turning, not that any "
 "graph is well."
-msgstr "這排除了便宜的那種橫向擴展——在輪詢式負載平衡器後面放一排相同的副本——只剩下另一種。**工作階段分片，而不複製。**N 個閘道前面的路由器必須把同一個工作階段的每個訊框都送到開啟它的那個閘道，而這在這裡幾乎沒有成本：工作階段活在一條長期存在的 WebSocket 上，所以連線親和性*就是*工作階段親和性，不需要任何東西從 Protobuf 本體中解析出 `session_id` 才能正確路由。`/healthz`（§9.6）已經是這種路由器需要的存活訊號，而且刻意誠實地標明它的範圍——它證明迴圈在轉，而不是任何物件圖都安好。"
+msgstr "這排除了便宜的那種橫向擴展——在輪詢式負載平衡器後面放一排相同的副本——只剩下另一種。**工作階段分片，而不複製**。N 個閘道前面的路由器必須把同一個工作階段的每個訊框都送到開啟它的那個閘道，而這在這裡幾乎沒有成本：工作階段活在一條長期存在的 WebSocket 上，所以連線親和性*就是*工作階段親和性，不需要任何東西從 Protobuf 本體中解析出 `session_id` 才能正確路由。`/healthz`（§9.6）已經是這種路由器需要的存活訊號，而且刻意誠實地標明它的範圍——它證明迴圈在轉，而不是任何物件圖都安好。"
 
 #: ../../DESIGN.md:201 e7525599adf2445fb676e4cc35455654
 msgid "Four things pin a session to its box. Only the first is trivial to remove:"
@@ -746,7 +746,7 @@ msgid ""
 "box needs the log to have an owner, and that earns its complexity only "
 "once one gateway's core count is the binding constraint rather than its "
 "liveness."
-msgstr "**決定：以上都沒有實作，而用戶端持有定義正是它不構成阻礙的原因。**重播就是容錯移轉的路徑（§1.2）。因當機或部署而失去的閘道，讓它的用戶端損失的是進行中的工作與一次往返，而不是可復原的狀態，因為文件從未離開瀏覽器，而重建對[處理常式頁面](HANDLERS.md)開頭那個七個物件的市場只要 0.009 ms，對一條由四十八個交換節點拔靴出來的曲線也只要 3.6 ms（§9.4）。因此依連線分片只需要修正代號，其他什麼都不用；要把工作階段*容錯移轉*到另一台機器，則需要日誌有一個擁有者，而只有當單一閘道的核心數、而不是它的存活，成為真正的瓶頸時，這份複雜度才值得。"
+msgstr "**決定：以上都沒有實作，而用戶端持有定義正是它不構成阻礙的原因**。重播就是容錯移轉的路徑（§1.2）。因當機或部署而失去的閘道，讓它的用戶端損失的是進行中的工作與一次往返，而不是可復原的狀態，因為文件從未離開瀏覽器，而重建對[處理常式頁面](HANDLERS.md)開頭那個七個物件的市場只要 0.009 ms，對一條由四十八個交換節點拔靴出來的曲線也只要 3.6 ms（§9.4）。因此依連線分片只需要修正代號，其他什麼都不用；要把工作階段*容錯移轉*到另一台機器，則需要日誌有一個擁有者，而只有當單一閘道的核心數、而不是它的存活，成為真正的瓶頸時，這份複雜度才值得。"
 
 #: ../../DESIGN.md:221 a8dd7d57ff7146c793858b87f5b63774
 msgid ""
@@ -759,7 +759,7 @@ msgid ""
 "mostly one-shot pricing would scale more simply as stateless replicas and"
 " would lose little by it; this design earns its constraints when a client"
 " is dragging a spot and expecting the panel to keep up."
-msgstr "**有狀態實際換來的是什麼，而這才應該決定形狀。**不是攤提拔靴成本：§9.4 量到那只是個位數毫秒，這也正是那裡的接回寬限期改以進行中的工作作為理由的原因。換來的是 §5 的觀察者物件圖——寫入一個報價只會讓依賴它的金融工具失效，所以拖動滑桿時重算的是一個子圖，而不是整個市場。若負載大多是一次性定價，以無狀態副本擴展會更簡單，也幾乎沒有損失；這個設計的種種限制，是在用戶端拖動現貨價格並期待面板跟得上時才值回票價。"
+msgstr "**有狀態實際換來的是什麼，而這才應該決定形狀**。不是攤提拔靴成本：§9.4 量到那只是個位數毫秒，這也正是那裡的接回寬限期改以進行中的工作作為理由的原因。換來的是 §5 的觀察者物件圖——寫入一個報價只會讓依賴它的金融工具失效，所以拖動滑桿時重算的是一個子圖，而不是整個市場。若負載大多是一次性定價，以無狀態副本擴展會更簡單，也幾乎沒有損失；這個設計的種種限制，是在用戶端拖動現貨價格並期待面板跟得上時才值回票價。"
 
 #: ../../DESIGN.md:231 bed86bcdc5f14852bf21948c20067e79
 msgid "2. Global state forces session pinning"
@@ -797,7 +797,7 @@ msgid ""
 "life.** An object graph built on thread A must never be priced on thread "
 "B; handles and the observer graph are shared mutable state that sessions "
 "do not protect."
-msgstr "**決定：一個用戶端工作階段在整個生命週期中都固定在一條工作者執行緒上。**在執行緒 A 上建構的物件圖絕不能在執行緒 B 上定價；handle 與觀察者物件圖是共享的可變狀態，工作階段機制並不保護它們。"
+msgstr "**決定：一個用戶端工作階段在整個生命週期中都固定在一條工作者執行緒上**。在執行緒 A 上建構的物件圖絕不能在執行緒 B 上定價；handle 與觀察者物件圖是共享的可變狀態，工作階段機制並不保護它們。"
 
 #: ../../DESIGN.md:253 7818f85788e149a4aa6936ec31ff8a8d
 msgid ""
@@ -937,7 +937,7 @@ msgid ""
 " cancellable and long, meaning Monte Carlo and calibration, is dispatched"
 " to a single-session process that can be killed freely. Process-per-"
 "session is then paid only for the calculations that need it."
-msgstr "**決定：採用配置 C。**便宜的互動工作——在即時物件圖上調動報價，一秒以內——在共用的多執行緒工作者中執行。任何可取消又耗時的工作，也就是蒙地卡羅與校準，則派送到可以隨意 kill 的單一工作階段行程。這樣，每個工作階段一個行程的代價，只由真正需要它的計算來付。"
+msgstr "**決定：採用配置 C**。便宜的互動工作——在即時物件圖上調動報價，一秒以內——在共用的多執行緒工作者中執行。任何可取消又耗時的工作，也就是蒙地卡羅與校準，則派送到可以隨意 kill 的單一工作階段行程。這樣，每個工作階段一個行程的代價，只由真正需要它的計算來付。"
 
 #: ../../DESIGN.md:312 7ef021a3f77a48218a1e0ea2d7a4c4f2
 msgid ""
@@ -963,7 +963,7 @@ msgid ""
 "engine method is a crude proxy for \"long\" — a 200-path Monte Carlo is "
 "cheap and a large FD grid is not — and a sample count or a client-"
 "declared budget would be the better signal (§8)."
-msgstr "**安置是請求的屬性，而不是工作階段的屬性。**工作階段在共用池中開啟，當 `placementFor()` 與它所在的位置不一致時就搬移：在舊工作者上 `CloseSession`，再重播到新工作者，絕不是遷移，因為物件圖綁定在執行緒上，無法交接——也絕不是 kill，因為它要離開的行程多半還承載著其他工作階段。在同一個工作階段上交替進行解析定價與蒙地卡羅的面板，每換一個方向就要付一次拔靴，所以同一類的請求應該放在各自的工作階段上。引擎方法只是「耗時」的粗略代理——200 條路徑的蒙地卡羅很便宜，大型有限差分網格則不然——樣本數或用戶端宣告的預算會是更好的訊號（§8）。"
+msgstr "**安置是請求的屬性，而不是工作階段的屬性**。工作階段在共用池中開啟，當 `placementFor()` 與它所在的位置不一致時就搬移：在舊工作者上 `CloseSession`，再重播到新工作者，絕不是遷移，因為物件圖綁定在執行緒上，無法交接——也絕不是 kill，因為它要離開的行程多半還承載著其他工作階段。在同一個工作階段上交替進行解析定價與蒙地卡羅的面板，每換一個方向就要付一次拔靴，所以同一類的請求應該放在各自的工作階段上。引擎方法只是「耗時」的粗略代理——200 條路徑的蒙地卡羅很便宜，大型有限差分網格則不然——樣本數或用戶端宣告的預算會是更好的訊號（§8）。"
 
 #: ../../DESIGN.md:331 cdc2a88840fe48cea2d41b3503ae42d8
 msgid ""
@@ -981,7 +981,7 @@ msgid ""
 "open; capping the pool and queueing sessions on it is §8. A process is "
 "retired once its last session leaves, so process count tracks live "
 "sessions rather than their high-water mark."
-msgstr "**打包是監督者的事，不是行程宿主的事。**宿主負責啟動、餵送與停止行程，不做任何決定；下一個工作階段由哪個共用工作者承接是策略，它與安置規則放在一起，兩者都能對著假的宿主測試。工作階段在第一個還有空位的共用工作者上取得座位——`Options::sessionsPerSharedWorker`，預設為 8——只有在都沒有空位時才 fork。由於一個工作階段就是一條執行緒，這個旋鈕就是每個行程的執行緒數，而它限制的是在共用工作者上 kill 的波及範圍：一次走到強硬手段的取消會連帶拖走多少同住者。它並不限制並行度。發現所有共用工作者都滿了的工作階段會得到一個新的工作者，所以機器上的執行緒數跟著開啟的工作階段數走；為共用池設上限、讓工作階段在它前面排隊，屬於 §8。行程在最後一個工作階段離開後就退役，所以行程數追蹤的是現存的工作階段，而不是它們的歷史高點。"
+msgstr "**打包是監督者的事，不是行程宿主的事**。宿主負責啟動、餵送與停止行程，不做任何決定；下一個工作階段由哪個共用工作者承接是策略，它與安置規則放在一起，兩者都能對著假的宿主測試。工作階段在第一個還有空位的共用工作者上取得座位——`Options::sessionsPerSharedWorker`，預設為 8——只有在都沒有空位時才 fork。由於一個工作階段就是一條執行緒，這個旋鈕就是每個行程的執行緒數，而它限制的是在共用工作者上 kill 的波及範圍：一次走到強硬手段的取消會連帶拖走多少同住者。它並不限制並行度。發現所有共用工作者都滿了的工作階段會得到一個新的工作者，所以機器上的執行緒數跟著開啟的工作階段數走；為共用池設上限、讓工作階段在它前面排隊，屬於 §8。行程在最後一個工作階段離開後就退役，所以行程數追蹤的是現存的工作階段，而不是它們的歷史高點。"
 
 #: ../../DESIGN.md:345 bc2fa48dd6764bf8bc4588953ae98192
 msgid "The shape that falls out:"
@@ -1075,7 +1075,7 @@ msgid ""
 "N sessions each holding its own copy of the graph, or a sequential loop; "
 "it is never one session with N threads. Panels that fan out plots drive "
 "pool sizing directly."
-msgstr "**對前端的影響：在一個工作階段內，一切都序列化。**同一個物件圖上的兩個定價請求不能重疊——即使名義上是唯讀的也不行，因為 `NPV()` 在計算時會寫入惰性快取（`ql/patterns/lazyobject.hpp`）。因此一條 100 個履約價的微笑曲線，要嘛是 N 個各自持有物件圖副本的工作階段，要嘛是一個循序的迴圈；絕不會是一個工作階段配 N 條執行緒。會展開多張圖的面板直接決定了池的大小。"
+msgstr "**對前端的影響：在一個工作階段內，一切都序列化**。同一個物件圖上的兩個定價請求不能重疊——即使名義上是唯讀的也不行，因為 `NPV()` 在計算時會寫入惰性快取（`ql/patterns/lazyobject.hpp`）。因此一條 100 個履約價的微笑曲線，要嘛是 N 個各自持有物件圖副本的工作階段，要嘛是一個循序的迴圈；絕不會是一個工作階段配 N 條執行緒。會展開多張圖的面板直接決定了池的大小。"
 
 #: ../../DESIGN.md:403 4b0233ffaffe4b95b3454b772b55d62b
 msgid "2.2 QuantLib does not parallelise for you"
@@ -1157,7 +1157,7 @@ msgid ""
 "providing the concurrency. If a lattice- or FD-heavy workload ever "
 "justifies it, it belongs only on the sacrificial single-session "
 "processes, with `OMP_NUM_THREADS` pinned — never in the shared pool."
-msgstr "**決定：工作者建置時不啟用 OpenMP。**在配置 C 之下，共用工作者中的每條工作階段執行緒都會生出自己的一組執行緒，超額使用核心，並與已經在提供並行度的池互相競爭。如果將來有以格點或有限差分為主的工作負載值得這麼做，它也只屬於可犧牲的單一工作階段行程，並固定 `OMP_NUM_THREADS`——絕不放在共用池中。"
+msgstr "**決定：工作者建置時不啟用 OpenMP**。在配置 C 之下，共用工作者中的每條工作階段執行緒都會生出自己的一組執行緒，超額使用核心，並與已經在提供並行度的池互相競爭。如果將來有以格點或有限差分為主的工作負載值得這麼做，它也只屬於可犧牲的單一工作階段行程，並固定 `OMP_NUM_THREADS`——絕不放在共用池中。"
 
 #: ../../DESIGN.md:447 5aa31180613b45e3a022ee8bb2eecfd5
 msgid ""
@@ -1208,7 +1208,7 @@ msgid ""
 "answers with a partial result rather than nothing. Everything else is one"
 " engine call with no seam to check a flag in, and there the kill is the "
 "whole mechanism."
-msgstr "**哪些請求能用上寬限期，以及其餘請求用不上意味著什麼。**這一節長久以來都說只有批次化的蒙地卡羅能客氣地停下，其他都不行。實際上有三種形狀可以，而它們正是擁有這個服務自己寫的*外層*迴圈的三種：在路徑批次之間的批次化蒙地卡羅、在情境點之間的情境掃描，以及在項目之間的 `PriceBatch`。每一種都會檢查停止旗標、保留已經算出的部分，並以部分結果而非空無一物回應。其他一切都是單一引擎呼叫，沒有可以檢查旗標的接縫，在那裡 kill 就是全部的機制。"
+msgstr "**哪些請求能用上寬限期，以及其餘請求用不上意味著什麼**。這一節長久以來都說只有批次化的蒙地卡羅能客氣地停下，其他都不行。實際上有三種形狀可以，而它們正是擁有這個服務自己寫的*外層*迴圈的三種：在路徑批次之間的批次化蒙地卡羅、在情境點之間的情境掃描，以及在項目之間的 `PriceBatch`。每一種都會檢查停止旗標、保留已經算出的部分，並以部分結果而非空無一物回應。其他一切都是單一引擎呼叫，沒有可以檢查旗標的接縫，在那裡 kill 就是全部的機制。"
 
 #: ../../DESIGN.md:481 6df618d8fb7645e9abd4ad0df8c7a1c6
 msgid ""
@@ -1282,7 +1282,7 @@ msgid ""
 "so the promise cannot fall behind the schema the way three hand-"
 "maintained fields would. A user who turns a progress bar on must not be "
 "told the price moved."
-msgstr "**進度會改變數字，所以它是鍵的一部分。**QuantLib 無法接續執行引擎，所以 `progress_every_paths` 會讓工作者以從請求種子衍生出的種子執行彼此獨立的批次，再平均它們的平均值。這估計的是同一個量，但它切分亂數流的方式與同樣總數的單次執行不同：同一個種子下，批次化的價格與單次的價格並不一致。因此可重現性以 `(seed, samples, progress_every_paths)` 為鍵。`PriceResult` 回傳整個 `Engine` 訊息，而不是它的三個具名副本，所以這個承諾不會像三個手動維護的欄位那樣落後於結構描述。一個打開進度條的使用者，不能被告知價格變了。"
+msgstr "**進度會改變數字，所以它是鍵的一部分**。QuantLib 無法接續執行引擎，所以 `progress_every_paths` 會讓工作者以從請求種子衍生出的種子執行彼此獨立的批次，再平均它們的平均值。這估計的是同一個量，但它切分亂數流的方式與同樣總數的單次執行不同：同一個種子下，批次化的價格與單次的價格並不一致。因此可重現性以 `(seed, samples, progress_every_paths)` 為鍵。`PriceResult` 回傳整個 `Engine` 訊息，而不是它的三個具名副本，所以這個承諾不會像三個手動維護的欄位那樣落後於結構描述。一個打開進度條的使用者，不能被告知價格變了。"
 
 #: ../../DESIGN.md:529 c5c3bdf64ff341639d15ef9cb216fdbf
 msgid "5. The lazy graph is why the backend is stateful"
@@ -1366,7 +1366,7 @@ msgid ""
 "value.** Every convention enum reserves `0` as `*_UNSPECIFIED` and the "
 "registry rejects it with `QL_REQUIRE`. Without this, a field the frontend"
 " forgot to set silently prices on whatever sits at 0."
-msgstr "**Proto3 列舉預設為 0，無法區分未設定與第一個值。**每個慣例列舉都把 `0` 保留為 `*_UNSPECIFIED`，註冊表則以 `QL_REQUIRE` 拒絕它。少了這一點，前端忘了設定的欄位就會悄悄以恰好位於 0 的那個值定價。"
+msgstr "**Proto3 列舉預設為 0，無法區分未設定與第一個值**。每個慣例列舉都把 `0` 保留為 `*_UNSPECIFIED`，註冊表則以 `QL_REQUIRE` 拒絕它。少了這一點，前端忘了設定的欄位就會悄悄以恰好位於 0 的那個值定價。"
 
 #: ../../DESIGN.md:582 eb285a756c3d4ff7af6a7f888702c975
 msgid ""
@@ -1494,7 +1494,7 @@ msgid ""
 "descriptor pool under distinct full names, and land in distinct header "
 "paths, so one binary can link and serve both. Without the segment, an "
 "incompatible change forces every client to cut over in the same release."
-msgstr "**它的用途。**Protobuf 自己的相容性規則只涵蓋增補式的變更：新的欄位、新的列舉值、編號被保留的已移除欄位。超出這個範圍的變更，根本無法靠編輯這個套件來表達——重新編號欄位、改變欄位型別，或刪除已部署用戶端仍在送出的訊息。這時的慣例是在 `v1` *旁邊*新增 `quantlib/v2/`，並在過渡期間同時提供兩者，而這之所以行得通，正是因為版本在套件名稱裡：兩者分別產生到 `quantlib::v1` 與 `quantlib::v2`，以不同的完整名稱註冊到描述子池，並落在不同的標頭路徑，所以一個執行檔可以同時連結並提供兩者。沒有這個路徑段，不相容的變更就會迫使所有用戶端在同一個版本發布中一起切換。"
+msgstr "**它的用途**。Protobuf 自己的相容性規則只涵蓋增補式的變更：新的欄位、新的列舉值、編號被保留的已移除欄位。超出這個範圍的變更，根本無法靠編輯這個套件來表達——重新編號欄位、改變欄位型別，或刪除已部署用戶端仍在送出的訊息。這時的慣例是在 `v1` *旁邊*新增 `quantlib/v2/`，並在過渡期間同時提供兩者，而這之所以行得通，正是因為版本在套件名稱裡：兩者分別產生到 `quantlib::v1` 與 `quantlib::v2`，以不同的完整名稱註冊到描述子池，並落在不同的標頭路徑，所以一個執行檔可以同時連結並提供兩者。沒有這個路徑段，不相容的變更就會迫使所有用戶端在同一個版本發布中一起切換。"
 
 #: ../../DESIGN.md:646 ad97b9ec0364407bb046ba7ae3a25820
 msgid ""
@@ -1505,7 +1505,7 @@ msgid ""
 " the `*_UNSPECIFIED` rule in §6 exists to prevent, one level up. A change"
 " of that kind needs `v2` even though nothing in the encoding would "
 "object."
-msgstr "**危險的那一類，不是傳輸格式抓得到的那一類。**重新編號欄位會大聲地壞掉。把欄位編號重新用於不同的意義，或在不改型別的情況下重新定義既有值代表什麼，則在傳輸上相容卻悄悄出錯——正是 §6 的 `*_UNSPECIFIED` 規則要防止的同一種失敗模式，只是高了一層。這種變更即使編碼上沒有任何東西會反對，也需要 `v2`。"
+msgstr "**危險的那一類，不是傳輸格式抓得到的那一類**。重新編號欄位會大聲地壞掉。把欄位編號重新用於不同的意義，或在不改型別的情況下重新定義既有值代表什麼，則在傳輸上相容卻悄悄出錯——正是 §6 的 `*_UNSPECIFIED` 規則要防止的同一種失敗模式，只是高了一層。這種變更即使編碼上沒有任何東西會反對，也需要 `v2`。"
 
 #: ../../DESIGN.md:653 4845d7d918f044119063845484f8daa0
 msgid ""
@@ -1517,7 +1517,7 @@ msgid ""
 "before it still parsed after it. (Those are `v1` field names; §6.3 spells"
 " the same ideas differently, which is exactly what makes it a version "
 "rather than an extension.)"
-msgstr "**規則。**只要每個變更都是增補式的，就留在同一個版本；第一次出現非增補式的變更時，就開下一版。quanto 系列是增補那一側的實例：在 `v1` 中它新增了訊息、oneof 分支、列舉值，以及 `CurveDefinition.flat`、`Engine.fd_grid` 與 `PriceResult.fd_grid` 這些欄位——全部都是增補式的，所以在它之前序列化的 `PriceRequest` 在它之後仍能解析。（那些是 `v1` 的欄位名稱；§6.3 用不同的方式表達同樣的概念，而這正是它是一個新版本而不是一次擴充的原因。）"
+msgstr "**規則**。只要每個變更都是增補式的，就留在同一個版本；第一次出現非增補式的變更時，就開下一版。quanto 系列是增補那一側的實例：在 `v1` 中它新增了訊息、oneof 分支、列舉值，以及 `CurveDefinition.flat`、`Engine.fd_grid` 與 `PriceResult.fd_grid` 這些欄位——全部都是增補式的，所以在它之前序列化的 `PriceRequest` 在它之後仍能解析。（那些是 `v1` 的欄位名稱；§6.3 用不同的方式表達同樣的概念，而這正是它是一個新版本而不是一次擴充的原因。）"
 
 #: ../../DESIGN.md:661 71810c4a7b4d43418b551d9599578ede
 msgid ""
@@ -1528,7 +1528,7 @@ msgid ""
 " been renaming the package line, every import, every generated include "
 "path and the `qlpb` alias, in a tree where `v1` still has to keep "
 "working."
-msgstr "**它比預期更早派上用場。**上面的推理是針對一個假設中的 `v2` 寫的；§6.3 就是一個真正的新版本，而它來自一次盤點，而不是一次部署。預先放好路徑段的代價是多一層目錄；沒有它的代價則會是在一棵 `v1` 仍須持續運作的原始碼樹中，改掉套件那一行、每一個匯入、每一個產生的引入路徑，以及 `qlpb` 別名。"
+msgstr "**它比預期更早派上用場**。上面的推理是針對一個假設中的 `v2` 寫的；§6.3 就是一個真正的新版本，而它來自一次盤點，而不是一次部署。預先放好路徑段的代價是多一層目錄；沒有它的代價則會是在一棵 `v1` 仍須持續運作的原始碼樹中，改掉套件那一行、每一個匯入、每一個產生的引入路徑，以及 `qlpb` 別名。"
 
 #: ../../DESIGN.md:668 26b9b3f9179a492f948d68400d0dc85a
 msgid "6.3 The general schema"
@@ -1555,7 +1555,7 @@ msgid ""
 "fixings and a running average, `LookbackOptionData` adds an extremum and "
 "a window. The recurring part is the underlying and its market; the "
 "varying part is small, named, and per shape."
-msgstr "**它從哪裡來。**QuantLib 的 `test-suite/` 有 188 個 `.cpp` 檔，其中的測試資料結構就是一份「定價請求必須攜帶什麼」的清單。它們彼此呼應。`EuropeanOptionData`、`AmericanOptionData`、`DigitalOptionData`、`ForwardOptionData` 與 `BasketOptionOneData` 是同樣的七個欄位——`{type, strike, s, q, r, t, v}`——而每一種新奇選擇權都是這七個欄位再加上一小塊：`NewBarrierOptionData` 加上障礙、回扣與履約類型，`DiscreteAverageData` 加上定盤值與累計平均，`LookbackOptionData` 加上極值與觀察區間。重複出現的部分是標的與它的市場；變動的部分很小、有名字，而且依形狀而異。"
+msgstr "**它從哪裡來**。QuantLib 的 `test-suite/` 有 188 個 `.cpp` 檔，其中的測試資料結構就是一份「定價請求必須攜帶什麼」的清單。它們彼此呼應。`EuropeanOptionData`、`AmericanOptionData`、`DigitalOptionData`、`ForwardOptionData` 與 `BasketOptionOneData` 是同樣的七個欄位——`{type, strike, s, q, r, t, v}`——而每一種新奇選擇權都是這七個欄位再加上一小塊：`NewBarrierOptionData` 加上障礙、回扣與履約類型，`DiscreteAverageData` 加上定盤值與累計平均，`LookbackOptionData` 加上極值與觀察區間。重複出現的部分是標的與它的市場；變動的部分很小、有名字，而且依形狀而異。"
 
 #: ../../DESIGN.md:685 a112cccfd31644e6886c49b55425cbca
 msgid ""
@@ -1568,7 +1568,7 @@ msgid ""
 "barrier option would be a sixth message duplicating all of it; an "
 "American vanilla would be a seventh. None of those duplications is a "
 "distinction QuantLib makes."
-msgstr "**`v1` 的代價。**它為每種產品寫一則訊息，所以所有產品共有的欄位在每種產品裡都重新宣告一次，訊息數量則以形狀 × quanto × 履約的方式增長。這已經看得出來：`VanillaOption`、`QuantoVanillaOption`、`QuantoForwardVanillaOption`、`QuantoBarrierOption` 與 `QuantoDoubleBarrierOption` 各自宣告了 `type`、`strike` 與 `expiry`；障礙欄位出現兩次；一般的障礙選擇權會是第六則把這一切再複製一遍的訊息；美式香草選擇權會是第七則。這些重複沒有一個是 QuantLib 所做的區分。"
+msgstr "**`v1` 的代價**。它為每種產品寫一則訊息，所以所有產品共有的欄位在每種產品裡都重新宣告一次，訊息數量則以形狀 × quanto × 履約的方式增長。這已經看得出來：`VanillaOption`、`QuantoVanillaOption`、`QuantoForwardVanillaOption`、`QuantoBarrierOption` 與 `QuantoDoubleBarrierOption` 各自宣告了 `type`、`strike` 與 `expiry`；障礙欄位出現兩次；一般的障礙選擇權會是第六則把這一切再複製一遍的訊息；美式香草選擇權會是第七則。這些重複沒有一個是 QuantLib 所做的區分。"
 
 #: ../../DESIGN.md:694 4b9f2aa54dd349cd94b4236da62b6eaa
 msgid ""
@@ -1679,7 +1679,7 @@ msgid ""
 "what exists. Quanto sits outside it because it is the one axis that "
 "genuinely is orthogonal — and it is orthogonal precisely because it wraps"
 " the engine rather than the instrument."
-msgstr "**`style` 是一個 oneof，而不是可重複的特徵清單。**可組合的形式是顯而易見的一般化，而它是錯的。QuantLib 有一份固定的金融工具類別清單；沒有 quanto-障礙-回顧式這種東西，而可重複的特徵清單會讓結構描述承諾一個大概只有十分之一能建構出來的產品空間，另外十分之九則在執行時失敗，用戶端也無從事先得知。oneof 說的是實際存在什麼。quanto 放在它之外，因為它是唯一真正正交的軸——而它之所以正交，正是因為它包裝的是引擎，而不是金融工具。"
+msgstr "**`style` 是一個 oneof，而不是可重複的特徵清單**。可組合的形式是顯而易見的一般化，而它是錯的。QuantLib 有一份固定的金融工具類別清單；沒有 quanto-障礙-回顧式這種東西，而可重複的特徵清單會讓結構描述承諾一個大概只有十分之一能建構出來的產品空間，另外十分之九則在執行時失敗，用戶端也無從事先得知。oneof 說的是實際存在什麼。quanto 放在它之外，因為它是唯一真正正交的軸——而它之所以正交，正是因為它包裝的是引擎，而不是金融工具。"
 
 #: ../../DESIGN.md:719 c12dddac0c394a39a9bc9349ef1a8127
 msgid ""
@@ -1695,7 +1695,7 @@ msgid ""
 "curves, which the test suite uses more often than bootstrapped ones "
 "(`zerocurve.hpp` in 28 files against `piecewiseyieldcurve.hpp` in 13), "
 "and for `IndexManager` fixings, which nothing in `v1` populates at all."
-msgstr "**市場成為一個命名空間。**在 `v1` 中，每個金融工具在自己的欄位裡指名它需要的市場物件，這讓市場成了交易的屬性，也意味著每新增一種金融工具就要新增市場欄位。在 `v2` 中，工作階段擁有一份有序的 `MarketObject` 清單，每個都有代號，金融工具則以代號參照它們。正是這一點才讓加入波動率曲面成為可能：測試套件會建構 `BlackVarianceSurface`、`BlackVarianceCurve` 以及三種局部波動率，而 `v1` 沒有任何物件可以容納它們——波動率以單一報價的形式進來，每個金融工具拿到的都是 `BlackConstantVol`。內插的零息曲線也一樣，測試套件使用它的頻率比拔靴曲線還高（`zerocurve.hpp` 出現在 28 個檔案中，`piecewiseyieldcurve.hpp` 則是 13 個）；`IndexManager` 的定盤值也是，`v1` 中根本沒有任何東西會填入它。"
+msgstr "**市場成為一個命名空間**。在 `v1` 中，每個金融工具在自己的欄位裡指名它需要的市場物件，這讓市場成了交易的屬性，也意味著每新增一種金融工具就要新增市場欄位。在 `v2` 中，工作階段擁有一份有序的 `MarketObject` 清單，每個都有代號，金融工具則以代號參照它們。正是這一點才讓加入波動率曲面成為可能：測試套件會建構 `BlackVarianceSurface`、`BlackVarianceCurve` 以及三種局部波動率，而 `v1` 沒有任何物件可以容納它們——波動率以單一報價的形式進來，每個金融工具拿到的都是 `BlackConstantVol`。內插的零息曲線也一樣，測試套件使用它的頻率比拔靴曲線還高（`zerocurve.hpp` 出現在 28 個檔案中，`piecewiseyieldcurve.hpp` 則是 13 個）；`IndexManager` 的定盤值也是，`v1` 中根本沒有任何東西會填入它。"
 
 #: ../../DESIGN.md:731 645ccad3755a4dac8c38793bdd805948
 msgid ""
@@ -1737,7 +1737,7 @@ msgid ""
 "same bytes: the grid arrived without a version. Several axes multiply "
 "into one row-major surface, still one frame and still one graph, which is"
 " the same argument with a dimension added."
-msgstr "**`Scenario` 是工作階段模型的回報，明確地呈現出來。**一條現貨階梯是一個訊框、一個物件圖，以及 N 次只重算被調動報價所影響部分的惰性重算——相較之下是 N 次各自重建一切的往返。這就是有狀態後端的全部論據（§5），而在這份結構描述之前，沒有任何東西能讓用戶端在一個請求中要求它。它是 `repeated Scenario scenarios`，沿用單數版本原本的欄位編號，因為訊息欄位與只有一個元素的重複欄位是相同的位元組：網格就這樣在不換版本的情況下加了進來。多個軸相乘成一個列優先排列的曲面，仍然是一個訊框、一個物件圖，這是同一個論據再加上一個維度。"
+msgstr "**`Scenario` 是工作階段模型的回報，明確地呈現出來**。一條現貨階梯是一個訊框、一個物件圖，以及 N 次只重算被調動報價所影響部分的惰性重算——相較之下是 N 次各自重建一切的往返。這就是有狀態後端的全部論據（§5），而在這份結構描述之前，沒有任何東西能讓用戶端在一個請求中要求它。它是 `repeated Scenario scenarios`，沿用單數版本原本的欄位編號，因為訊息欄位與只有一個元素的重複欄位是相同的位元組：網格就這樣在不換版本的情況下加了進來。多個軸相乘成一個列優先排列的曲面，仍然是一個訊框、一個物件圖，這是同一個論據再加上一個維度。"
 
 #: ../../DESIGN.md:762 981cf9ef8e414487b55b28fb6676a54a
 msgid ""
@@ -1753,7 +1753,7 @@ msgid ""
 "draws the term structure the engine priced against rather than one it "
 "rebuilt. Each is additive, which is what kept them inside `v2` under the "
 "rule in §6.2."
-msgstr "**這一節初次寫成之後又加入了什麼。**五項新增，每一項都是因為用戶端否則就無法提出一個服務其實答得出來的問題：`Hello`/`Capabilities`，讓支援矩陣由服務提供，而不是複製到每個用戶端裡；`PriceResult.unavailable_results`，讓無法提供某個希臘字母的引擎指名這項缺席，而不是回傳一張要用戶端自己比對差異的對應表；`ImpliedVolatility`，唯一一個由請求攜帶的輸入、而不是由市場算出的結果；`PriceBatch`/`BatchResult`，在一個訊框中以一個物件圖處理整本交易簿，失敗的項目只損失一列；以及 `CurveSample`，讓面板畫出的是引擎定價時實際使用的期限結構，而不是它自己重建的那一條。每一項都是增補式的，這讓它們依 §6.2 的規則留在 `v2` 之內。"
+msgstr "**這一節初次寫成之後又加入了什麼**。五項新增，每一項都是因為用戶端否則就無法提出一個服務其實答得出來的問題：`Hello`/`Capabilities`，讓支援矩陣由服務提供，而不是複製到每個用戶端裡；`PriceResult.unavailable_results`，讓無法提供某個希臘字母的引擎指名這項缺席，而不是回傳一張要用戶端自己比對差異的對應表；`ImpliedVolatility`，唯一一個由請求攜帶的輸入、而不是由市場算出的結果；`PriceBatch`/`BatchResult`，在一個訊框中以一個物件圖處理整本交易簿，失敗的項目只損失一列；以及 `CurveSample`，讓面板畫出的是引擎定價時實際使用的期限結構，而不是它自己重建的那一條。每一項都是增補式的，這讓它們依 §6.2 的規則留在 `v2` 之內。"
 
 #: ../../DESIGN.md:774 f45ceff521014e28812574ad6f058fdd
 msgid ""
@@ -1777,7 +1777,7 @@ msgid ""
 "than `VanillaSwap`. The market builds quotes, "
 "flat/interpolated/bootstrapped yield curves, three volatility shapes, "
 "Ibor and overnight indices, and past fixings."
-msgstr "**實作了什麼，又有什麼只存在於結構描述中。**單一資產的選擇權家族已經上線：八種收益函數、三種履約，以及香草、障礙、雙障礙、遠期起始、亞式、回顧式、複合、選擇者、棘輪與多資產籃子，搭配解析（包括三種美式近似法）、格點、有限差分、積分與蒙地卡羅引擎，而 quanto 可以組合在 QuantLib 具備可包裝引擎的那些形狀上。交換是通用的 n 條腿 `Swap`，而不是 `VanillaSwap`。市場可以建構報價、平坦／內插／拔靴的殖利率曲線、三種波動率形狀、Ibor 與隔夜指數，以及過去的定盤值。"
+msgstr "**實作了什麼，又有什麼只存在於結構描述中**。單一資產的選擇權家族已經上線：八種收益函數、三種履約，以及香草、障礙、雙障礙、遠期起始、亞式、回顧式、複合、選擇者、棘輪與多資產籃子，搭配解析（包括三種美式近似法）、格點、有限差分、積分與蒙地卡羅引擎，而 quanto 可以組合在 QuantLib 具備可包裝引擎的那些形狀上。交換是通用的 n 條腿 `Swap`，而不是 `VanillaSwap`。市場可以建構報價、平坦／內插／拔靴的殖利率曲線、三種波動率形狀、Ibor 與隔夜指數，以及過去的定盤值。"
 
 #: ../../DESIGN.md:790 5105a7e6f4bd4e0da66b9220f6323d47
 msgid ""
@@ -1881,7 +1881,7 @@ msgid ""
 " held seat. Resuming to save the *work in flight* is: `ResumeSession` and"
 " a 60-second window are in §9.4, and the client identity the protocol did"
 " not have is a token minted per session rather than per client."
-msgstr "~~重新連線的用戶端是否可以接回它的工作階段，而不是重新開啟（§9.4）。~~ **已經定案，而且不是這份清單預期的方式。**它要求的量測顯示重建只要個位數毫秒，所以為了省下一次拔靴而接回，並不值得保留一個座位。為了保住*進行中的工作*而接回則值得：`ResumeSession` 與 60 秒的寬限期寫在 §9.4，而協定原本沒有的用戶端身分，則是一個按工作階段、而不是按用戶端鑄發的權杖。"
+msgstr "~~重新連線的用戶端是否可以接回它的工作階段，而不是重新開啟（§9.4）。~~ **已經定案，而且不是這份清單預期的方式**。它要求的量測顯示重建只要個位數毫秒，所以為了省下一次拔靴而接回，並不值得保留一個座位。為了保住*進行中的工作*而接回則值得：`ResumeSession` 與 60 秒的寬限期寫在 §9.4，而協定原本沒有的用戶端身分，則是一個按工作階段、而不是按用戶端鑄發的權杖。"
 
 #: ../../DESIGN.md:852 b4f49c1325344b98a5f361be5e22619c
 msgid ""
@@ -1929,7 +1929,7 @@ msgid ""
 " from six entry points with no mutex, and that is sound only while all "
 "six run on one thread (§1.1). The loop is therefore part of the "
 "supervisor's correctness argument, not a transport detail underneath it."
-msgstr "**決定：單執行緒事件迴圈，uWebSockets 架在 uSockets 之上。**這不是偏好。`Supervisor` 從六個進入點修改 `sessions_` 與 `workers_` 而沒有互斥鎖，而這只有在六者都在同一條執行緒上執行時才正確（§1.1）。因此迴圈是監督者正確性論證的一部分，而不是底下的傳輸細節。"
+msgstr "**決定：單執行緒事件迴圈，uWebSockets 架在 uSockets 之上**。這不是偏好。`Supervisor` 從六個進入點修改 `sessions_` 與 `workers_` 而沒有互斥鎖，而這只有在六者都在同一條執行緒上執行時才正確（§1.1）。因此迴圈是監督者正確性論證的一部分，而不是底下的傳輸細節。"
 
 #: ../../DESIGN.md:880 106e276005164eca97843443ab3da7ad
 msgid ""
@@ -1957,7 +1957,7 @@ msgid ""
 "nothing here — the only deadline is the 250 ms stop grace, and the "
 "supervisor already assumes a timer it cannot disarm, which is why cancel "
 "rounds carry a generation."
-msgstr "**`DeadlineTimer` 是一個重複的節拍，而不是每個期限一個計時器。**顯而易見的實作是一個在自己的回呼中關閉的單次 `us_timer_t`（`uSockets/src/libusockets.h:110,120`），而它是錯的：`us_timer_close` 會立即釋放計時器，而不像關閉 socket 那樣延後處理，於是派送迴圈手上抓著的是已釋放的記憶體。單一個每 25 ms 觸發一次、對著排序好的期限佇列檢查的 `us_timer_t` 就沒有這種邊界情況。解析度在這裡毫無代價——唯一的期限是 250 ms 的停止寬限期，而監督者本來就假設計時器無法解除，這也是取消回合要帶世代編號的原因。"
+msgstr "**`DeadlineTimer` 是一個重複的節拍，而不是每個期限一個計時器**。顯而易見的實作是一個在自己的回呼中關閉的單次 `us_timer_t`（`uSockets/src/libusockets.h:110,120`），而它是錯的：`us_timer_close` 會立即釋放計時器，而不像關閉 socket 那樣延後處理，於是派送迴圈手上抓著的是已釋放的記憶體。單一個每 25 ms 觸發一次、對著排序好的期限佇列檢查的 `us_timer_t` 就沒有這種邊界情況。解析度在這裡毫無代價——唯一的期限是 250 ms 的停止寬限期，而監督者本來就假設計時器無法解除，這也是取消回合要帶世代編號的原因。"
 
 #: ../../DESIGN.md:896 78af936df3ba45408212cfe9c99e5540
 msgid ""
@@ -1965,7 +1965,7 @@ msgid ""
 " by construction (§3), so the only way to violate this is to do work in a"
 " frame handler — parsing a large `OpenSession`, say — that belongs on the"
 " worker."
-msgstr "**迴圈不得阻塞。**每一個耗時的計算在結構上都位於另一個行程中（§3），所以唯一會違反這一點的方式，是在訊框處理常式中做了屬於工作者的工作——例如解析一個大型的 `OpenSession`。"
+msgstr "**迴圈不得阻塞**。每一個耗時的計算在結構上都位於另一個行程中（§3），所以唯一會違反這一點的方式，是在訊框處理常式中做了屬於工作者的工作——例如解析一個大型的 `OpenSession`。"
 
 #: ../../DESIGN.md:900 51083ac08d50486cb48f99126118fcb1
 msgid "9.2 The worker channel"
@@ -2042,7 +2042,7 @@ msgid ""
 "with the `drain` handler to resume), the next is dropped by us. Progress "
 "is a hint and every frame supersedes the last, so shedding it costs "
 "nothing. This keeps the buffer clear for the frames that matter."
-msgstr "**決定：閘道搶在 uWebSockets 之前自己捨棄 `Progress`。**每條連線上每個請求最多只有一個未送出的 `Progress` 訊框；如果前一個還沒排空（`getBufferedAmount()`，並以 `drain` 處理常式恢復），下一個就由我們丟掉。進度只是提示，每個訊框都取代前一個，所以捨棄它不需要任何代價。這讓緩衝區留給真正重要的訊框。"
+msgstr "**決定：閘道搶在 uWebSockets 之前自己捨棄 `Progress`**。每條連線上每個請求最多只有一個未送出的 `Progress` 訊框；如果前一個還沒排空（`getBufferedAmount()`，並以 `drain` 處理常式恢復），下一個就由我們丟掉。進度只是提示，每個訊框都取代前一個，所以捨棄它不需要任何代價。這讓緩衝區留給真正重要的訊框。"
 
 #: ../../DESIGN.md:949 f51271166b9e45879f96944848b700f9
 msgid ""
@@ -2050,7 +2050,7 @@ msgid ""
 "cannot keep up after `Progress` has been shed is not one whose results "
 "can be delivered, and a loud disconnect — handled by 9.4 — is better than"
 " a request that never terminates."
-msgstr "**決定：`closeOnBackpressureLimit = true`。**在 `Progress` 已被捨棄後仍然跟不上的用戶端，它的結果本來就送不到，而一次大聲的斷線——由 9.4 處理——總比一個永遠不會終結的請求好。"
+msgstr "**決定：`closeOnBackpressureLimit = true`**。在 `Progress` 已被捨棄後仍然跟不上的用戶端，它的結果本來就送不到，而一次大聲的斷線——由 9.4 處理——總比一個永遠不會終結的請求好。"
 
 #: ../../DESIGN.md:954 fb306b126ea24f2aa514bf6d9b421bbc
 msgid ""
@@ -2058,7 +2058,7 @@ msgid ""
 "terminal frame is a bug in this policy, not a condition to handle: it "
 "means the two decisions above failed and a client has been left hanging. "
 "It must be logged as such."
-msgstr "**決定：檢查每一次 `send` 的回傳值。**終結訊框上出現 `DROPPED` 是這個策略的錯誤，而不是一種要處理的狀況：它表示上面兩個決定失效了，有個用戶端被晾在那裡。它必須以這樣的性質記錄下來。"
+msgstr "**決定：檢查每一次 `send` 的回傳值**。終結訊框上出現 `DROPPED` 是這個策略的錯誤，而不是一種要處理的狀況：它表示上面兩個決定失效了，有個用戶端被晾在那裡。它必須以這樣的性質記錄下來。"
 
 #: ../../DESIGN.md:959 0da27f8d37dd41cfb8f3c72b1a859557
 msgid ""
@@ -2094,7 +2094,7 @@ msgid ""
 "*running*: a request in flight died with the session, so a network blink "
 "half way through a twenty-million-path Monte Carlo cost the calculation, "
 "and the client had to start it again."
-msgstr "**量測，在這裡對著這個建置進行。**對[處理常式頁面](HANDLERS.md)開頭那個七個物件的市場，一次拔靴要 0.009 ms；由三十個交換節點拔靴出的曲線要 1.5 ms；由四十八個節點拔靴出的曲線要 3.6 ms。重建從來不是斷線中昂貴的部分。昂貴的是*正在執行*的東西：進行中的請求會隨工作階段一起死掉，所以在一次兩千萬條路徑的蒙地卡羅跑到一半時網路閃斷一下，就會賠掉整個計算，用戶端只好重新開始。"
+msgstr "**量測，在這裡對著這個建置進行**。對[處理常式頁面](HANDLERS.md)開頭那個七個物件的市場，一次拔靴要 0.009 ms；由三十個交換節點拔靴出的曲線要 1.5 ms；由四十八個節點拔靴出的曲線要 3.6 ms。重建從來不是斷線中昂貴的部分。昂貴的是*正在執行*的東西：進行中的請求會隨工作階段一起死掉，所以在一次兩千萬條路徑的蒙地卡羅跑到一半時網路閃斷一下，就會賠掉整個計算，用戶端只好重新開始。"
 
 #: ../../DESIGN.md:983 dc3550fd922a41c8b0cc30a689be9a6d
 msgid ""
@@ -2107,7 +2107,7 @@ msgid ""
 " attached is held and delivered on the way back in; `Progress` is shed, "
 "for the reason §9.3 sheds it under backpressure — by the time anyone "
 "reads it the work has moved on."
-msgstr "**決定：工作階段在連線斷開後還能存活一段寬限期，其中的工作也是。**預設為 60 秒；`--session-grace 0` 會完全恢復舊規則。在寬限期內，工作階段保有它的物件圖、工作者座位與執行中的請求，用戶端則以 `ResumeSession` 取回它，指名工作階段並出示 `SessionOpened` 為它鑄發的權杖。在沒有人連著時產生的終結訊框會先保留，在接回時送達；`Progress` 則被捨棄，理由與 §9.3 在背壓下捨棄它相同——等到有人讀到時，工作早已往前推進了。"
+msgstr "**決定：工作階段在連線斷開後還能存活一段寬限期，其中的工作也是**。預設為 60 秒；`--session-grace 0` 會完全恢復舊規則。在寬限期內，工作階段保有它的物件圖、工作者座位與執行中的請求，用戶端則以 `ResumeSession` 取回它，指名工作階段並出示 `SessionOpened` 為它鑄發的權杖。在沒有人連著時產生的終結訊框會先保留，在接回時送達；`Progress` 則被捨棄，理由與 §9.3 在背壓下捨棄它相同——等到有人讀到時，工作早已往前推進了。"
 
 #: ../../DESIGN.md:992 592306e769d64d79a3c5d21e63015904
 msgid ""
@@ -2121,7 +2121,7 @@ msgid ""
 "`SESSION_NOT_FOUND`: a wrong token, an expired window and a session that "
 "was closed on purpose are one answer, so a guess learns nothing from the "
 "difference, and the client's move is the same for all three."
-msgstr "**權杖是讓這項功能能安全提供的關鍵。**WebSocket 升級不受同源政策約束（§9.6），所以機器上的任何網頁都能連到這個 socket；沒有秘密的話，可接回的工作階段代號就會是任何網頁都能接收的工作階段。它是由閘道以 `std::random_device` 鑄發的 128 位元——閘道擁有以連線為範圍的身分（§9.5），也是這個服務中唯一應該對「一條連線屬於誰」有意見的部分。每一種拒絕都是 `SESSION_NOT_FOUND`：錯誤的權杖、過期的寬限期，以及被刻意關閉的工作階段是同一個答案，所以猜測者無法從差異中得知任何事，而用戶端對這三種情況的應對也都一樣。"
+msgstr "**權杖是讓這項功能能安全提供的關鍵**。WebSocket 升級不受同源政策約束（§9.6），所以機器上的任何網頁都能連到這個 socket；沒有秘密的話，可接回的工作階段代號就會是任何網頁都能接收的工作階段。它是由閘道以 `std::random_device` 鑄發的 128 位元——閘道擁有以連線為範圍的身分（§9.5），也是這個服務中唯一應該對「一條連線屬於誰」有意見的部分。每一種拒絕都是 `SESSION_NOT_FOUND`：錯誤的權杖、過期的寬限期，以及被刻意關閉的工作階段是同一個答案，所以猜測者無法從差異中得知任何事，而用戶端對這三種情況的應對也都一樣。"
 
 #: ../../DESIGN.md:1002 0c5aea0bc30a42da823d1115d42ad30d
 msgid ""
@@ -2133,7 +2133,7 @@ msgid ""
 " likeliest to have been abandoned. `/healthz` reports the count as "
 "`detached`, so the seats being held for absent clients are visible rather"
 " than inferred."
-msgstr "**它的代價，以及限制它的東西。**每一個被保留的工作階段都是一個沒有人坐的工作者座位。有兩個限制防止它變成舊規則所避免的那種失敗模式：寬限期本身，以及同時可保留的工作階段數上限（預設 16）。超過上限時，關閉的是*等最久*的那一個，而不是拒絕最新的——最舊的最有可能已經被放棄。`/healthz` 以 `detached` 回報這個數量，讓為缺席用戶端保留的座位看得見，而不必靠推測。"
+msgstr "**它的代價，以及限制它的東西**。每一個被保留的工作階段都是一個沒有人坐的工作者座位。有兩個限制防止它變成舊規則所避免的那種失敗模式：寬限期本身，以及同時可保留的工作階段數上限（預設 16）。超過上限時，關閉的是*等最久*的那一個，而不是拒絕最新的——最舊的最有可能已經被放棄。`/healthz` 以 `detached` 回報這個數量，讓為缺席用戶端保留的座位看得見，而不必靠推測。"
 
 #: ../../DESIGN.md:1010 8a29b29e21a34a4389e112705b42dc1d
 msgid ""
@@ -2143,7 +2143,7 @@ msgid ""
 " or to a service that has been restarted — opens a session and replays, "
 "exactly as before. Replay is still the fallback and still has to work: "
 "this window is an optimisation over it, not a replacement for it."
-msgstr "**對前端的影響：只要用戶端要求，`session_id` 就能撐過重新連線。**接回的用戶端保有它的代號、物件圖與進行中的工作；沒有接回的用戶端——或回來得太晚，或回到一個已經重新啟動的服務——則開啟工作階段並重播，就跟以前一模一樣。重播仍然是後備方案，也仍然必須能運作：這個寬限期是重播之上的最佳化，而不是它的替代品。"
+msgstr "**對前端的影響：只要用戶端要求，`session_id` 就能撐過重新連線**。接回的用戶端保有它的代號、物件圖與進行中的工作；沒有接回的用戶端——或回來得太晚，或回到一個已經重新啟動的服務——則開啟工作階段並重播，就跟以前一模一樣。重播仍然是後備方案，也仍然必須能運作：這個寬限期是重播之上的最佳化，而不是它的替代品。"
 
 #: ../../DESIGN.md:1017 ef702e55893247f6900a20d9a680ac07
 msgid ""
@@ -2173,7 +2173,7 @@ msgstr "**未結束的 `request_id`，按工作階段分別記錄。**`Disruptio
 msgid ""
 "**`session_id` assignment.** Server-minted and opaque; a client-chosen id"
 " would let two connections collide on one graph."
-msgstr "**`session_id` 的指派。**由伺服器鑄發且不透明；由用戶端選擇的代號會讓兩條連線在同一個物件圖上撞在一起。"
+msgstr "**`session_id` 的指派**。由伺服器鑄發且不透明；由用戶端選擇的代號會讓兩條連線在同一個物件圖上撞在一起。"
 
 #: ../../DESIGN.md:1033 6e83caa1a8c94c889a7c55a171aa1856
 msgid ""
@@ -2184,7 +2184,7 @@ msgid ""
 " every request is promised. The gateway therefore falls back to the "
 "socket the request arrived on, which the single-threaded loop makes "
 "unambiguous."
-msgstr "**沒有工作階段的訊框的路由。**傳遞以「工作階段 -> 連線」為鍵，所以一則拒絕若指名的是從未開啟的工作階段，或屬於別人連線的工作階段，就沒有路由，永遠不會被送出——讓用戶端永遠等待每個請求都被承諾會有的終結訊框。因此閘道會退而使用請求抵達時的那條連線，而單執行緒迴圈讓這件事毫無歧義。"
+msgstr "**沒有工作階段的訊框的路由**。傳遞以「工作階段 -> 連線」為鍵，所以一則拒絕若指名的是從未開啟的工作階段，或屬於別人連線的工作階段，就沒有路由，永遠不會被送出——讓用戶端永遠等待每個請求都被承諾會有的終結訊框。因此閘道會退而使用請求抵達時的那條連線，而單執行緒迴圈讓這件事毫無歧義。"
 
 #: ../../DESIGN.md:1039 7c0aef36db4949f2bdcbccc293de1c8d
 msgid ""
@@ -2192,7 +2192,7 @@ msgid ""
 "produces one: the supervisor acts on the target request and never "
 "forwards the cancel frame to a worker, so the cancel's own `request_id` "
 "is acknowledged here or not at all."
-msgstr "**`CancelRequest` 本身的終結訊框。**下游沒有任何東西會產生它：監督者對目標請求採取行動，從不把取消訊框轉送給工作者，所以取消本身的 `request_id` 要嘛在這裡確認，要嘛永遠不會被確認。"
+msgstr "**`CancelRequest` 本身的終結訊框**。下游沒有任何東西會產生它：監督者對目標請求採取行動，從不把取消訊框轉送給工作者，所以取消本身的 `request_id` 要嘛在這裡確認，要嘛永遠不會被確認。"
 
 #: ../../DESIGN.md:1043 823a38a29353436eac0178c599b4d141
 msgid ""
@@ -2211,7 +2211,7 @@ msgid ""
 "connection. The supervisor packs sessions onto workers and has no idea "
 "which socket asked for them; the count that has to be capped is per "
 "client, so it can only be kept here (§9.6)."
-msgstr "**單一用戶端占用了多少。**開啟的連線數，以及每條連線上的工作階段數。監督者把工作階段打包到工作者上，完全不知道是哪條連線要求的；需要設上限的數量是以用戶端為單位，所以只能在這裡記錄（§9.6）。"
+msgstr "**單一用戶端占用了多少**。開啟的連線數，以及每條連線上的工作階段數。監督者把工作階段打包到工作者上，完全不知道是哪條連線要求的；需要設上限的數量是以用戶端為單位，所以只能在這裡記錄（§9.6）。"
 
 #: ../../DESIGN.md:1056 e72796877d6a45ef99529812c7694771
 msgid ""
@@ -2248,7 +2248,7 @@ msgid ""
 " are the frontend's dev and preview origins; `--allow-origin` replaces "
 "them and `--any-origin` disables the check for a deployment that "
 "terminates it upstream."
-msgstr "**決定：有 `Origin` 時就檢查它，沒有時就放行。**只有瀏覽器會送這個標頭，所以這項檢查恰好關上原本敞開的那條路，而不影響 `test/smoke_v2.py`、CLI，以及已經完成身分驗證的代理。帶有錯誤 origin 的請求會在升級時以 `403` 和一個理由拒絕，而不是先接受再丟棄，因為被拒絕的用戶端應該要能說出來——前端在連線失敗時正是為此詢問 `/healthz`，並藉此分辨「那裡沒有東西」與「那裡有東西但拒絕了你」。預設值是前端的開發與預覽 origin；`--allow-origin` 會取代它們，`--any-origin` 則為在上游終止檢查的部署停用這項檢查。"
+msgstr "**決定：有 `Origin` 時就檢查它，沒有時就放行**。只有瀏覽器會送這個標頭，所以這項檢查恰好關上原本敞開的那條路，而不影響 `test/smoke_v2.py`、CLI，以及已經完成身分驗證的代理。帶有錯誤 origin 的請求會在升級時以 `403` 和一個理由拒絕，而不是先接受再丟棄，因為被拒絕的用戶端應該要能說出來——前端在連線失敗時正是為此詢問 `/healthz`，並藉此分辨「那裡沒有東西」與「那裡有東西但拒絕了你」。預設值是前端的開發與預覽 origin；`--allow-origin` 會取代它們，`--any-origin` 則為在上游終止檢查的部署停用這項檢查。"
 
 #: ../../DESIGN.md:1080 0761dfe01b114042b795a371de64b359
 msgid ""
@@ -2267,7 +2267,7 @@ msgid ""
 " stands beside this process rather than in front of its loopback socket, "
 "so anything local still dials the port directly. Three choices inside it "
 "are the whole design:"
-msgstr "**決定：一個選用的共享秘密，在升級時出示。**在有其他使用者的機器上，`--token-file FILE` 讓那個賭注變得不再必要，而且它是代理無法提供的東西：代理是站在這個行程旁邊，而不是站在它的回送 socket 前面，所以任何本機程式仍然可以直接撥號到這個埠。它內部的三個選擇就是整個設計："
+msgstr "**決定：一個選用的共享秘密，在升級時出示**。在有其他使用者的機器上，`--token-file FILE` 讓那個賭注變得不再必要，而且它是代理無法提供的東西：代理是站在這個行程旁邊，而不是站在它的回送 socket 前面，所以任何本機程式仍然可以直接撥號到這個埠。它內部的三個選擇就是整個設計："
 
 #: ../../DESIGN.md:1093 38221653803b4b1d9cd64eca56ab4383
 msgid ""
@@ -2276,7 +2276,7 @@ msgid ""
 "exists to exclude. The file is read when it exists and minted at `0600` "
 "when it does not, and it is refused when anyone but its owner can read it"
 " — a secret that is not is not one."
-msgstr "**用檔案，而不是旗標。**命令列引數透過 `ps` 對所有人可見，所以 `--token abc` 會把秘密公開給它原本要排除的那些本機行程。檔案存在時就讀取，不存在時就以 `0600` 鑄發，而當擁有者以外的任何人能讀取它時就拒絕——一個不是秘密的秘密就不算秘密。"
+msgstr "**用檔案，而不是旗標**。命令列引數透過 `ps` 對所有人可見，所以 `--token abc` 會把秘密公開給它原本要排除的那些本機行程。檔案存在時就讀取，不存在時就以 `0600` 鑄發，而當擁有者以外的任何人能讀取它時就拒絕——一個不是秘密的秘密就不算秘密。"
 
 #: ../../DESIGN.md:1098 bfd8f8fd35f84c4fbd951ee4e1284233
 msgid ""
@@ -2285,7 +2285,7 @@ msgid ""
 " field. A wrong token and a missing one get the same `401`, for the "
 "reason a refused resume gets one answer (§9.4); the log distinguishes "
 "them."
-msgstr "**在升級時，而不是在訊框中。**拒絕不會消耗連線名額、工作階段或工作者座位，這就是為什麼 `Hello` 沒有權杖欄位。錯誤的權杖與缺少權杖得到同樣的 `401`，理由與被拒絕的接回只得到一種答案相同（§9.4）；日誌則會區分兩者。"
+msgstr "**在升級時，而不是在訊框中**。拒絕不會消耗連線名額、工作階段或工作者座位，這就是為什麼 `Hello` 沒有權杖欄位。錯誤的權杖與缺少權杖得到同樣的 `401`，理由與被拒絕的接回只得到一種答案相同（§9.4）；日誌則會區分兩者。"
 
 #: ../../DESIGN.md:1102 66ce63920c4144638874e23f1e854c85
 msgid ""
@@ -2298,7 +2298,7 @@ msgid ""
 "rather than echoed. The third option would be the query string, and it is"
 " the worst: a URL reaches logs, history and referrers, and a secret in "
 "one is written down in several places nobody is guarding."
-msgstr "**兩個放置位置，因為瀏覽器只有一個。**任何能設定標頭的東西都送 `Authorization: Bearer`。瀏覽器不能——`new WebSocket` 只接受一個 URL 與一份子協定清單，別無其他（RFC 6455 §11.3.4）——所以它把 `token.<secret>` 當成子協定，與 `qlservice.v2` 一起送出。伺服器此時必須恰好選擇一個協定，否則瀏覽器會讓握手失敗，所以提供的清單會被解析並回應，而不是原樣回傳。第三個選擇會是查詢字串，而那是最糟的：URL 會進入日誌、瀏覽紀錄與 referrer，放在其中的秘密會被寫在好幾個沒人看守的地方。"
+msgstr "**兩個放置位置，因為瀏覽器只有一個**。任何能設定標頭的東西都送 `Authorization: Bearer`。瀏覽器不能——`new WebSocket` 只接受一個 URL 與一份子協定清單，別無其他（RFC 6455 §11.3.4）——所以它把 `token.<secret>` 當成子協定，與 `qlservice.v2` 一起送出。伺服器此時必須恰好選擇一個協定，否則瀏覽器會讓握手失敗，所以提供的清單會被解析並回應，而不是原樣回傳。第三個選擇會是查詢字串，而那是最糟的：URL 會進入日誌、瀏覽紀錄與 referrer，放在其中的秘密會被寫在好幾個沒人看守的地方。"
 
 #: ../../DESIGN.md:1112 ce152115aff043a1ad8443eaf2fd1987
 msgid ""
@@ -2316,7 +2316,7 @@ msgid ""
 "refused at startup with exit code 2 and both ways out named. It is the "
 "accident far more than the decision: nothing else here would have said a "
 "word before answering the office."
-msgstr "**決定：沒有權杖時，拒絕綁定到回送介面以外的任何地方。**失效時關閉。上面的一切都是防範網頁的門，沒有一樣是防範網路的邊界，所以指定可路由的 `--host` 卻沒有權杖時，啟動會以結束碼 2 被拒絕，並指出兩條出路。這防的主要是意外，而不是刻意的決定：否則這裡沒有任何東西會在回應整間辦公室之前吭一聲。"
+msgstr "**決定：沒有權杖時，拒絕綁定到回送介面以外的任何地方**。失效時關閉。上面的一切都是防範網頁的門，沒有一樣是防範網路的邊界，所以指定可路由的 `--host` 卻沒有權杖時，啟動會以結束碼 2 被拒絕，並指出兩條出路。這防的主要是意外，而不是刻意的決定：否則這裡沒有任何東西會在回應整間辦公室之前吭一聲。"
 
 #: ../../DESIGN.md:1123 5f7d82b79eb8425caaf5512cfe5c093e
 msgid ""
@@ -2330,7 +2330,7 @@ msgid ""
 "others. Both are refusals rather than failures: close a session and the "
 "next one opens, which is why `OVERLOADED` is its own error code and the "
 "frontend's remedy for it is \"close a tab\" rather than \"retry\"."
-msgstr "**決定：限制每個行程的連線數與每條連線的工作階段數。**沒有身分驗證的另一半問題是，沒有任何東西能阻止一個用戶端拿走一切：32 條連線，超過時在升級階段以 `503` 拒絕；每條連線 16 個工作階段，超過時以 `OVERLOADED` 拒絕。工作階段的限制才是要緊的那一個，因為工作階段是一個持有即時物件圖的工作者座位（§2.1），而連線幾乎不花成本——而且它以連線而不是以行程為單位，讓一個用戶端無法餓死其他用戶端。兩者都是拒絕而不是失敗：關掉一個工作階段，下一個就能開啟，這也是 `OVERLOADED` 有自己的錯誤碼、而前端對它的補救是「關掉一個分頁」而不是「重試」的原因。"
+msgstr "**決定：限制每個行程的連線數與每條連線的工作階段數**。沒有身分驗證的另一半問題是，沒有任何東西能阻止一個用戶端拿走一切：32 條連線，超過時在升級階段以 `503` 拒絕；每條連線 16 個工作階段，超過時以 `OVERLOADED` 拒絕。工作階段的限制才是要緊的那一個，因為工作階段是一個持有即時物件圖的工作者座位（§2.1），而連線幾乎不花成本——而且它以連線而不是以行程為單位，讓一個用戶端無法餓死其他用戶端。兩者都是拒絕而不是失敗：關掉一個工作階段，下一個就能開啟，這也是 `OVERLOADED` 有自己的錯誤碼、而前端對它的補救是「關掉一個分頁」而不是「重試」的原因。"
 
 #: ../../DESIGN.md:1133 6e658846bf454d399ffc80e430b0a557
 msgid ""

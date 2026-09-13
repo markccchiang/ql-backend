@@ -176,7 +176,7 @@ msgid ""
 " introduces a second error: a discretely monitored simulation misses "
 "barrier crossings between steps, which biases a knock-out price upwards. "
 "More steps, or a control variate, is the answer; more paths is not."
-msgstr "**路徑相依需要步數。**歐式收益只需要期末值，因此一步就夠，模擬是精確的。障礙或亞式需要整條路徑，這時*每年步數*設定引入了第二種誤差：離散觀察的模擬會漏掉步與步之間的障礙穿越，使敲出價格偏高。解法是加步數或用控制變量；加路徑數不是。"
+msgstr "**路徑相依需要步數**。歐式收益只需要期末值，因此一步就夠，模擬是精確的。障礙或亞式需要整條路徑，這時*每年步數*設定引入了第二種誤差：離散觀察的模擬會漏掉步與步之間的障礙穿越，使敲出價格偏高。解法是加步數或用控制變量；加路徑數不是。"
 
 #: ../../maths/numerics.md:80 5ca3d32052d3486bb0461a669f604bf1
 #, python-brace-format
@@ -186,7 +186,7 @@ msgid ""
 " form ({doc}`exotics`). The two averages are highly correlated, so the "
 "variance of the difference is far smaller than the variance of either. It"
 " is the single best-value setting on `McParameters`."
-msgstr "**控制變量。**算術亞式引擎可以扣掉*幾何*亞式的模擬誤差，而後者的值有封閉解（{doc}`exotics`）。兩種平均高度相關，因此兩者之差的變異數遠小於任一者的變異數。它是 `McParameters` 上最划算的設定。"
+msgstr "**控制變量**。算術亞式引擎可以扣掉*幾何*亞式的模擬誤差，而後者的值有封閉解（{doc}`exotics`）。兩種平均高度相關，因此兩者之差的變異數遠小於任一者的變異數。它是 `McParameters` 上最划算的設定。"
 
 #: ../../maths/numerics.md:86 697f376e9f4a41ea9226f74350482beb
 msgid "Reproducibility, and why batching changes the number"
@@ -284,7 +284,7 @@ msgid ""
 "**No root.** A target price outside the no-arbitrage bounds — below "
 "intrinsic, above the underlying — has no solution and the search fails "
 "rather than returning the nearest boundary."
-msgstr "**無解。**目標價落在無套利界限之外——低於內含價值，或高於標的——就沒有解，搜尋會失敗，而不是回傳最近的邊界值。"
+msgstr "**無解**。目標價落在無套利界限之外——低於內含價值，或高於標的——就沒有解，搜尋會失敗，而不是回傳最近的邊界值。"
 
 #: ../../maths/numerics.md:126 fbae80694a5448bfb9e8279241c22ca4
 msgid ""
@@ -292,14 +292,14 @@ msgid ""
 "wide range of volatilities reproduces the price to within tolerance. The "
 "answer is then genuinely ill-conditioned, and tightening the tolerance "
 "does not help."
-msgstr "**目標函數太平。**深度價內或價外時 vega 極小，因此很大一段波動率範圍都能在容忍度內重現該價格。這時答案是真的病態，把容忍度收緊也沒有幫助。"
+msgstr "**目標函數太平**。深度價內或價外時 vega 極小，因此很大一段波動率範圍都能在容忍度內重現該價格。這時答案是真的病態，把容忍度收緊也沒有幫助。"
 
 #: ../../maths/numerics.md:129 efab34d46a484604ac9b3d062370ef0d
 msgid ""
 "**Cost.** Each iteration is a full engine call. On an analytic vanilla "
 "that is nothing; on a barrier it is not, which is why the bracket and the"
 " tolerance are exposed on the card."
-msgstr "**代價。**每一次迭代都是一次完整的引擎呼叫。在解析解一般型上這不算什麼；在障礙商品上就不是了，這也是卡片上把區間與容忍度攤出來的原因。"
+msgstr "**代價**。每一次迭代都是一次完整的引擎呼叫。在解析解一般型上這不算什麼；在障礙商品上就不是了，這也是卡片上把區間與容忍度攤出來的原因。"
 
 #: ../../maths/numerics.md:133 312af72d0f3e461ea81bccb3e5aa0d37
 msgid ""

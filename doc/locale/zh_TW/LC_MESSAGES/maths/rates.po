@@ -175,7 +175,7 @@ msgstr "拔靴建構出來的曲線，會精確地重新算回建構它所用的
 
 #: ../../maths/rates.md:51 9456e51fb3034a9d82ecb43a311c7e01
 msgid "**Deposit.** A simple-rate quote over one accrual period:"
-msgstr "**存款。**單一計息期間上的單利報價："
+msgstr "**存款**。單一計息期間上的單利報價："
 
 #: ../../maths/rates.md:53 c095348032e147e28f54d83f50724abb
 #, python-brace-format
@@ -186,7 +186,7 @@ msgstr ""
 msgid ""
 "**Par swap.** The fixed rate that makes the swap worth zero. With payment"
 " times $t_1 \\dots t_n$ and accruals $\\tau_i$,"
-msgstr "**平價交換。**使該筆交換價值為零的固定利率。以付款時點 $t_1 \\dots t_n$ 與計息因子 $\\tau_i$ 表示，"
+msgstr "**平價交換**。使該筆交換價值為零的固定利率。以付款時點 $t_1 \\dots t_n$ 與計息因子 $\\tau_i$ 表示，"
 
 #: ../../maths/rates.md:58 450db6f197a4481895cd2d5b8fa8f6f5
 #, python-brace-format
@@ -203,7 +203,7 @@ msgstr "右邊是浮動腳的價值——當它的遠期利率取自同一條曲
 msgid ""
 "**OIS.** The same equation with the floating leg compounded daily off the"
 " overnight index rather than accrued over each period."
-msgstr "**OIS。**同一條方程式，只是浮動腳改成依隔夜指標逐日複利，而不是逐期計息。"
+msgstr "**OIS**。同一條方程式，只是浮動腳改成依隔夜指標逐日複利，而不是逐期計息。"
 
 #: ../../maths/rates.md:66 b40c2979d1ad40e19263153458d427f8
 msgid ""

@@ -128,7 +128,7 @@ msgid ""
 "contract that is monitored daily — continuous monitoring is worth "
 "strictly more knock-out protection, so the prices differ systematically "
 "rather than randomly."
-msgstr "**沒有實作的部分：**離散觀察與部分期間（窗口）障礙。上面的公式假設障礙是*連續*觀察的，在與逐日觀察的合約比較時值得記住這一點——連續觀察提供的敲出保護嚴格更多，因此價格的差異是系統性的，而不是隨機的。"
+msgstr "**沒有實作的部分**：離散觀察與部分期間（窗口）障礙。上面的公式假設障礙是*連續*觀察的，在與逐日觀察的合約比較時值得記住這一點——連續觀察提供的敲出保護嚴格更多，因此價格的差異是系統性的，而不是隨機的。"
 
 #: ../../maths/exotics.md:63 8435ea055c5c4883937bba5777460428
 msgid "Double barrier"
@@ -166,7 +166,7 @@ msgid ""
 "**Geometric, continuous.** The geometric average of a geometric Brownian "
 "motion is itself lognormal, so the option is a Black-Scholes option with "
 "adjusted parameters. QuantLib prices it as a Black formula with"
-msgstr "**幾何平均、連續。**幾何布朗運動的幾何平均本身仍是對數常態，因此這檔選擇權就是一檔參數經過調整的 Black-Scholes 選擇權。QuantLib 以 Black 公式為它計價，其中"
+msgstr "**幾何平均、連續**。幾何布朗運動的幾何平均本身仍是對數常態，因此這檔選擇權就是一檔參數經過調整的 Black-Scholes 選擇權。QuantLib 以 Black 公式為它計價，其中"
 
 #: ../../maths/exotics.md:85 652b32ef5abe478aa3cb9d4bcb7b2d00
 msgid ""
@@ -191,7 +191,7 @@ msgid ""
 "set, and $\\ln G$ is again normal — with mean and variance computed from "
 "the fixing times rather than from the closed-form limit. Same Black "
 "formula, different moments."
-msgstr "**幾何平均、離散。**有定盤日時，平均是對有限個點取的，而 $\\ln G$ 仍為常態——只是均值與變異數由各定盤時點算出，而不是取連續極限的封閉式。同一個 Black 公式，不同的動差。"
+msgstr "**幾何平均、離散**。有定盤日時，平均是對有限個點取的，而 $\\ln G$ 仍為常態——只是均值與變異數由各定盤時點算出，而不是取連續極限的封閉式。同一個 Black 公式，不同的動差。"
 
 #: ../../maths/exotics.md:100 291fc22f740349f495516dd23693f996
 msgid ""
@@ -202,7 +202,7 @@ msgid ""
 " and its value is known exactly, so subtracting its simulation error "
 "removes most of the noise. Turn it on when you have one; it is worth far "
 "more than the same time spent on extra paths."
-msgstr "**算術平均。**對數常態之和不是對數常態，也沒有精確的封閉解，因此這是這個版本中唯一*必須*走蒙地卡羅的類型。QuantLib 的引擎可以用幾何平均當**控制變量**——它與算術平均高度相關，而且它的值是精確已知的，因此扣掉它的模擬誤差就能消掉大部分噪音。有得用就打開它；它的價值遠高於把同樣的時間拿去多跑路徑。"
+msgstr "**算術平均**。對數常態之和不是對數常態，也沒有精確的封閉解，因此這是這個版本中唯一*必須*走蒙地卡羅的類型。QuantLib 的引擎可以用幾何平均當**控制變量**——它與算術平均高度相關，而且它的值是精確已知的，因此扣掉它的模擬誤差就能消掉大部分噪音。有得用就打開它；它的價值遠高於把同樣的時間拿去多跑路徑。"
 
 #: ../../maths/exotics.md:108 a37cf34cf3374cd78126492acbd7a7a2
 msgid "Lookback"
@@ -219,13 +219,13 @@ msgstr "回顧式的收益是對路徑的累積極值計算，而該極值必須
 msgid ""
 "**Floating strike:** a call pays $S_T - m$, where $m$ is the running "
 "minimum."
-msgstr "**浮動履約價：**買權支付 $S_T - m$，其中 $m$ 是累積最小值。"
+msgstr "**浮動履約價**：買權支付 $S_T - m$，其中 $m$ 是累積最小值。"
 
 #: ../../maths/exotics.md:115 7c566d0132eb4831a8c673143dbd4737
 msgid ""
 "**Fixed strike:** a call pays $\\max(M - K, 0)$, where $M$ is the running"
 " maximum."
-msgstr "**固定履約價：**買權支付 $\\max(M - K, 0)$，其中 $M$ 是累積最大值。"
+msgstr "**固定履約價**：買權支付 $\\max(M - K, 0)$，其中 $M$ 是累積最大值。"
 
 #: ../../maths/exotics.md:118 cebf4b4d11ca4de1ba5279df7e9bcd30
 msgid ""
@@ -361,7 +361,7 @@ msgid ""
 " one. QuantLib's instrument carries the four fields and never passes them"
 " to an engine, so the price you would get is the uncapped sum above. The "
 "service refuses them by name rather than returning it."
-msgstr "**這裡沒有上下限，而這是函式庫的性質，不是這一頁的性質。**帶上限的棘輪式會在加總之前把每一段的報酬率截斷，那是另一個總和，不是這個總和的縮放。QuantLib 的商品類別帶著那四個欄位，卻從來不把它們交給引擎，所以你拿到的價格會是上面那個沒有上限的總和。服務會指名拒絕它們，而不是把那個價格給你。"
+msgstr "**這裡沒有上下限，而這是函式庫的性質，不是這一頁的性質**。帶上限的棘輪式會在加總之前把每一段的報酬率截斷，那是另一個總和，不是這個總和的縮放。QuantLib 的商品類別帶著那四個欄位，卻從來不把它們交給引擎，所以你拿到的價格會是上面那個沒有上限的總和。服務會指名拒絕它們，而不是把那個價格給你。"
 
 #: ../../maths/exotics.md:188 891c563be8f6456ca2b07e72c94903fb
 msgid "Compound"
@@ -421,7 +421,7 @@ msgid ""
 "**The compound must expire on or before the option it buys.** Not a "
 "modelling choice — there is nothing to exercise into otherwise, and "
 "QuantLib's instrument rejects it."
-msgstr "**複合式的到期日必須不晚於它所買到的那個選擇權。**這不是模型上的選擇——否則履約之後根本沒有東西可換，而 QuantLib 的商品類別也會拒絕。"
+msgstr "**複合式的到期日必須不晚於它所買到的那個選擇權**。這不是模型上的選擇——否則履約之後根本沒有東西可換，而 QuantLib 的商品類別也會拒絕。"
 
 #: ../../maths/exotics.md:220 29cba81812ae4cb2b236baea17df5401
 msgid "Chooser"
@@ -604,7 +604,7 @@ msgid ""
 "positive semi-definite, and why this build checks that it is: given one "
 "that is not, QuantLib repairs it rather than refusing it "
 "({doc}`../HANDLERS`)."
-msgstr "**其餘一律走蒙地卡羅。**加權平均在這裡沒有封閉解，三個以上資產的一籃子也沒有。這些資產是透過 `StochasticProcessArray` 一起演化的：它把相關係數矩陣分解一次，然後用一組相關的常態亂數推動整個系統。正是那個分解，使得矩陣必須是半正定的，也正是這個版本要去檢查它的原因——因為給它一個不是半正定的矩陣，QuantLib 會把它修好，而不是拒絕它（{doc}`../HANDLERS`）。"
+msgstr "**其餘一律走蒙地卡羅**。加權平均在這裡沒有封閉解，三個以上資產的一籃子也沒有。這些資產是透過 `StochasticProcessArray` 一起演化的：它把相關係數矩陣分解一次，然後用一組相關的常態亂數推動整個系統。正是那個分解，使得矩陣必須是半正定的，也正是這個版本要去檢查它的原因——因為給它一個不是半正定的矩陣，QuantLib 會把它修好，而不是拒絕它（{doc}`../HANDLERS`）。"
 
 #: ../../maths/exotics.md:321 33c33175427d4f279e05fe5782fe73d3
 msgid "One-touch digitals"
@@ -680,5 +680,5 @@ msgid ""
 "digital would have been taken and dropped and a price returned for a "
 "different trade, so the service refuses it — the only rule on this page "
 "that QuantLib itself would not have raised."
-msgstr "**沒有回饋金。**引擎根本不會去讀它。跟著敲出入二元選擇權一起送來的回饋金，會被收下、丟棄，然後回給你另一筆交易的價格，所以服務會拒絕它——這是本頁唯一一條 QuantLib 自己不會提出來的規則。"
+msgstr "**沒有回饋金**。引擎根本不會去讀它。跟著敲出入二元選擇權一起送來的回饋金，會被收下、丟棄，然後回給你另一筆交易的價格，所以服務會拒絕它——這是本頁唯一一條 QuantLib 自己不會提出來的規則。"
 

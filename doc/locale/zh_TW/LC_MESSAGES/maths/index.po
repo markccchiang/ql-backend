@@ -221,7 +221,7 @@ msgid ""
 "non-flat curve is handled exactly rather than by an effective flat rate. "
 "Where these pages write $e^{-rT}$ they mean $D_r$; the two coincide only "
 "for a flat continuously compounded curve."
-msgstr "**折現因子來自曲線，不是來自某個利率。**QuantLib 的引擎向期限結構索取 $P(0,T)$ 與遠期價，因此非平坦曲線是被精確處理的，而不是用一個等效的平坦利率代替。這幾頁寫 $e^{-rT}$ 的地方，指的都是 $D_r$；兩者只有在平坦的連續複利曲線上才一致。"
+msgstr "**折現因子來自曲線，不是來自某個利率**。QuantLib 的引擎向期限結構索取 $P(0,T)$ 與遠期價，因此非平坦曲線是被精確處理的，而不是用一個等效的平坦利率代替。這幾頁寫 $e^{-rT}$ 的地方，指的都是 $D_r$；兩者只有在平坦的連續複利曲線上才一致。"
 
 #: ../../maths/index.md:39 a425dc9165d0484e95118e85cd1b60a6
 msgid ""
