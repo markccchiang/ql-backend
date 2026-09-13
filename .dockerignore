@@ -1,0 +1,14 @@
+# This checkout is a named build context for the image ql-frontend's Dockerfile
+# builds (--build-context ql-backend=...). That build reads CMakeLists.txt, src,
+# proto and third_party/uWebSockets; everything below is large, local, or both,
+# and would otherwise be sent to the builder on every build.
+**/.git
+.idea
+.venv
+build
+build-*
+cmake-build-*
+third_party/QuantLib
+doc/_build
+**/__pycache__
+CLAUDE.md
