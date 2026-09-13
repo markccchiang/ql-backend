@@ -120,7 +120,7 @@ namespace {
             std::fprintf(stderr, "could not write %s\n", path.c_str());
             std::exit(2);
         }
-        std::printf("[qlservice] minted a token in %s\n", path.c_str());
+        std::printf("[ql-backend] minted a token in %s\n", path.c_str());
         return token;
     }
 
@@ -211,15 +211,15 @@ int main(int argc, char** argv) {
 
     try {
         qlservice::Gateway gateway(options);
-        std::printf("[qlservice] listening on ws://%s:%d%s\n", options.host.c_str(), options.port,
+        std::printf("[ql-backend] listening on ws://%s:%d%s\n", options.host.c_str(), options.port,
                     options.authToken.empty() ? "" : " (a token is required)");
         std::fflush(stdout);
         if (!gateway.run()) {
-            std::fprintf(stderr, "[qlservice] could not listen on port %d\n", options.port);
+            std::fprintf(stderr, "[ql-backend] could not listen on port %d\n", options.port);
             return 1;
         }
     } catch (const std::exception& e) {
-        std::fprintf(stderr, "[qlservice] fatal: %s\n", e.what());
+        std::fprintf(stderr, "[ql-backend] fatal: %s\n", e.what());
         return 1;
     }
     return 0;

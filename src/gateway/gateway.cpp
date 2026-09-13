@@ -34,7 +34,7 @@ namespace qlservice {
         using WS = uWS::WebSocket<false, true, SocketData>;
 
         void logf(const char* what, const std::string& detail) {
-            std::fprintf(stderr, "[qlservice] %s: %s\n", what, detail.c_str());
+            std::fprintf(stderr, "[ql-backend] %s: %s\n", what, detail.c_str());
         }
 
         //! Terminal frames held for one absent client before we start dropping.
