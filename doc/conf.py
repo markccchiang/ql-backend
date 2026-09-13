@@ -4,7 +4,7 @@
 # repository root; myst_parser is what lets Sphinx read them unchanged, so a
 # page stays readable on GitHub and in the built HTML without a second copy.
 
-project = "Interactive QuantLib Service"
+project = "ql-backend"
 author = "Cheng-Chin Chiang"
 copyright = "2026, Cheng-Chin Chiang"
 
