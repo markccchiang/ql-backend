@@ -136,3 +136,15 @@ It runs and it prices. What is missing is the process boundary: workers are
 threads inside the gateway process today, so a cancel that has to *kill* a
 running calculation can only disown it. The design for fork/exec workers, and
 what that buys, is in [`doc/DESIGN.md`](doc/DESIGN.md) §3.
+
+## License
+
+[MIT](LICENSE) — free to use, copy, modify and distribute, including
+commercially, as long as the copyright notice comes along.
+
+That covers the code in this repository. The submodules keep their own
+licences: [QuantLib](https://github.com/lballabio/QuantLib) is under a
+modified BSD licence and [uWebSockets](https://github.com/uNetworking/uWebSockets)
+under Apache 2.0, both of which permit this use; the wire schema is
+[ql-protobuf](https://github.com/markccchiang/ql-protobuf), licensed
+separately.
