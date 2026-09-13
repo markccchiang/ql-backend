@@ -9,7 +9,7 @@
 #include <ql/version.hpp>
 #include <quantlib/v2/envelope.pb.h>
 
-namespace qlservice {
+namespace qlbackend {
 
     namespace qlpb = quantlib::v2;
 

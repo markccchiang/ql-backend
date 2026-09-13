@@ -4,15 +4,15 @@
     \brief the WebSocket front end: sockets, ids, backpressure, the event loop
 */
 
-#ifndef qlservice_gateway_gateway_hpp
-#define qlservice_gateway_gateway_hpp
+#ifndef qlbackend_gateway_gateway_hpp
+#define qlbackend_gateway_gateway_hpp
 
 #include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! Terminates client connections and drives the supervisor.
     /*! Implements DESIGN §9. The event loop is single threaded and everything

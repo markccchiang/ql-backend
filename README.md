@@ -71,7 +71,7 @@ git clone https://github.com/markccchiang/ql-backend.git
 cd ql-backend
 git submodule update --init --recursive                     # schema, uWebSockets
 git submodule update --init --checkout --depth 1 third_party/QuantLib
-cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON -Wno-dev
+cmake -S . -B build -DQLBACKEND_VENDOR_QUANTLIB=ON -Wno-dev
 cmake --build build -j
 ./build/ql-backend --port 9111
 ```

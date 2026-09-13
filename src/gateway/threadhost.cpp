@@ -9,7 +9,7 @@
 
 namespace qlpb = quantlib::v2;
 
-namespace qlservice {
+namespace qlbackend {
 
     ThreadProcessHost::ThreadProcessHost(Post post, FrameSink frames, SessionSink died)
     : post_(std::move(post)), frames_(std::move(frames)), died_(std::move(died)) {

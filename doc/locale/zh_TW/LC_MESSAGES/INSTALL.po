@@ -40,10 +40,10 @@ msgstr "路線 B 是 `CMakeLists.txt` 中的預設，因為建置 QuantLib 將�
 
 #: ../../INSTALL.md:12 1289afc363c747a2948f83fd85b762c7
 msgid ""
-"The targets are `qlservice` (the static library) and `ql-backend` (the "
+"The targets are `qlbackend` (the static library) and `ql-backend` (the "
 "daemon, which shares its name with the CMake project). The build options "
-"below are spelled `QLSERVICE_*`, after the library."
-msgstr "建置目標是 `qlservice`（靜態函式庫）與 `ql-backend`（常駐程式，與 CMake 專案同名）。下方的建置選項以函式庫命名，寫作 `QLSERVICE_*`。"
+"below are spelled `QLBACKEND_*`, after the library."
+msgstr "建置目標是 `qlbackend`（靜態函式庫）與 `ql-backend`（常駐程式，與 CMake 專案同名）。下方的建置選項以函式庫命名，寫作 `QLBACKEND_*`。"
 
 #: ../../INSTALL.md:16 e2f1347ce1694009be5bc8a8b376e915
 msgid "Prerequisites"
@@ -329,7 +329,7 @@ msgid "Effect"
 msgstr "作用"
 
 #: ../../INSTALL.md 12e4249b3acc4d1d823d1bc9fe7ced1d
-msgid "`QLSERVICE_VENDOR_QUANTLIB`"
+msgid "`QLBACKEND_VENDOR_QUANTLIB`"
 msgstr ""
 
 #: ../../INSTALL.md 0779d5243ea94b8088f4a600a3fb359f
@@ -342,12 +342,12 @@ msgid "Build QuantLib from `third_party/QuantLib` instead of `find_package`"
 msgstr "從 `third_party/QuantLib` 建置 QuantLib，而不是使用 `find_package`"
 
 #: ../../INSTALL.md ff95f16a76344b1bac438fa74e69dd03
-msgid "`QLSERVICE_WERROR`"
+msgid "`QLBACKEND_WERROR`"
 msgstr ""
 
 #: ../../INSTALL.md 734caf9da1dc4cc3a7bdef81d8b26944
-msgid "`-Werror` on `qlservice`. The tree is warning-free on both routes"
-msgstr "對 `qlservice` 啟用 `-Werror`。整個原始碼樹在兩條路線上都沒有警告"
+msgid "`-Werror` on `qlbackend`. The tree is warning-free on both routes"
+msgstr "對 `qlbackend` 啟用 `-Werror`。整個原始碼樹在兩條路線上都沒有警告"
 
 #: ../../INSTALL.md:141 ea3819f1b89b4e2ebea8d6c5cc6db6b1
 msgid ""
@@ -356,9 +356,9 @@ msgid ""
 "`-w`, and a vendored QuantLib's headers are marked as system includes. "
 "The `ql-backend` target drops `-Wpedantic` alone — uWebSockets' templates"
 " are instantiated there and were not written to it — and "
-"`QLSERVICE_WERROR` reaches `qlservice` only, so the three gateway "
+"`QLBACKEND_WERROR` reaches `qlbackend` only, so the three gateway "
 "translation units are warned about but never fail on it."
-msgstr "警告選項是 `-Wall -Wextra -Wpedantic -Wno-switch`，而且只套用在本專案自己的建置目標上：產生的 protobuf 程式碼與 uSockets 以 `-w` 建置，內附 QuantLib 的標頭檔則標記為系統 include。`ql-backend` 目標只拿掉 `-Wpedantic`——uWebSockets 的樣板在那裡實體化，而它們並不是照這個標準寫的——而 `QLSERVICE_WERROR` 只作用於 `qlservice`，因此三個閘道編譯單元會收到警告，但從不會因此建置失敗。"
+msgstr "警告選項是 `-Wall -Wextra -Wpedantic -Wno-switch`，而且只套用在本專案自己的建置目標上：產生的 protobuf 程式碼與 uSockets 以 `-w` 建置，內附 QuantLib 的標頭檔則標記為系統 include。`ql-backend` 目標只拿掉 `-Wpedantic`——uWebSockets 的樣板在那裡實體化，而它們並不是照這個標準寫的——而 `QLBACKEND_WERROR` 只作用於 `qlbackend`，因此三個閘道編譯單元會收到警告，但從不會因此建置失敗。"
 
 #: ../../INSTALL.md:148 939dfa6c4006425fbb3198c2db7ba5d8
 msgid "Things that will bite"
@@ -383,11 +383,11 @@ msgstr "**未初始化的 `proto` 是硬性錯誤。** 結構描述是一個子�
 #: ../../INSTALL.md:157 8ade189004ea4c03b6d77df1da95831d
 msgid ""
 "**An uninitialized `third_party/uWebSockets` is not an error.** The "
-"configure succeeds, `libqlservice.a` still builds, and only the `ql-"
+"configure succeeds, `libqlbackend.a` still builds, and only the `ql-"
 "backend` executable is skipped — with a message telling you to init the "
 "submodule. If you ran `cmake` before `git submodule update`, this is why "
 "there is no binary."
-msgstr "**未初始化的 `third_party/uWebSockets` 不是錯誤。** 設定會成功，`libqlservice.a` 照樣建置，只有 `ql-backend` 執行檔會被略過——並附上一則訊息要你初始化子模組。如果你在 `git submodule update` 之前就執行了 `cmake`，這就是沒有執行檔的原因。"
+msgstr "**未初始化的 `third_party/uWebSockets` 不是錯誤。** 設定會成功，`libqlbackend.a` 照樣建置，只有 `ql-backend` 執行檔會被略過——並附上一則訊息要你初始化子模組。如果你在 `git submodule update` 之前就執行了 `cmake`，這就是沒有執行檔的原因。"
 
 #: ../../INSTALL.md:161 d51a27020dce40658096960dfd40f071
 msgid ""
@@ -420,11 +420,11 @@ msgstr "**可路由的 `--host` 需要 `--token-file FILE`。** 少了它，常�
 
 #: ../../INSTALL.md:176 661b4144778045788a20238ee6643205
 msgid ""
-"**`QLSERVICE_VENDOR_QUANTLIB=ON` with an empty submodule** stops the "
+"**`QLBACKEND_VENDOR_QUANTLIB=ON` with an empty submodule** stops the "
 "configure with a `FATAL_ERROR` naming the checkout command. That one is "
 "deliberate: a vendored build that silently fell back to `find_package` "
 "would defeat the point of the option."
-msgstr "**`QLSERVICE_VENDOR_QUANTLIB=ON` 搭配空的子模組**會以 `FATAL_ERROR` 中止設定，並指出該執行的 checkout 指令。這一項是刻意的：一個悄悄退回 `find_package` 的內附建置，會讓這個選項失去意義。"
+msgstr "**`QLBACKEND_VENDOR_QUANTLIB=ON` 搭配空的子模組**會以 `FATAL_ERROR` 中止設定，並指出該執行的 checkout 指令。這一項是刻意的：一個悄悄退回 `find_package` 的內附建置，會讓這個選項失去意義。"
 
 #: ../../INSTALL.md:181 8170692e8f554882bf305dafe2f228e2
 msgid "Verifying the build"

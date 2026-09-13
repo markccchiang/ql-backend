@@ -31,16 +31,33 @@ endif()
 # one links and prices, and only test/smoke_v2.py notices. Vendoring turns
 # both of those from environmental facts into build settings.
 
-option(QLSERVICE_VENDOR_QUANTLIB
+# The options were spelled QLSERVICE_* until the project took the ql-backend
+# name. A build tree configured before that still holds the old entries in its
+# cache, and an IDE profile may still pass them with -D; either would otherwise
+# be ignored without a word, and a vendored build would quietly go back to
+# finding an installed QuantLib -- the silent failure this file exists to rule
+# out. So an old setting is carried over to its new name, once, and said.
+foreach (setting IN ITEMS VENDOR_QUANTLIB WERROR)
+    if (DEFINED CACHE{QLSERVICE_${setting}})
+        if (NOT DEFINED CACHE{QLBACKEND_${setting}})
+            set(QLBACKEND_${setting} "${QLSERVICE_${setting}}" CACHE BOOL "")
+        endif()
+        message(STATUS "QLSERVICE_${setting} is now QLBACKEND_${setting}: "
+            "carried over as ${QLBACKEND_${setting}}")
+        unset(QLSERVICE_${setting} CACHE)
+    endif()
+endforeach()
+
+option(QLBACKEND_VENDOR_QUANTLIB
     "Build QuantLib from third_party/QuantLib instead of finding an installed one" OFF)
 
-set(QLSERVICE_QUANTLIB "${CMAKE_CURRENT_SOURCE_DIR}/third_party/QuantLib")
+set(QLBACKEND_QUANTLIB "${CMAKE_CURRENT_SOURCE_DIR}/third_party/QuantLib")
 
-if (QLSERVICE_VENDOR_QUANTLIB)
+if (QLBACKEND_VENDOR_QUANTLIB)
 
-    if (NOT EXISTS "${QLSERVICE_QUANTLIB}/ql/quantlib.hpp")
+    if (NOT EXISTS "${QLBACKEND_QUANTLIB}/ql/quantlib.hpp")
         message(FATAL_ERROR
-            "QLSERVICE_VENDOR_QUANTLIB is ON but third_party/QuantLib is empty. "
+            "QLBACKEND_VENDOR_QUANTLIB is ON but third_party/QuantLib is empty. "
             "Run: git submodule update --init --checkout third_party/QuantLib")
     endif()
 
@@ -60,9 +77,9 @@ if (QLSERVICE_VENDOR_QUANTLIB)
 
     # QuantLib's CMakeLists has no top-level guard, so its install() rules
     # become part of this project's install as well. Harmless here — nothing
-    # installs qlservice — and preferable to EXCLUDE_FROM_ALL, which leaves
+    # installs qlbackend — and preferable to EXCLUDE_FROM_ALL, which leaves
     # install rules on an excluded directory.
-    add_subdirectory("${QLSERVICE_QUANTLIB}")
+    add_subdirectory("${QLBACKEND_QUANTLIB}")
 
     # In-tree the target is ql_library; the QuantLib:: namespace is applied by
     # install(EXPORT ...) and so exists only for an installed QuantLib. The
@@ -72,7 +89,7 @@ if (QLSERVICE_VENDOR_QUANTLIB)
     # An imported QuantLib arrives with system includes, an in-tree one does
     # not, and QuantLib's headers do not compile clean under this project's
     # -Wall -Wextra -Wpedantic. Without this the vendored build is 15 warnings
-    # louder than the installed one and QLSERVICE_WERROR fails on someone
+    # louder than the installed one and QLBACKEND_WERROR fails on someone
     # else's code. (add_subdirectory(SYSTEM) would do the same but needs 3.25.)
     set_target_properties(ql_library PROPERTIES
         INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
@@ -95,10 +112,10 @@ find_package(Protobuf CONFIG REQUIRED)
 # The generated headers are included as "quantlib/v1/envelope.pb.h", so the
 # output root — not the package directory — goes on the include path and the
 # proto's own package path is preserved underneath it.
-set(QLSERVICE_PROTO_OUT "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY "${QLSERVICE_PROTO_OUT}")
+set(QLBACKEND_PROTO_OUT "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${QLBACKEND_PROTO_OUT}")
 
-add_library(qlservice_proto OBJECT
+add_library(qlbackend_proto OBJECT
     proto/quantlib/v1/conventions.proto
     proto/quantlib/v1/envelope.proto
 
@@ -113,17 +130,17 @@ add_library(qlservice_proto OBJECT
 )
 
 protobuf_generate(
-    TARGET qlservice_proto
+    TARGET qlbackend_proto
     IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/proto"
-    PROTOC_OUT_DIR "${QLSERVICE_PROTO_OUT}"
+    PROTOC_OUT_DIR "${QLBACKEND_PROTO_OUT}"
 )
 
-target_include_directories(qlservice_proto PUBLIC "${QLSERVICE_PROTO_OUT}")
-target_link_libraries(qlservice_proto PUBLIC protobuf::libprotobuf)
+target_include_directories(qlbackend_proto PUBLIC "${QLBACKEND_PROTO_OUT}")
+target_link_libraries(qlbackend_proto PUBLIC protobuf::libprotobuf)
 
 # Generated code is not ours to lint, and protobuf 34 emits deprecation
 # warnings from its own headers under -Wall.
-target_compile_options(qlservice_proto PRIVATE -w)
+target_compile_options(qlbackend_proto PRIVATE -w)
 
 # ---------------------------------------------------------------------------
 # The service library
@@ -134,7 +151,7 @@ target_compile_options(qlservice_proto PRIVATE -w)
 # (DESIGN §3 — ThreadProcessHost stands in). Building this compiles the
 # QuantLib half on its own, which is the half that does not need a socket.
 
-add_library(qlservice STATIC
+add_library(qlbackend STATIC
     src/conventions/registry.cpp
     src/session/capabilities.cpp
     src/session/session.cpp
@@ -142,19 +159,19 @@ add_library(qlservice STATIC
     src/session/worker.cpp
 )
 
-target_include_directories(qlservice PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(qlservice PUBLIC qlservice_proto QuantLib::QuantLib)
+target_include_directories(qlbackend PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(qlbackend PUBLIC qlbackend_proto QuantLib::QuantLib)
 
-target_compile_options(qlservice PRIVATE
+target_compile_options(qlbackend PRIVATE
     -Wall -Wextra -Wpedantic
     # Every proto3 enum reserves 0 as *_UNSPECIFIED and the registry rejects
     # it, so a switch that omits it is deliberate rather than an oversight.
     -Wno-switch
 )
 
-option(QLSERVICE_WERROR "Treat warnings as errors" OFF)
-if (QLSERVICE_WERROR)
-    target_compile_options(qlservice PRIVATE -Werror)
+option(QLBACKEND_WERROR "Treat warnings as errors" OFF)
+if (QLBACKEND_WERROR)
+    target_compile_options(qlbackend PRIVATE -Werror)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -170,17 +187,17 @@ endif()
 # package config: the C++ layer is headers only and the C library underneath it
 # is built from source here.
 
-set(QLSERVICE_UWS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/uWebSockets")
+set(QLBACKEND_UWS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/uWebSockets")
 
-if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
+if (EXISTS "${QLBACKEND_UWS}/uSockets/src/libusockets.h")
 
     # What uSockets' own Makefile compiles, minus the translation units that
     # are empty in this configuration. Globbed rather than listed so a version
     # bump does not silently drop a new file.
-    file(GLOB QLSERVICE_USOCKETS_SOURCES CONFIGURE_DEPENDS
-        "${QLSERVICE_UWS}/uSockets/src/*.c"
-        "${QLSERVICE_UWS}/uSockets/src/eventing/*.c"
-        "${QLSERVICE_UWS}/uSockets/src/crypto/*.c"
+    file(GLOB QLBACKEND_USOCKETS_SOURCES CONFIGURE_DEPENDS
+        "${QLBACKEND_UWS}/uSockets/src/*.c"
+        "${QLBACKEND_UWS}/uSockets/src/eventing/*.c"
+        "${QLBACKEND_UWS}/uSockets/src/crypto/*.c"
     )
 
     # Each of these compiles to nothing here and ranlib warns about the empty
@@ -189,14 +206,14 @@ if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
     # build does not select — epoll_kqueue.c is the one that has content on
     # both macOS and Linux. src/crypto/sni_tree.cpp (SSL) and src/io_uring
     # (Linux) are outside the globs above for the same reason.
-    list(REMOVE_ITEM QLSERVICE_USOCKETS_SOURCES
-        "${QLSERVICE_UWS}/uSockets/src/crypto/openssl.c"
-        "${QLSERVICE_UWS}/uSockets/src/quic.c"
-        "${QLSERVICE_UWS}/uSockets/src/eventing/gcd.c"
-        "${QLSERVICE_UWS}/uSockets/src/eventing/libuv.c"
+    list(REMOVE_ITEM QLBACKEND_USOCKETS_SOURCES
+        "${QLBACKEND_UWS}/uSockets/src/crypto/openssl.c"
+        "${QLBACKEND_UWS}/uSockets/src/quic.c"
+        "${QLBACKEND_UWS}/uSockets/src/eventing/gcd.c"
+        "${QLBACKEND_UWS}/uSockets/src/eventing/libuv.c"
     )
 
-    add_library(usockets STATIC ${QLSERVICE_USOCKETS_SOURCES})
+    add_library(usockets STATIC ${QLBACKEND_USOCKETS_SOURCES})
 
     set_target_properties(usockets PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
 
@@ -205,7 +222,7 @@ if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
     # libusockets.h have to agree on it.
     target_compile_definitions(usockets PUBLIC LIBUS_NO_SSL)
 
-    target_include_directories(usockets SYSTEM PUBLIC "${QLSERVICE_UWS}/uSockets/src")
+    target_include_directories(usockets SYSTEM PUBLIC "${QLBACKEND_UWS}/uSockets/src")
 
     # Third-party code, not ours to lint.
     target_compile_options(usockets PRIVATE -w)
@@ -220,13 +237,13 @@ if (EXISTS "${QLSERVICE_UWS}/uSockets/src/libusockets.h")
         src/gateway/threadhost.cpp
     )
 
-    target_include_directories(ql-backend SYSTEM PRIVATE "${QLSERVICE_UWS}/src")
+    target_include_directories(ql-backend SYSTEM PRIVATE "${QLBACKEND_UWS}/src")
 
     # No permessage-deflate: the frames are already compact protobuf, and it
     # drops the zlib dependency.
     target_compile_definitions(ql-backend PRIVATE UWS_NO_ZLIB)
 
-    target_link_libraries(ql-backend PRIVATE qlservice usockets)
+    target_link_libraries(ql-backend PRIVATE qlbackend usockets)
 
     # -Wpedantic is left off here alone: uWebSockets' templates are
     # instantiated in this target and are not written to it.

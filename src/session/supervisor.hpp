@@ -4,8 +4,8 @@
     \brief session log, worker pool and placement, cancel-by-kill with replay
 */
 
-#ifndef qlservice_session_supervisor_hpp
-#define qlservice_session_supervisor_hpp
+#ifndef qlbackend_session_supervisor_hpp
+#define qlbackend_session_supervisor_hpp
 
 #include "quantlib/v2/envelope.pb.h"
 #include <chrono>
@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! The replayable definition of one session.
     /*! A session's graph is fully determined by its OpenSession frame plus the

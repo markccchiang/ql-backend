@@ -4,8 +4,8 @@
     \brief what this build prices, as data
 */
 
-#ifndef qlservice_session_capabilities_hpp
-#define qlservice_session_capabilities_hpp
+#ifndef qlbackend_session_capabilities_hpp
+#define qlbackend_session_capabilities_hpp
 
 #include <cstdint>
 
@@ -13,7 +13,7 @@ namespace quantlib::v2 {
     class Capabilities;
 }
 
-namespace qlservice {
+namespace qlbackend {
 
     //! The most points one sweep may hold, counting the product of its axes.
     /*! A grid multiplies, so a step count one digit too long is not a slow

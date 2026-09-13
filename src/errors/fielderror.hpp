@@ -4,8 +4,8 @@
     \brief a rejected frame, carrying the wire code and the field that caused it
 */
 
-#ifndef qlservice_errors_fielderror_hpp
-#define qlservice_errors_fielderror_hpp
+#ifndef qlbackend_errors_fielderror_hpp
+#define qlbackend_errors_fielderror_hpp
 
 #include "quantlib/v2/envelope.pb.h"
 #include <ql/errors.hpp>
@@ -13,7 +13,7 @@
 #include <string>
 #include <utility>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! An error that names the proto field responsible for it.
     /*! `QuantLib::Error` carries only a message, so a rejection thrown with
@@ -67,7 +67,7 @@ namespace qlservice {
     QL_MULTILINE_FAILURE_BEGIN                                                               \
     std::ostringstream _qls_msg_stream;                                                      \
     _qls_msg_stream << message;                                                              \
-    throw ::qlservice::FieldError((code), (path), _qls_msg_stream.str(), __FILE__, __LINE__, \
+    throw ::qlbackend::FieldError((code), (path), _qls_msg_stream.str(), __FILE__, __LINE__, \
                                   BOOST_CURRENT_FUNCTION);                                   \
     QL_MULTILINE_FAILURE_END
 

@@ -4,8 +4,8 @@
     \brief translation of protobuf convention messages into QuantLib objects
 */
 
-#ifndef qlservice_conventions_registry_hpp
-#define qlservice_conventions_registry_hpp
+#ifndef qlbackend_conventions_registry_hpp
+#define qlbackend_conventions_registry_hpp
 
 #include "quantlib/v1/conventions.pb.h"
 // Error::Code is v2's; the conventions above are shared (DESIGN 6.3).
@@ -25,7 +25,7 @@
 #include <functional>
 #include <string>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! Translates protobuf convention messages into QuantLib objects.
     /*! QuantLib has no reflection and no string-to-object factory, so this

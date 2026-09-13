@@ -4,8 +4,8 @@
     \brief one client's live QuantLib object graph
 */
 
-#ifndef qlservice_session_session_hpp
-#define qlservice_session_session_hpp
+#ifndef qlbackend_session_session_hpp
+#define qlbackend_session_session_hpp
 
 #include "conventions/registry.hpp"
 #include "quantlib/v2/envelope.pb.h"
@@ -35,7 +35,7 @@ namespace QuantLib {
     // be forward declared and the header above has to be included.
 }
 
-namespace qlservice {
+namespace qlbackend {
 
     //! One client session: a live QuantLib object graph plus its quotes.
     /*! A Session is owned by exactly one worker thread for its whole life and

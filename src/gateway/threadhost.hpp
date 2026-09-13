@@ -4,8 +4,8 @@
     \brief a ProcessHost whose "processes" are groups of threads in this process
 */
 
-#ifndef qlservice_gateway_threadhost_hpp
-#define qlservice_gateway_threadhost_hpp
+#ifndef qlbackend_gateway_threadhost_hpp
+#define qlbackend_gateway_threadhost_hpp
 
 #include "session/supervisor.hpp"
 #include <atomic>
@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace qlservice {
+namespace qlbackend {
 
     class Worker;
 

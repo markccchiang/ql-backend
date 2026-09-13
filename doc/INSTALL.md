@@ -9,9 +9,9 @@ Route B is the default in `CMakeLists.txt`, because a QuantLib build is nearly a
 thousand translation units and you do not want to repeat it. Route A is the one
 to start with, because it cannot be misconfigured.
 
-The targets are `qlservice` (the static library) and `ql-backend` (the daemon,
+The targets are `qlbackend` (the static library) and `ql-backend` (the daemon,
 which shares its name with the CMake project). The build options below are
-spelled `QLSERVICE_*`, after the library.
+spelled `QLBACKEND_*`, after the library.
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ external dependency on both routes.
 ```bash
 git submodule update --init --recursive                        # proto, uWebSockets + uSockets
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
-cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON -Wno-dev
+cmake -S . -B build -DQLBACKEND_VENDOR_QUANTLIB=ON -Wno-dev
 cmake --build build -j
 ./build/ql-backend --port 9111
 ```
@@ -135,14 +135,14 @@ that agree exactly mean the wrong QuantLib is linked.**
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `QLSERVICE_VENDOR_QUANTLIB` | `OFF` | Build QuantLib from `third_party/QuantLib` instead of `find_package` |
-| `QLSERVICE_WERROR` | `OFF` | `-Werror` on `qlservice`. The tree is warning-free on both routes |
+| `QLBACKEND_VENDOR_QUANTLIB` | `OFF` | Build QuantLib from `third_party/QuantLib` instead of `find_package` |
+| `QLBACKEND_WERROR` | `OFF` | `-Werror` on `qlbackend`. The tree is warning-free on both routes |
 
 Warnings are `-Wall -Wextra -Wpedantic -Wno-switch`, and only on this project's
 own targets: generated protobuf code and uSockets build with `-w`, and a
 vendored QuantLib's headers are marked as system includes. The `ql-backend`
 target drops `-Wpedantic` alone — uWebSockets' templates are instantiated there
-and were not written to it — and `QLSERVICE_WERROR` reaches `qlservice` only,
+and were not written to it — and `QLBACKEND_WERROR` reaches `qlbackend` only,
 so the three gateway translation units are warned about but never fail on it.
 
 ## Things that will bite
@@ -155,7 +155,7 @@ so the three gateway translation units are warned about but never fail on it.
   `git submodule update` fails the configure with `Cannot find source file`
   rather than degrading. It is the one submodule with no graceful path.
 - **An uninitialized `third_party/uWebSockets` is not an error.** The configure
-  succeeds, `libqlservice.a` still builds, and only the `ql-backend` executable
+  succeeds, `libqlbackend.a` still builds, and only the `ql-backend` executable
   is skipped — with a message telling you to init the submodule. If you ran
   `cmake` before `git submodule update`, this is why there is no binary.
 - **`--recursive` matters for uWebSockets**, which nests uSockets inside itself.
@@ -173,7 +173,7 @@ so the three gateway translation units are warned about but never fail on it.
   on loopback behind a proxy that terminates TLS and authenticates. The check
   is a string comparison against the three loopback spellings, so it is a rule
   you can act on rather than a lookup you cannot see.
-- **`QLSERVICE_VENDOR_QUANTLIB=ON` with an empty submodule** stops the configure
+- **`QLBACKEND_VENDOR_QUANTLIB=ON` with an empty submodule** stops the configure
   with a `FATAL_ERROR` naming the checkout command. That one is deliberate: a
   vendored build that silently fell back to `find_package` would defeat the
   point of the option.

@@ -32,7 +32,7 @@
 using namespace QuantLib;
 namespace qlpb = quantlib::v1;
 
-namespace qlservice {
+namespace qlbackend {
 
     namespace {
 

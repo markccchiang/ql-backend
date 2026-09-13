@@ -22,7 +22,7 @@
 
 namespace qlpb = quantlib::v2;
 
-namespace qlservice {
+namespace qlbackend {
 
     namespace {
 

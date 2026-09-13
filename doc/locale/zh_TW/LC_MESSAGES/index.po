@@ -82,10 +82,10 @@ msgid ""
 "calculator` that `test-suite/quantooption.cpp` leaves open, and finds one"
 " of its three recorded values not reproducible ([the quanto barrier "
 "benchmark](BENCHMARK.md)). Builds warning-free under "
-"`QLSERVICE_WERROR=ON` on both routes — the vendored QuantLib v1.43 and a "
+"`QLBACKEND_WERROR=ON` on both routes — the vendored QuantLib v1.43 and a "
 "1.44-dev install — with AppleClang 21 at C++17, schema clean under "
 "`protoc 34.0`."
-msgstr "`test/smoke_v2.py` 透過傳輸線路為 **369 列 QuantLib 公開的參考值**定價，每一列都落在它原本的測試所用的容差之內。這些列不是手抄的：`test/extract_tables.py` 從 `test-suite/*.cpp` 把它們解析出來。它也以 PDE 交叉驗證解析式的 quanto 障礙選擇權，這回應了 `test-suite/quantooption.cpp` 懸而未決的 `TODO: bench against an existing prop calculator`，並發現它記錄的三個值中有一個無法重現（[quanto 障礙選擇權基準測試](BENCHMARK.md)）。在兩條路線上——內附的 QuantLib v1.43 與一份 1.44-dev 安裝——以 AppleClang 21、C++17，在 `QLSERVICE_WERROR=ON` 下建置皆無警告，結構描述在 `protoc 34.0` 下也乾淨無誤。"
+msgstr "`test/smoke_v2.py` 透過傳輸線路為 **369 列 QuantLib 公開的參考值**定價，每一列都落在它原本的測試所用的容差之內。這些列不是手抄的：`test/extract_tables.py` 從 `test-suite/*.cpp` 把它們解析出來。它也以 PDE 交叉驗證解析式的 quanto 障礙選擇權，這回應了 `test-suite/quantooption.cpp` 懸而未決的 `TODO: bench against an existing prop calculator`，並發現它記錄的三個值中有一個無法重現（[quanto 障礙選擇權基準測試](BENCHMARK.md)）。在兩條路線上——內附的 QuantLib v1.43 與一份 1.44-dev 安裝——以 AppleClang 21、C++17，在 `QLBACKEND_WERROR=ON` 下建置皆無警告，結構描述在 `protoc 34.0` 下也乾淨無誤。"
 
 #: ../../index.md:38 1f483974d7b64a328fee20769b50baf5
 msgid ""
@@ -387,6 +387,6 @@ msgid "`third_party/QuantLib`"
 msgstr ""
 
 #: ../../index.md 2552fe4424c24c7885c325d030bbed8e
-msgid "Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON`"
-msgstr "選用的子模組，固定在 v1.43，供 `-DQLSERVICE_VENDOR_QUANTLIB=ON` 使用"
+msgid "Opt-in submodule pinned at v1.43, for `-DQLBACKEND_VENDOR_QUANTLIB=ON`"
+msgstr "選用的子模組，固定在 v1.43，供 `-DQLBACKEND_VENDOR_QUANTLIB=ON` 使用"
 

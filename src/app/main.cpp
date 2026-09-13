@@ -127,7 +127,7 @@ namespace {
 }
 
 int main(int argc, char** argv) {
-    qlservice::Gateway::Options options;
+    qlbackend::Gateway::Options options;
     bool replacedOrigins = false;
 
     for (int i = 1; i < argc; ++i) {
@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
     }
 
     try {
-        qlservice::Gateway gateway(options);
+        qlbackend::Gateway gateway(options);
         std::printf("[ql-backend] listening on ws://%s:%d%s\n", options.host.c_str(), options.port,
                     options.authToken.empty() ? "" : " (a token is required)");
         std::fflush(stdout);

@@ -4,8 +4,8 @@
     \brief the thread that owns a session and serializes its requests
 */
 
-#ifndef qlservice_session_worker_hpp
-#define qlservice_session_worker_hpp
+#ifndef qlbackend_session_worker_hpp
+#define qlbackend_session_worker_hpp
 
 #include "session.hpp"
 #include "quantlib/v2/envelope.pb.h"
@@ -18,7 +18,7 @@
 #include <string>
 #include <thread>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! Owns one Session on one thread and serves its frames one at a time.
     /*! The queue is the point. QuantLib's session isolation is per thread

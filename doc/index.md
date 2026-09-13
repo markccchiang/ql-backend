@@ -31,7 +31,7 @@ It also cross-checks the analytic quanto barriers against a PDE, which answers
 the `TODO: bench against an existing prop calculator` that
 `test-suite/quantooption.cpp` leaves open, and finds one of its three recorded
 values not reproducible ([the quanto barrier benchmark](BENCHMARK.md)). Builds
-warning-free under `QLSERVICE_WERROR=ON` on both routes — the vendored
+warning-free under `QLBACKEND_WERROR=ON` on both routes — the vendored
 QuantLib v1.43 and a 1.44-dev install — with AppleClang 21 at C++17, schema
 clean under `protoc 34.0`.
 
@@ -47,7 +47,7 @@ replay-after-death is never exercised.
 ```bash
 git submodule update --init --recursive                        # proto, uWebSockets + uSockets
 git submodule update --init --checkout third_party/QuantLib    # QuantLib v1.43
-cmake -S . -B build -DQLSERVICE_VENDOR_QUANTLIB=ON
+cmake -S . -B build -DQLBACKEND_VENDOR_QUANTLIB=ON
 cmake --build build -j
 ./build/ql-backend --port 9111
 ```
@@ -110,7 +110,7 @@ lives in `iborindex.hpp`), and `std::min` cannot deduce between `Size` and the
 | [`CMakeLists.txt`](../CMakeLists.txt) | protoc invocation, the library, uSockets, and the executable |
 | `proto` | Submodule: the wire schema, [ql-protobuf](https://github.com/markccchiang/ql-protobuf) |
 | `third_party/uWebSockets` | Submodule pinned at v20.66.0, with uSockets nested inside |
-| `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON` |
+| `third_party/QuantLib` | Opt-in submodule pinned at v1.43, for `-DQLBACKEND_VENDOR_QUANTLIB=ON` |
 
 <!-- The Sphinx sidebar is built from this; the table above is the same list
      for anyone reading these files on GitHub, where the block below renders

@@ -4,13 +4,13 @@
     \brief RAII batching of observable notifications
 */
 
-#ifndef qlservice_session_updateguard_hpp
-#define qlservice_session_updateguard_hpp
+#ifndef qlbackend_session_updateguard_hpp
+#define qlbackend_session_updateguard_hpp
 
 #include <ql/patterns/observable.hpp>
 #include <string>
 
-namespace qlservice {
+namespace qlbackend {
 
     //! Defers observer notifications until the batch is committed.
     /*! Wraps a run of quote writes so the dependent instruments recalculate
