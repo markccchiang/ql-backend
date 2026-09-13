@@ -84,12 +84,22 @@ failures that are silent.
 
 ## Documentation
 
-Full documentation lives in [`doc/`](doc/index.md) and builds with Sphinx:
+Full documentation lives in [`doc/`](doc/index.md). Every page is Markdown and
+reads as it is on GitHub; Sphinx turns the set into a searchable site with a
+sidebar, rendered maths and the diagrams drawn.
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r doc/requirements.txt
+python3 -m venv .venv
+.venv/bin/pip install -r doc/requirements.txt          # sphinx, rtd theme, myst
 .venv/bin/python -m sphinx -b html doc doc/_build/html
+
+open doc/_build/html/index.html                        # macOS
+xdg-open doc/_build/html/index.html                    # Linux
 ```
+
+`make -C doc html` does the same once `sphinx-build` is on your `PATH` — after
+`source .venv/bin/activate`, say. The build writes to `doc/_build/`, which is
+gitignored, and is clean: any warning is a real broken reference.
 
 | Page | What it covers |
 | --- | --- |
