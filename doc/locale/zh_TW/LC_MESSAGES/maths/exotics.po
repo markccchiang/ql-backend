@@ -604,7 +604,7 @@ msgid ""
 "positive semi-definite, and why this build checks that it is: given one "
 "that is not, QuantLib repairs it rather than refusing it "
 "({doc}`../HANDLERS`)."
-msgstr ""
+msgstr "**其餘一律走蒙地卡羅。**加權平均在這裡沒有封閉解，三個以上資產的一籃子也沒有。這些資產是透過 `StochasticProcessArray` 一起演化的：它把相關係數矩陣分解一次，然後用一組相關的常態亂數推動整個系統。正是那個分解，使得矩陣必須是半正定的，也正是這個版本要去檢查它的原因——因為給它一個不是半正定的矩陣，QuantLib 會把它修好，而不是拒絕它（{doc}`../HANDLERS`）。"
 
 #: ../../maths/exotics.md:321 33c33175427d4f279e05fe5782fe73d3
 msgid "One-touch digitals"

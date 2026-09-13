@@ -21,24 +21,24 @@ msgstr ""
 
 #: ../../api/connecting.md:1 2886d5064bd4413cae394d0cd0025f06
 msgid "Connecting"
-msgstr ""
+msgstr "連線"
 
 #: ../../api/connecting.md:3 59eaed473df045d488cc25c032cfc638
 msgid ""
 "The service speaks Protobuf over a WebSocket. One binary message carries "
 "exactly one serialized frame — WebSocket already delimits messages, so "
 "there is no length prefix of your own to write."
-msgstr ""
+msgstr "服務透過 WebSocket 說 Protobuf。一個二進位訊息恰好承載一個序列化過的訊框——WebSocket 本身就會切分訊息，所以不需要你自己寫長度前綴。"
 
 #: ../../api/connecting.md:11 735842f0d8a141c88e6144c1db25e8fd
 msgid ""
 "`--host` and `--port` move it, with one refusal: a routable `--host` and "
 "no token is refused at startup rather than served."
-msgstr ""
+msgstr "`--host` 與 `--port` 可以改變它的位址，但有一種組合會被拒絕：可路由的 `--host` 卻沒有權杖，會在啟動時就被拒絕，而不是照樣提供服務。"
 
 #: ../../api/connecting.md:14 925e335245e94b4c88edf462bb9358b9
 msgid "The handshake"
-msgstr ""
+msgstr "握手"
 
 #: ../../api/connecting.md:16 4e74a132b77e4fe09182cc091a0bd2d3
 msgid ""
@@ -46,21 +46,21 @@ msgid ""
 "exactly one protocol and never echoes a token back, because a browser "
 "fails a handshake in which it named protocols and the server selected "
 "none."
-msgstr ""
+msgstr "提出子協定 **`qlservice.v2`**。服務一定恰好回應一個協定，而且絕不回送權杖，因為瀏覽器若在自己列出了協定、伺服器卻一個都沒選的情況下，會讓握手失敗。"
 
 #: ../../api/connecting.md:33 7ac9603cb5e540369a0e74f684145cb1
 msgid ""
 "Two refusals happen before a socket exists, and both are HTTP rather than"
 " frames:"
-msgstr ""
+msgstr "有兩種拒絕發生在連線建立之前，而且兩者都是 HTTP 回應，而不是訊框："
 
 #: ../../api/connecting.md ed5649a9fe19431e9ee4478201567f1b
 msgid "Answer"
-msgstr ""
+msgstr "回應"
 
 #: ../../api/connecting.md 1fe2d7dfd8494ed5b0e4f0c7465e186e
 msgid "Means"
-msgstr ""
+msgstr "意義"
 
 #: ../../api/connecting.md 325ebfbfd1a4450eb2fa31faf428415a
 msgid "`403 Forbidden`"
@@ -68,7 +68,7 @@ msgstr ""
 
 #: ../../api/connecting.md 80351955083b406e982cbe39600548a6
 msgid "an `Origin` header was present and is not on the allowed list"
-msgstr ""
+msgstr "帶了 `Origin` 標頭，而它不在允許清單上"
 
 #: ../../api/connecting.md 5f868d19d2f44eedafcaee3eb58b8e7a
 msgid "`401 Unauthorized`"
@@ -76,36 +76,36 @@ msgstr ""
 
 #: ../../api/connecting.md b75b21c210c34560a8f679c8715739c2
 msgid "the service was started with a token and yours was wrong or missing"
-msgstr ""
+msgstr "服務啟動時設定了權杖，而你的權杖錯誤或缺漏"
 
 #: ../../api/connecting.md:41 0ee35fe823aa41849826be383367fbd2
 msgid ""
 "An absent `Origin` is let through: only browsers send one, so the check "
 "closes the browser path and leaves a script, a CLI or a proxy exactly as "
 "they were."
-msgstr ""
+msgstr "沒有 `Origin` 會被放行：只有瀏覽器會送這個標頭，所以這項檢查關上的是瀏覽器這條路，而腳本、CLI 或代理伺服器則完全維持原樣。"
 
 #: ../../api/connecting.md:44 6a098c9292c34dbbb63283050bc59d31
 msgid "The token, when there is one"
-msgstr ""
+msgstr "權杖（如果有的話）"
 
 #: ../../api/connecting.md:46 95c0ba9be5e64a17aba4bdcb01f32e60
 msgid ""
 "Started with `--token-file`, every upgrade must present the secret. Where"
 " it goes depends on what your client can set:"
-msgstr ""
+msgstr "以 `--token-file` 啟動時，每一次升級都必須出示密鑰。它放在哪裡，取決於你的用戶端能設定什麼："
 
 #: ../../api/connecting.md 0d2f362acfbf40f2b2e274d2eeecd05d
 msgid "Client"
-msgstr ""
+msgstr "用戶端"
 
 #: ../../api/connecting.md b9e633310daf4c009cc319ff271efb44
 msgid "Where the token goes"
-msgstr ""
+msgstr "權杖放在哪裡"
 
 #: ../../api/connecting.md d1ded041536e4f94919c08de43f9162b
 msgid "anything that can set headers"
-msgstr ""
+msgstr "任何能設定標頭的用戶端"
 
 #: ../../api/connecting.md 8ea668e3cdff420ebac05c33a2d85363
 msgid "`Authorization: Bearer <token>`"
@@ -113,21 +113,21 @@ msgstr ""
 
 #: ../../api/connecting.md 8c54a55ebdc8403fb7558387306322a6
 msgid "a browser"
-msgstr ""
+msgstr "瀏覽器"
 
 #: ../../api/connecting.md 7832b06b56d04db0b62c29b89a620b54
 msgid "`token.<token>` in the subprotocol list, **beside** `qlservice.v2`"
-msgstr ""
+msgstr "放在子協定清單裡的 `token.<token>`，與 `qlservice.v2` **並列**"
 
 #: ../../api/connecting.md:63 90b0814e06544f1dbfded50c3d716a3a
 msgid ""
 "Never put it in the query string: a URL reaches logs, history and "
 "referrers."
-msgstr ""
+msgstr "絕不要把它放在查詢字串裡：URL 會流進日誌、瀏覽紀錄與 referrer。"
 
 #: ../../api/connecting.md:65 6a4e24de29714b828f315e2127fc5f24
 msgid "Frames, ids and the one guarantee"
-msgstr ""
+msgstr "訊框、代號，以及那一項保證"
 
 #: ../../api/connecting.md:67 5684eea7d50c4e249d2c362d1999fbca
 msgid ""
@@ -135,7 +135,7 @@ msgid ""
 " and a `session_id` on everything after the session exists. Both come "
 "back on every reply, because one socket can hold several sessions and "
 "several requests at once."
-msgstr ""
+msgstr "你送出的每個訊框都是一個 `ClientFrame`，帶著由你配發的 `request_id`；工作階段建立之後的每個訊框，還要帶上 `session_id`。這兩者在每一個回覆上都會帶回來，因為一條連線可以同時容納好幾個工作階段與好幾個請求。"
 
 #: ../../api/connecting.md:72 6556bdc9f6f94b9fb582d8b58e737f1d
 msgid ""
@@ -146,7 +146,7 @@ msgid ""
 "arrives from a batched Monte Carlo, a sweep or a batch, and may be shed "
 "under backpressure — treat it as a hint, never as a count you have to "
 "receive."
-msgstr ""
+msgstr "**每一個請求都恰好得到一個終結訊框**，失敗的請求也是，取消請求本身也是。因此用戶端可以用 `request_id` 當鍵建立一張待處理對照表，並確知其中每一筆最終都會被某個訊框移除。唯一的非終結訊框是 `Progress`，它來自分批的蒙地卡羅、掃描或批次，而且在背壓下可能被丟棄——把它當成提示，絕不要當成一個你非收到不可的計數。"
 
 #: ../../api/connecting.md:90 05ccaf352bf743df892018df6584ba48
 msgid ""
@@ -156,19 +156,19 @@ msgid ""
 "pending registry, and a watchdog that flags a request which has heard "
 "nothing, since a missing terminal frame is a service bug rather than "
 "something to hide behind a timeout."
-msgstr ""
+msgstr "真正的用戶端不會像這樣阻塞等待——它會維護一張從 `request_id` 對到 future 的對照表，因為好幾個請求的訊框會在同一條連線上交錯抵達。前端的 `WireClient` 就是這個樣子：單調遞增的代號、一份待處理登記表，以及一個看門狗，負責標出遲遲沒有任何回音的請求，因為缺少終結訊框是服務的 bug，而不是該拿逾時來掩蓋的東西。"
 
 #: ../../api/connecting.md:97 ec7443b55a0448f8987a182945a32eb5
 msgid "Limits worth knowing before you hit them"
-msgstr ""
+msgstr "在撞上之前值得先知道的限制"
 
 #: ../../api/connecting.md 6334d5955f9047039e7814f90b730954
 msgid "Limit"
-msgstr ""
+msgstr "限制"
 
 #: ../../api/connecting.md 90b6acc18dc547b1bee1e4202f0c7e0b
 msgid "Default"
-msgstr ""
+msgstr "預設值"
 
 #: ../../api/connecting.md 800e218c6bfc4291bb235f379f4bf825
 msgid "What you get"
@@ -176,7 +176,7 @@ msgstr "你會得到什麼"
 
 #: ../../api/connecting.md 6c6f4f6140004c99aded26123e946a18
 msgid "sockets at once"
-msgstr ""
+msgstr "同時連線數"
 
 #: ../../api/connecting.md 0ef02ff73d904e76a5c08bc395502bfa
 msgid "32"
@@ -184,11 +184,11 @@ msgstr ""
 
 #: ../../api/connecting.md d6bebd88b2f04ff18cc076596ba22fb9
 msgid "`503` at the upgrade"
-msgstr ""
+msgstr "升級時回應 `503`"
 
 #: ../../api/connecting.md 1b3ec1040fb644568fb8cfb58e7aea24
 msgid "sessions per socket"
-msgstr ""
+msgstr "每條連線的工作階段數"
 
 #: ../../api/connecting.md 0b59b3f7dd604ba78f8555d251d46c9a
 msgid "16"
@@ -200,7 +200,7 @@ msgstr ""
 
 #: ../../api/connecting.md fabebb246b8b438a97f752d2b29ce9ce
 msgid "frame size"
-msgstr ""
+msgstr "訊框大小"
 
 #: ../../api/connecting.md 994157d7d1db4f5aa58f73d307f36036
 msgid "4 MB"
@@ -208,11 +208,11 @@ msgstr ""
 
 #: ../../api/connecting.md 454ba76bb9894c07ac2cf11569fd6568
 msgid "the transport closes the connection"
-msgstr ""
+msgstr "傳輸層關閉連線"
 
 #: ../../api/connecting.md 0376e66633c44846a44604ce3dab45d0
 msgid "points per sweep"
-msgstr ""
+msgstr "每次掃描的點數"
 
 #: ../../api/connecting.md c77d0fb4f2794d04ab005a7d5e809c33
 msgid "100,000"
@@ -226,22 +226,22 @@ msgstr ""
 msgid ""
 "The sweep and batch ceilings are also published in `Capabilities`, so a "
 "client can refuse a too-large request before spending the round trip."
-msgstr ""
+msgstr "掃描與批次的上限也會公布在 `Capabilities` 裡，因此用戶端可以在花掉一趟往返之前，就先拒絕過大的請求。"
 
 #: ../../api/connecting.md:109 05c6b59945c44011b002b4cca8ffaa97
 msgid "Liveness without the protocol"
-msgstr ""
+msgstr "不走協定的存活檢查"
 
 #: ../../api/connecting.md:111 ba242a41a1b34828a0ef5b35749ef50f
 msgid ""
 "`GET /healthz` answers over plain HTTP for a proxy or an orchestrator "
 "that cannot speak this protocol:"
-msgstr ""
+msgstr "`GET /healthz` 以純 HTTP 回應，供無法使用這套協定的代理伺服器或編排器使用："
 
 #: ../../api/connecting.md:119 bbe9a7689abb46b0a59331fade4d6e00
 msgid ""
 "It proves the event loop is turning, which is the honest scope of a "
 "liveness check. It says nothing about whether a particular session is "
 "healthy."
-msgstr ""
+msgstr "它證明事件迴圈還在轉，這正是存活檢查誠實的範圍。至於某個特定工作階段是否健康，它什麼也沒說。"
 

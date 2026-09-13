@@ -21,7 +21,7 @@ msgstr ""
 
 #: ../../INSTALL.md:1 7d6670ce1d2b424a96b65c2b432cee1f
 msgid "Building ql-backend"
-msgstr ""
+msgstr "建置 ql-backend"
 
 #: ../../INSTALL.md:3 7208226cb9834b13a65bccc3619ea8b7
 msgid ""
@@ -29,25 +29,25 @@ msgid ""
 "unmodified from a fresh clone; **Route B links an installed QuantLib** "
 "and is faster to rebuild once you have one. They differ only in where "
 "QuantLib comes from — the rest of the build is identical."
-msgstr ""
+msgstr "兩條路線。**路線 A 從子模組建置 QuantLib**，從全新的 clone 不必修改就能運作；**路線 B 連結已安裝的 QuantLib**，一旦你有了一份，重新建置會比較快。兩者只差在 QuantLib 從哪裡來——其餘的建置完全相同。"
 
 #: ../../INSTALL.md:8 7376e2df527a4c2ba2eea33cf2ba3fb1
 msgid ""
 "Route B is the default in `CMakeLists.txt`, because a QuantLib build is "
 "nearly a thousand translation units and you do not want to repeat it. "
 "Route A is the one to start with, because it cannot be misconfigured."
-msgstr ""
+msgstr "路線 B 是 `CMakeLists.txt` 中的預設，因為建置 QuantLib 將近一千個編譯單元，你不會想重複做。路線 A 則是起步該選的，因為它不可能被設定錯。"
 
 #: ../../INSTALL.md:12 1289afc363c747a2948f83fd85b762c7
 msgid ""
 "The targets are `qlservice` (the static library) and `ql-backend` (the "
 "daemon, which shares its name with the CMake project). The build options "
 "below are spelled `QLSERVICE_*`, after the library."
-msgstr ""
+msgstr "建置目標是 `qlservice`（靜態函式庫）與 `ql-backend`（常駐程式，與 CMake 專案同名）。下方的建置選項以函式庫命名，寫作 `QLSERVICE_*`。"
 
 #: ../../INSTALL.md:16 e2f1347ce1694009be5bc8a8b376e915
 msgid "Prerequisites"
-msgstr ""
+msgstr "先決條件"
 
 #: ../../INSTALL.md fef69020d748473cb874b29ea84670e4
 msgid "Needs"
@@ -55,7 +55,7 @@ msgstr "需要什麼"
 
 #: ../../INSTALL.md 1088d3aa28554af794dd8a5a31a1f643
 msgid "Known good here"
-msgstr ""
+msgstr "此處驗證可用的版本"
 
 #: ../../INSTALL.md 93bbf5c58cd04a0897c5c95ef1546226
 msgid "Notes"
@@ -71,7 +71,7 @@ msgstr ""
 
 #: ../../INSTALL.md f6cf7d3eb9514fffaccb22be09396ee5
 msgid "A C++17 compiler"
-msgstr ""
+msgstr "C++17 編譯器"
 
 #: ../../INSTALL.md 26054e82a7e3400ab094a59a84e11fb7
 msgid "AppleClang 21.0.0"
@@ -79,11 +79,11 @@ msgstr ""
 
 #: ../../INSTALL.md b8b6d1ce012942a4b206d177507ddcd3
 msgid "C is also enabled, for uSockets"
-msgstr ""
+msgstr "也會啟用 C，供 uSockets 使用"
 
 #: ../../INSTALL.md 202e81b1c7f3412ebced47da370cdabe
 msgid "Boost ≥ 1.58, headers"
-msgstr ""
+msgstr "Boost ≥ 1.58，標頭檔"
 
 #: ../../INSTALL.md 2a8ddea8c45641b485d9f355f8aff610
 msgid "1.92.0 (Homebrew)"
@@ -91,11 +91,11 @@ msgstr ""
 
 #: ../../INSTALL.md 4845f7bc29ba417eb8c2114f6ecdc0e1
 msgid "Required by QuantLib on **both** routes"
-msgstr ""
+msgstr "QuantLib 在**兩條**路線上都需要"
 
 #: ../../INSTALL.md c2b8cdf6ace44ea68b74b7971ccadbee
 msgid "Protobuf with a CMake package config"
-msgstr ""
+msgstr "附帶 CMake package config 的 Protobuf"
 
 #: ../../INSTALL.md d5b4d6f369154ead97b5ff75a0199dcf
 msgid "34.0 (Homebrew)"
@@ -103,7 +103,7 @@ msgstr ""
 
 #: ../../INSTALL.md 553884e173b9493db319f083b78b357c
 msgid "Found in CONFIG mode; see below"
-msgstr ""
+msgstr "以 CONFIG 模式尋找；見下文"
 
 #: ../../INSTALL.md baa42ef3aecf4803b3f15e0bb23cfbf9
 msgid "`protoc`"
@@ -115,7 +115,7 @@ msgstr ""
 
 #: ../../INSTALL.md 20d14a74e62242d5bfd12cef13999003
 msgid "Invoked by the build, not by hand"
-msgstr ""
+msgstr "由建置呼叫，而不是手動執行"
 
 #: ../../INSTALL.md 0d6e69ae86984901b6b23d64bf55e439
 msgid "git"
@@ -123,11 +123,11 @@ msgstr ""
 
 #: ../../INSTALL.md d179e9e9b1154cf3b8b99a08a631c5d1
 msgid "Both routes use submodules; the wire schema is one of them"
-msgstr ""
+msgstr "兩條路線都使用子模組；傳輸結構描述就是其中之一"
 
 #: ../../INSTALL.md a8e112b94cb94a6cbb17a1ec8ba66785
 msgid "Python 3 with `venv`"
-msgstr ""
+msgstr "附 `venv` 的 Python 3"
 
 #: ../../INSTALL.md 70f3001c8c824bf785eff47a4fecf25d
 msgid "3.14"
@@ -135,25 +135,25 @@ msgstr ""
 
 #: ../../INSTALL.md 0c4c03736fd7433d9e57ffe546f56f30
 msgid "Only for `test/`, not for the build"
-msgstr ""
+msgstr "只用於 `test/`，建置本身不需要"
 
 #: ../../INSTALL.md 0b5060789af945ddb9638d8eec3422cd
 msgid "A QuantLib, on Route B only"
-msgstr ""
+msgstr "一份 QuantLib，僅路線 B 需要"
 
 #: ../../INSTALL.md 7ab4a7be7a104df6bbd66a3ab5dd2e05
 msgid "1.44-dev, in a prefix of its own"
-msgstr ""
+msgstr "1.44-dev，安裝在專屬的前綴"
 
 #: ../../INSTALL.md c38c9b03339a47ebb28048048d09ba16
 msgid ""
 "Must be built with `QL_ENABLE_SESSIONS`; Route A builds the pinned v1.43 "
 "instead"
-msgstr ""
+msgstr "必須以 `QL_ENABLE_SESSIONS` 建置；路線 A 則改為建置固定版本 v1.43"
 
 #: ../../INSTALL.md:29 78bbde8bb3a046178af2191d4a7665dd
 msgid "On macOS with Homebrew: `brew install cmake boost protobuf`."
-msgstr ""
+msgstr "在 macOS 上使用 Homebrew：`brew install cmake boost protobuf`。"
 
 #: ../../INSTALL.md:31 f7226984ddf740d58b1d1823ec3e29ec
 msgid ""
@@ -161,17 +161,17 @@ msgid ""
 "CONFIG mode is deliberate — the deprecated `FindProtobuf` module misses "
 "the abseil dependencies that libprotobuf now carries. A protobuf "
 "installed without its CMake package config will not work."
-msgstr ""
+msgstr "Protobuf 是以 `find_package(Protobuf CONFIG REQUIRED)` 尋找的。使用 CONFIG 模式是刻意的——已棄用的 `FindProtobuf` 模組會漏掉 libprotobuf 現在帶有的 abseil 相依套件。安裝時沒有附帶 CMake package config 的 protobuf 無法使用。"
 
 #: ../../INSTALL.md:36 087ac4760caa48c2a1a38957a88e43ee
 msgid ""
 "Vendoring QuantLib does **not** make the build self-contained: Boost is "
 "an external dependency on both routes."
-msgstr ""
+msgstr "內附 QuantLib **並不會**讓建置自給自足：在兩條路線上，Boost 都是外部相依套件。"
 
 #: ../../INSTALL.md:39 760003fc42a04abc9473f84373431f06
 msgid "Route A (Recommended) — build QuantLib from the submodule"
-msgstr ""
+msgstr "路線 A（建議）——從子模組建置 QuantLib"
 
 #: ../../INSTALL.md:49 3d33d02b91f8430f9ca2f169ce763e6a
 msgid ""
@@ -180,11 +180,11 @@ msgid ""
 "settings this service cannot be correct without are build settings rather"
 " than properties of somebody's install tree. That is the whole reason "
 "this route exists — see [Why sessions matter](#why-sessions-matter)."
-msgstr ""
+msgstr "`CMakeLists.txt` 在加入 QuantLib 的目錄之前，強制設定 `QL_ENABLE_SESSIONS=ON` 與 `QL_ENABLE_OPENMP=OFF`，讓這個服務缺少了就不可能正確的兩項設定成為建置設定，而不是某人安裝目錄樹的屬性。這就是這條路線存在的全部理由——見[為什麼工作階段很重要](#why-sessions-matter)。"
 
 #: ../../INSTALL.md:55 38d6472e98d643fab16fe9eef4bb846f
 msgid "Three notes:"
-msgstr ""
+msgstr "三點說明："
 
 #: ../../INSTALL.md:57 e49a3de4ce8d4556b4ece1e2ddf0cae5
 msgid ""
@@ -193,7 +193,7 @@ msgid ""
 "at `third_party/QuantLib/CMakeLists.txt:164`. It is a policy a parent "
 "project cannot set on a submodule's behalf. Drop the flag to see it; "
 "nothing else is hidden, and Route B configures clean with or without it."
-msgstr ""
+msgstr "`-Wno-dev` 抑制了一個警告，而且它屬於 QuantLib 而非本專案：`CMP0167`，也就是 CMake 移除 `FindBoost` 模組一事，發生在 `third_party/QuantLib/CMakeLists.txt:164`。這是上層專案無法代替子模組設定的 policy。拿掉這個旗標就能看到它；除此之外沒有隱藏任何東西，而路線 B 不論有沒有這個旗標，設定都乾淨無警告。"
 
 #: ../../INSTALL.md:62 5cec2450b8ae4bcca26e18af567857cf
 msgid ""
@@ -201,38 +201,38 @@ msgid ""
 "`update = none` in `.gitmodules`. A plain `--init --recursive` skips it, "
 "so nobody on Route B pays for an 800 MB clone they will not use. "
 "`--checkout` is what overrides that."
-msgstr ""
+msgstr "第二個指令之所以分開，是因為 QuantLib 子模組在 `.gitmodules` 中標記為 `update = none`。單純的 `--init --recursive` 會略過它，所以走路線 B 的人不必為一份用不到的 800 MB clone 付出代價。`--checkout` 就是用來覆寫這項設定的。"
 
 #: ../../INSTALL.md:66 40c23663f67241799b67bb864d26324b
 msgid ""
 "QuantLib's full history is around 800 MB. Adding `--depth 1` to the "
 "second command fetches the pinned commit alone and brings that down to "
 "about 50 MB — 41 MB of working tree, 11 MB of git data:"
-msgstr ""
+msgstr "QuantLib 的完整歷史約 800 MB。在第二個指令加上 `--depth 1`，就只會抓取固定的那個 commit，把大小降到約 50 MB——工作目錄 41 MB，git 資料 11 MB："
 
 #: ../../INSTALL.md:74 117012cba4ee4240ad4f8ad91215e444
 msgid ""
 "This works because the pin is a release tag rather than an arbitrary "
 "commit — git fetches it by SHA and checks it out directly. Nothing in the"
 " build needs the history."
-msgstr ""
+msgstr "這之所以可行，是因為固定的是一個發行標籤，而不是任意的 commit——git 會依 SHA 抓取並直接 checkout。建置中沒有任何東西需要歷史紀錄。"
 
 #: ../../INSTALL.md:78 36be9f25e1f34598985fd4d78581db97
 msgid ""
 "Expect the first build to take a while — QuantLib is ~1000 translation "
 "units and all of them are new."
-msgstr ""
+msgstr "第一次建置預期要花上一段時間——QuantLib 約有 1000 個編譯單元，而且全部都是新的。"
 
 #: ../../INSTALL.md:81 3b68a941354e45df85c46bcec4bb4a16
 msgid "Route B — link an installed QuantLib"
-msgstr ""
+msgstr "路線 B——連結已安裝的 QuantLib"
 
 #: ../../INSTALL.md:90 441c984257854039a37bf808cadcd893
 msgid ""
 "`CMAKE_PREFIX_PATH` must name a QuantLib **built with "
 "`QL_ENABLE_SESSIONS`**. Nothing in this build checks that, and the "
 "failure is silent — see below. If you do not already have one:"
-msgstr ""
+msgstr "`CMAKE_PREFIX_PATH` 必須指向一份**以 `QL_ENABLE_SESSIONS` 建置**的 QuantLib。這個建置中沒有任何東西會檢查這一點，而且失敗是靜默的——見下文。如果你手邊還沒有："
 
 #: ../../INSTALL.md:106 bfcf9142520943fd807d9472979bf378
 msgid ""
@@ -241,11 +241,11 @@ msgid ""
 "`Singleton<T>::instance()` for every program that links the library, and "
 "other projects will not expect it. Two prefixes side by side is the "
 "intended arrangement:"
-msgstr ""
+msgstr "把它安裝到**專屬的前綴**，而不要覆蓋在通用的 QuantLib 上。`QL_ENABLE_SESSIONS` 會改變每個連結該函式庫的程式中 `Singleton<T>::instance()` 的行為，其他專案不會預期到這一點。兩個前綴並存才是預期的安排："
 
 #: ../../INSTALL.md 7bdf79a3669c4f8dbda4f32643ce4e62
 msgid "Prefix"
-msgstr ""
+msgstr "前綴"
 
 #: ../../INSTALL.md e37c42f3489347f7a87481d40d8e228f
 msgid "`QL_ENABLE_SESSIONS`"
@@ -261,11 +261,11 @@ msgstr ""
 
 #: ../../INSTALL.md ce79e4c85f7d49678002253c4ea61143
 msgid "undefined"
-msgstr ""
+msgstr "未定義"
 
 #: ../../INSTALL.md 134f9702b4d843d897b30adacac8f24e
 msgid "Other projects"
-msgstr ""
+msgstr "其他專案"
 
 #: ../../INSTALL.md be0b7be9400646818e3f5703d114476c
 msgid "`~/.local/quantlib-sessions`"
@@ -277,24 +277,24 @@ msgstr ""
 
 #: ../../INSTALL.md c57fe8d2d00d4acd833e9205267e92f0
 msgid "This one"
-msgstr ""
+msgstr "本專案"
 
 #: ../../INSTALL.md:116 a90013720c6a47a78ae9bc374c98642b
 msgid ""
 "`QL_ENABLE_OPENMP=OFF` is not incidental either — workers are "
 "deliberately built without OpenMP (DESIGN §2.2)."
-msgstr ""
+msgstr "`QL_ENABLE_OPENMP=OFF` 也不是順手為之——工作者是刻意不帶 OpenMP 建置的（DESIGN §2.2）。"
 
 #: ../../INSTALL.md:119 31460e9161044782b82d12c6be434157
 msgid "Why sessions matter"
-msgstr ""
+msgstr "為什麼工作階段很重要"
 
 #: ../../INSTALL.md:121 9dffa8d4181844ddae2eb482e22cca0e
 msgid ""
 "`Singleton<T>::instance()` returns one process-wide static in a default "
 "QuantLib, and a `thread_local` one under `QL_ENABLE_SESSIONS`. "
 "`Settings`, which holds `evaluationDate()`, is one of those singletons."
-msgstr ""
+msgstr "在預設的 QuantLib 中，`Singleton<T>::instance()` 回傳一個整個行程共用的 static 物件；在 `QL_ENABLE_SESSIONS` 下則回傳一個 `thread_local` 物件。存放 `evaluationDate()` 的 `Settings` 就是這類 singleton 之一。"
 
 #: ../../INSTALL.md:125 f29c42cdd9f643e99cea56d8750a7499
 msgid ""
@@ -303,30 +303,30 @@ msgid ""
 "process, which then silently share one evaluation date — plausible "
 "numbers, wrong date, no error anywhere. DESIGN §2 is the argument in "
 "full."
-msgstr ""
+msgstr "因此，錯誤的 QuantLib 照樣能編譯、連結，並完全正確地為單一工作階段定價。只有同一個行程裡有兩個工作階段時才會出錯，而它們會悄悄共用同一個評價日——數字看似合理、日期是錯的、任何地方都沒有錯誤。完整的論證見 DESIGN §2。"
 
 #: ../../INSTALL.md:130 c8326ab4a37445898ebe5a2e984c61d2
 msgid ""
 "`test/smoke_v2.py` is the check that catches it. Two of its sessions sit "
 "on evaluation dates one day apart and must disagree by one day of theta; "
 "**prices that agree exactly mean the wrong QuantLib is linked.**"
-msgstr ""
+msgstr "`test/smoke_v2.py` 就是能抓出這個問題的檢查。它的兩個工作階段位在相差一天的評價日上，價格必須相差一天的 theta；**價格若完全一致，就表示連結了錯誤的 QuantLib。**"
 
 #: ../../INSTALL.md:134 ab5b1a89c30848e0854725280bf4e081
 msgid "Options"
-msgstr ""
+msgstr "選項"
 
 #: ../../INSTALL.md ec2c30d957e24e08b8e791fbaf508312
 msgid "Option"
-msgstr ""
+msgstr "選項"
 
 #: ../../INSTALL.md eaca3d4bc7f645fdb6b28e95309b3dcd
 msgid "Default"
-msgstr ""
+msgstr "預設值"
 
 #: ../../INSTALL.md f3a0d25524024b2f807af8f6df91a6ba
 msgid "Effect"
-msgstr ""
+msgstr "作用"
 
 #: ../../INSTALL.md 12e4249b3acc4d1d823d1bc9fe7ced1d
 msgid "`QLSERVICE_VENDOR_QUANTLIB`"
@@ -339,7 +339,7 @@ msgstr ""
 
 #: ../../INSTALL.md e623d1f5e19041c0a7ab912333987620
 msgid "Build QuantLib from `third_party/QuantLib` instead of `find_package`"
-msgstr ""
+msgstr "從 `third_party/QuantLib` 建置 QuantLib，而不是使用 `find_package`"
 
 #: ../../INSTALL.md ff95f16a76344b1bac438fa74e69dd03
 msgid "`QLSERVICE_WERROR`"
@@ -347,7 +347,7 @@ msgstr ""
 
 #: ../../INSTALL.md 734caf9da1dc4cc3a7bdef81d8b26944
 msgid "`-Werror` on `qlservice`. The tree is warning-free on both routes"
-msgstr ""
+msgstr "對 `qlservice` 啟用 `-Werror`。整個原始碼樹在兩條路線上都沒有警告"
 
 #: ../../INSTALL.md:141 ea3819f1b89b4e2ebea8d6c5cc6db6b1
 msgid ""
@@ -358,18 +358,18 @@ msgid ""
 " are instantiated there and were not written to it — and "
 "`QLSERVICE_WERROR` reaches `qlservice` only, so the three gateway "
 "translation units are warned about but never fail on it."
-msgstr ""
+msgstr "警告選項是 `-Wall -Wextra -Wpedantic -Wno-switch`，而且只套用在本專案自己的建置目標上：產生的 protobuf 程式碼與 uSockets 以 `-w` 建置，內附 QuantLib 的標頭檔則標記為系統 include。`ql-backend` 目標只拿掉 `-Wpedantic`——uWebSockets 的樣板在那裡實體化，而它們並不是照這個標準寫的——而 `QLSERVICE_WERROR` 只作用於 `qlservice`，因此三個閘道編譯單元會收到警告，但從不會因此建置失敗。"
 
 #: ../../INSTALL.md:148 939dfa6c4006425fbb3198c2db7ba5d8
 msgid "Things that will bite"
-msgstr ""
+msgstr "容易踩到的坑"
 
 #: ../../INSTALL.md:150 90057cc368ca45e5acbc44697a9d2b97
 msgid ""
 "**`QuantLib_DIR` is cached.** Changing `CMAKE_PREFIX_PATH` on an existing"
 " build tree does not move an already-resolved QuantLib. Reconfigure with "
 "`cmake --fresh` or delete the tree."
-msgstr ""
+msgstr "**`QuantLib_DIR` 會被快取。** 在既有的建置目錄樹上變更 `CMAKE_PREFIX_PATH`，並不會改變已經解析好的 QuantLib。請以 `cmake --fresh` 重新設定，或刪除該目錄樹。"
 
 #: ../../INSTALL.md:153 cc234a6cba8c4b08b985266e0dd7b8ab
 msgid ""
@@ -378,7 +378,7 @@ msgid ""
 "skips `git submodule update` fails the configure with `Cannot find source"
 " file` rather than degrading. It is the one submodule with no graceful "
 "path."
-msgstr ""
+msgstr "**未初始化的 `proto` 是硬性錯誤。** 結構描述是一個子模組，而 `add_library()` 直接指名它的 `.proto` 檔，因此略過 `git submodule update` 的 clone 會在設定階段以 `Cannot find source file` 失敗，而不是降級運作。它是唯一沒有退路的子模組。"
 
 #: ../../INSTALL.md:157 8ade189004ea4c03b6d77df1da95831d
 msgid ""
@@ -387,14 +387,14 @@ msgid ""
 "backend` executable is skipped — with a message telling you to init the "
 "submodule. If you ran `cmake` before `git submodule update`, this is why "
 "there is no binary."
-msgstr ""
+msgstr "**未初始化的 `third_party/uWebSockets` 不是錯誤。** 設定會成功，`libqlservice.a` 照樣建置，只有 `ql-backend` 執行檔會被略過——並附上一則訊息要你初始化子模組。如果你在 `git submodule update` 之前就執行了 `cmake`，這就是沒有執行檔的原因。"
 
 #: ../../INSTALL.md:161 d51a27020dce40658096960dfd40f071
 msgid ""
 "**`--recursive` matters for uWebSockets**, which nests uSockets inside "
 "itself. Without it uSockets is empty and the executable is skipped as "
 "above."
-msgstr ""
+msgstr "**`--recursive` 對 uWebSockets 很重要**，因為它在自己內部巢狀包含 uSockets。少了它，uSockets 會是空的，執行檔也會如上所述被略過。"
 
 #: ../../INSTALL.md:163 673d4c17c53944dd88c841aa9486a3f0
 msgid ""
@@ -406,7 +406,7 @@ msgid ""
 "failure looks exactly like a backend that is not running. A client that "
 "sends no `Origin` at all, `test/smoke_v2.py` included, is unaffected. "
 "`--help` lists that flag and the rest."
-msgstr ""
+msgstr "**瀏覽器會被拒絕，腳本卻不會。** 帶有 `Origin` 標頭且不在允許清單上的升級請求，會得到 `403 Forbidden`（DESIGN §9.6）。預設清單是 Vite 開發伺服器的連接埠——`localhost` 與 `127.0.0.1` 上的 5173 與 4173——因此從其他任何地方提供的前端都需要 `--allow-origin URL`，而在設定好之前，這個失敗看起來和後端沒在執行一模一樣。完全不送 `Origin` 的客戶端，包括 `test/smoke_v2.py`，都不受影響。`--help` 會列出這個旗標與其餘旗標。"
 
 #: ../../INSTALL.md:171 9920167dae2b4e339cecfc53819b560c
 msgid ""
@@ -416,7 +416,7 @@ msgid ""
 "authenticates. The check is a string comparison against the three "
 "loopback spellings, so it is a rule you can act on rather than a lookup "
 "you cannot see."
-msgstr ""
+msgstr "**可路由的 `--host` 需要 `--token-file FILE`。** 少了它，常駐程式會拒絕啟動並以 2 結束，同時指出兩條出路：給它一個權杖檔，或讓它留在迴路位址上，放在一個終結 TLS 並負責驗證的代理之後。這項檢查是與三種迴路位址寫法做字串比對，因此它是一條你能據以行動的規則，而不是一次你看不見的查詢。"
 
 #: ../../INSTALL.md:176 661b4144778045788a20238ee6643205
 msgid ""
@@ -424,25 +424,25 @@ msgid ""
 "configure with a `FATAL_ERROR` naming the checkout command. That one is "
 "deliberate: a vendored build that silently fell back to `find_package` "
 "would defeat the point of the option."
-msgstr ""
+msgstr "**`QLSERVICE_VENDOR_QUANTLIB=ON` 搭配空的子模組**會以 `FATAL_ERROR` 中止設定，並指出該執行的 checkout 指令。這一項是刻意的：一個悄悄退回 `find_package` 的內附建置，會讓這個選項失去意義。"
 
 #: ../../INSTALL.md:181 8170692e8f554882bf305dafe2f228e2
 msgid "Verifying the build"
-msgstr ""
+msgstr "驗證建置"
 
 #: ../../INSTALL.md:183 cc3239c1a5764c55a81b2e6bf804ae8e
 msgid ""
 "There is no unit-test target. `test/smoke_v2.py` drives a running `ql-"
 "backend` over a real WebSocket; [the smoke tests page](TESTING.md) has "
 "the setup and how to run it."
-msgstr ""
+msgstr "沒有單元測試目標。`test/smoke_v2.py` 透過真正的 WebSocket 驅動一個執行中的 `ql-backend`；[冒煙測試頁面](TESTING.md)說明了準備步驟與執行方式。"
 
 #: ../../INSTALL.md:187 5f851021e4c94d9ab37080a45d4dc0a7
 msgid ""
 "Run it at least once after any change to which QuantLib you are linking. "
 "Its two-session check is the only thing in the repository that "
 "distinguishes a *wrong* QuantLib from a missing one."
-msgstr ""
+msgstr "每當變更所連結的 QuantLib，之後至少執行它一次。它的雙工作階段檢查，是儲存庫中唯一能分辨*錯誤的* QuantLib 與缺少 QuantLib 的東西。"
 
 #: ../../INSTALL.md:191 e3601da5cc2e4a7586c66946f4869ad8
 msgid ""
@@ -451,5 +451,5 @@ msgid ""
 "uptime, and how many connections and sessions are open. It says which "
 "QuantLib you got — not whether that one has sessions enabled, which is "
 "what the paragraph above is for."
-msgstr ""
+msgstr "同一連接埠上的 `GET /healthz` 是在它之前或之後都能做的較便宜檢查：它以 JSON 回應，內容包括執行檔所連結的 QuantLib 版本、已執行時間，以及目前開啟的連線數與工作階段數。它告訴你拿到的是哪一份 QuantLib——但不會告訴你那一份是否啟用了工作階段，那正是上一段的用途。"
 

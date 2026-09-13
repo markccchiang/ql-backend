@@ -21,18 +21,18 @@ msgstr ""
 
 #: ../../api/recipes.md:1 18536c7f7d864538b3f0ef459dba48a1
 msgid "Client recipes"
-msgstr ""
+msgstr "用戶端範例"
 
 #: ../../api/recipes.md:3 f648f073a88d442cb7917a05455bfe6a
 msgid ""
 "Short answers to the things a client has to do after its first price. "
 "Each one is a fragment of the script on the previous page; the numbers "
 "are what this build actually returned."
-msgstr ""
+msgstr "用戶端在拿到第一個價格之後必須做的那些事，這裡給出簡短的答案。每一則都是上一頁腳本的片段；數字是這個版本實際回傳的結果。"
 
 #: ../../api/recipes.md:7 740085768eec4600a1b2af4dce164e3d
 msgid "Ask what the build supports, do not hardcode it"
-msgstr ""
+msgstr "詢問這個版本支援什麼，不要寫死"
 
 #: ../../api/recipes.md:9 d03ac03d1ab54033945c746912320141
 msgid ""
@@ -42,7 +42,7 @@ msgid ""
 "and `max_curve_sample_points`. Drive the enable/disable state of a UI "
 "from that answer and a build that gains or loses a style needs no client "
 "release."
-msgstr ""
+msgstr "`Hello` 回應的是一組組集合——類型、收益函數、履約方式、過程、引擎方法、樹、近似法、預設組合、結果種類、市場形狀、腳的種類——外加上限 `max_batch_entries`、`max_scenario_points` 與 `max_curve_sample_points`。用這份回應來驅動 UI 的啟用／停用狀態，那麼某個版本多了或少了一種類型時，用戶端就不必發布新版。"
 
 #: ../../api/recipes.md:15 84cbb63e408f4d5f81c0db13d68d4d86
 msgid ""
@@ -50,34 +50,34 @@ msgid ""
 "analytic barrier takes an American exercise is a rule about a pair, and "
 "there are more pairs than are worth putting on the wire. Keep those in "
 "the client, and let the service's named refusal be the backstop."
-msgstr ""
+msgstr "它刻意不帶的是*組合*：解析障礙引擎是否接受美式履約，是一條關於「一對」的規則，而這樣的配對多到不值得放上線路。把這些留在用戶端，並讓服務指名的拒絕當作最後防線。"
 
 #: ../../api/recipes.md:20 99b751d470254204a9015d2bb1517fe9
 msgid "Bump a quote and reprice"
-msgstr ""
+msgstr "調動報價並重新計價"
 
 #: ../../api/recipes.md:22 91b733c3cec241cdba14841b2129e6ac
 msgid ""
 "This is what the service is for: the graph stays alive, so a what-if is a"
 " quote write rather than a rebuild."
-msgstr ""
+msgstr "這正是服務存在的目的：物件圖一直活著，所以一次假設情境分析只是寫入一個報價，而不是重建。"
 
 #: ../../api/recipes.md:36 36f9e3f1a5fe40aa85093ee00ff938df
 msgid ""
 "One `UpdateMarket` may carry many quotes and they commit together, under "
 "one notification batch. Anything that changes the *structure* of the "
 "graph — a new curve shape, a new index — is a new session instead."
-msgstr ""
+msgstr "一個 `UpdateMarket` 可以帶許多報價，它們會在同一個通知批次中一起提交。任何改變物件圖*結構*的東西——新的曲線形狀、新的指數——都該改開一個新的工作階段。"
 
 #: ../../api/recipes.md:40 86bc3a9d1e4d4e46a1e4b42a4d21028e
 msgid "Sweep a quote"
-msgstr ""
+msgstr "掃描報價"
 
 #: ../../api/recipes.md:42 c41d868bf377475eabd69dddd269122b
 msgid ""
 "A sweep prices N times off the one graph and answers with a "
 "`ScenarioResult` rather than a `PriceResult`:"
-msgstr ""
+msgstr "掃描會在同一張物件圖上計價 N 次，回應的是 `ScenarioResult` 而不是 `PriceResult`："
 
 #: ../../api/recipes.md:56 f9a6e99239ef4771ba3457b5ebc0a8b3
 msgid ""
@@ -86,17 +86,17 @@ msgid ""
 "answer. **Every swept quote is restored afterwards** unless the axis sets"
 " `keep_final_value`, on the way out of a failure as well as a success — a"
 " sweep is a question, not an edit."
-msgstr ""
+msgstr "掃描一個軸且設定了 `plot` 時，`series.x` 與 `series.y` 就是那張圖；掃描兩個軸時改為填入 `surface`；超過兩個軸時，答案就是 `prices`。**每一個被掃描的報價事後都會復原**，除非該軸設定了 `keep_final_value`；無論是因失敗退出還是成功結束都一樣——掃描是一個提問，不是一次編輯。"
 
 #: ../../api/recipes.md:62 739db3b09dd944ccada7465f846084b6
 msgid "Read a result an engine will not supply"
-msgstr ""
+msgstr "讀取引擎不會提供的結果"
 
 #: ../../api/recipes.md:64 1f1af0883afb484b956c31018b78cddd
 msgid ""
 "Asking a binomial engine for vega gets you the price and a named absence,"
 " never a silent zero:"
-msgstr ""
+msgstr "向二元樹引擎要 vega，你會得到價格與一個指名的缺席，絕不會是無聲的零："
 
 #: ../../api/recipes.md:80 4808e2c53ad3408e96e305fc914e146f
 msgid ""
@@ -105,23 +105,23 @@ msgid ""
 "`AnalyticEuropeanEngine` answers the same request with a vega; that "
 "difference is the engine's, and the point of naming it is that a frontend"
 " can ask both the same question."
-msgstr ""
+msgstr "所以用戶端要先讀 `unavailable_results`，再讀對照表，並顯示「未提供」，而不是一個沒人算過的零。`AnalyticEuropeanEngine` 對同一個請求會回應 vega；這個差異屬於引擎，而把它指名出來的意義在於，前端可以對兩者問同一個問題。"
 
 #: ../../api/recipes.md:85 28a4a6c80ffd47af89e6f9ad7ec9e1cf
 msgid "Handle an error"
-msgstr ""
+msgstr "處理錯誤"
 
 #: ../../api/recipes.md:87 3c38883a5fcf463e85ba66acec0c0a6a
 msgid ""
 "Every rejection carries a `Code` and, when it is attributable to a field,"
 " the dotted path to it — including the index of a repeated entry:"
-msgstr ""
+msgstr "每一次拒絕都帶有一個 `Code`，而當它可以歸咎於某個欄位時，還會帶上通往該欄位的點號路徑——包括重複欄位中某一筆的索引："
 
 #: ../../api/recipes.md:95 790077a80e3342d9a0f3246706436ab2
 msgid ""
 "Three codes deserve different handling in a client, and conflating them "
 "is the usual mistake:"
-msgstr ""
+msgstr "有三個代碼在用戶端值得分別處理，而把它們混為一談正是常見的錯誤："
 
 #: ../../api/recipes.md da02d5955be54f01b21e11a27d51362f
 msgid "Code"
@@ -129,7 +129,7 @@ msgstr "錯誤碼"
 
 #: ../../api/recipes.md 736dcf9e0fd64e4e9d4b3fd841b86274
 msgid "The client's move"
-msgstr ""
+msgstr "用戶端該怎麼做"
 
 #: ../../api/recipes.md 2b3c06ab538e49a989ed9921e377dfb6
 msgid "`UNSPECIFIED_ENUM`"
@@ -137,7 +137,7 @@ msgstr ""
 
 #: ../../api/recipes.md 3c52ddd04b6443ee8267e8ef1e8a1324
 msgid "a field was left out — fill it in"
-msgstr ""
+msgstr "漏填了某個欄位——把它填上"
 
 #: ../../api/recipes.md 844531ee47cd47e7b6144399207e3c1f
 msgid "`INVALID_ARGUMENT`"
@@ -145,7 +145,7 @@ msgstr ""
 
 #: ../../api/recipes.md ee5d837c38874c978f10b4476db6407f
 msgid "a field was filled in wrongly — fix the value"
-msgstr ""
+msgstr "某個欄位填錯了——修正它的值"
 
 #: ../../api/recipes.md 766ea3a4e05341d1861f7bba16531891
 msgid "`UNSUPPORTED`"
@@ -153,24 +153,24 @@ msgstr ""
 
 #: ../../api/recipes.md 4a7041befb34428b89a16ab7f36f07db
 msgid "well-formed, and this build will not price it on a substitute"
-msgstr ""
+msgstr "格式正確，但這個版本不會拿替代品來為它計價"
 
 #: ../../api/recipes.md:104 1fccaef6af7e40ac85b5c7fc1ae10489
 msgid ""
 "`SESSION_NOT_FOUND` means open a session and replay the market; the rest "
 "are infrastructure, to retry or back off."
-msgstr ""
+msgstr "`SESSION_NOT_FOUND` 代表要開啟工作階段並重播市場；其餘的屬於基礎設施問題，該重試或退避。"
 
 #: ../../api/recipes.md:107 a1541638d9384f55bb1dd7cc45e1d451
 msgid "Cancel something long"
-msgstr ""
+msgstr "取消耗時的工作"
 
 #: ../../api/recipes.md:109 c76e38df3cd54e3194345e9819216361
 msgid ""
 "A `CancelRequest` names the `request_id` of the work you want stopped. "
 "The cancel gets its own `Ack`, and the target gets its own terminal "
 "frame:"
-msgstr ""
+msgstr "`CancelRequest` 指名你想停止之工作的 `request_id`。取消本身會得到自己的 `Ack`，而目標則會得到它自己的終結訊框："
 
 #: ../../api/recipes.md:117 faffd5b1e14a45578e5594d6e1a7bf7b
 msgid ""
@@ -182,36 +182,36 @@ msgid ""
 "calculation runs to completion on a thread nobody is listening to. A "
 "cancel is therefore always worth offering: it promises the user their "
 "session back, not that the machine stops."
-msgstr ""
+msgstr "每一個請求都可以取消，但代價各不相同。在蒙地卡羅的批次之間（設定了 `engine.mc.progress_every_paths` 時）、掃描點之間，或批次項目之間，工作會就地停下，部分結果會保留。在其他任何地方，用戶端會在 250 ms 的寬限之後被釋放，工作階段則被重播到一個全新的工作者中——被拋下的計算會在一條沒人在聽的執行緒上跑到完。因此取消永遠值得提供：它承諾的是把工作階段還給使用者，而不是讓機器停下來。"
 
 #: ../../api/recipes.md:126 8b27bfc021b34819b9c86ef836f0c73c
 msgid ""
 "A stop taken at a boundary is reported as `CANCELLED`, and a sweep or "
 "batch returns its own result carrying `abandoned_after` rather than an "
 "error."
-msgstr ""
+msgstr "在邊界上停下的工作會回報為 `CANCELLED`，而掃描或批次會回傳它自己的結果，帶著 `abandoned_after`，而不是錯誤。"
 
 #: ../../api/recipes.md:129 4df9819a8a624b82840010b8fc55433c
 msgid "Survive a dropped socket"
-msgstr ""
+msgstr "撐過連線中斷"
 
 #: ../../api/recipes.md:131 7a438e8a429c4b52972ae7c725f75b53
 msgid ""
 "A session outlives its socket by `resume_grace_seconds` — 60 by default —"
 " and keeps its graph, its worker seat and **the requests still running on"
 " it**. `SessionOpened` hands you what a resume needs:"
-msgstr ""
+msgstr "工作階段在連線斷開之後，還會多存活 `resume_grace_seconds`——預設 60 秒——並保有它的物件圖、工作者座位，以及**仍在其上執行的請求**。`SessionOpened` 會交給你接回所需的東西："
 
 #: ../../api/recipes.md:139 03445e6c194d4f87815e8bc0193b95e2
 msgid "On the new socket, before anything else:"
-msgstr ""
+msgstr "在新的連線上，先做這件事，再做其他任何事："
 
 #: ../../api/recipes.md:147 2a0589d01e544d0bbdca90d02127caf3
 msgid ""
 "The reply is the original `SessionOpened` with `resumed` set, then "
 "whatever finished while nobody was attached, in the order it finished. "
 "`Progress` from that period is gone."
-msgstr ""
+msgstr "回覆是原本那個 `SessionOpened`，並設定了 `resumed`，接著是無人連接期間完成的所有東西，依完成的順序排列。那段期間的 `Progress` 就沒了。"
 
 #: ../../api/recipes.md:151 f06070cec16f49cb89862b436299bcbd
 msgid ""
@@ -220,5 +220,5 @@ msgid ""
 "The client's move is the same for all three: open a session and replay "
 "the market — which it can do because the market definition is the "
 "client's own document, and was never the service's to keep."
-msgstr ""
+msgstr "錯誤的權杖、已過期的寬限期，以及刻意關閉的工作階段，全都是 `SESSION_NOT_FOUND`，所以亂猜的人無法從差異中得知任何事。對這三種情況，用戶端該做的都一樣：開啟工作階段並重播市場——它之所以做得到，是因為市場定義是用戶端自己的文件，從來就不歸服務保管。"
 

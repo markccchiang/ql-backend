@@ -184,7 +184,7 @@ msgid ""
 "wrapper was silently dropped. The service refuses it by name now, and "
 "says so in the `Capabilities` it answers `Hello` with, so a client can "
 "rule the combination out before it costs a round trip."
-msgstr ""
+msgstr "回顧式那一列有段值得知道的歷史。這個版本以前會把 quanto 回顧式當成*普通*回顧式計價，而且完全不報錯——包裝器被無聲地丟掉了。現在服務會指名拒絕它，並在回應 `Hello` 的 `Capabilities` 中說明這一點，因此用戶端可以在這個組合花掉一趟往返之前，就先把它排除。"
 
 #: ../../maths/quanto.md:70 16283b6bd1ff4d79b637ae3e82676ee5
 msgid ""

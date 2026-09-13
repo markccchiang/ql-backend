@@ -29,14 +29,14 @@ msgid ""
 "produce. Each one says which wire field feeds which symbol, and where the"
 " formula lives in QuantLib's own source, so a claim here can be checked "
 "against the code that produced the price."
-msgstr ""
+msgstr "這幾頁說明本服務所能產生的每一個數字背後的數學。每一頁都說明哪個線路欄位餵給哪個符號，以及公式在 QuantLib 原始碼中的位置，因此這裡的每項主張都能對照產生該價格的程式碼查證。"
 
 #: ../../maths/index.md:8 2e0d7142763a4f628651ae33f3937f5c
 msgid ""
 "Citations of the form `ql/pricingengines/...` are paths inside the "
 "QuantLib checkout vendored in this repository at `third_party/QuantLib`, "
 "pinned at **v1.43**."
-msgstr ""
+msgstr "形如 `ql/pricingengines/...` 的引用，指的是本專案中以子模組形式放在 `third_party/QuantLib`、固定在 **v1.43** 的 QuantLib 原始碼路徑。"
 
 #: ../../maths/index.md:12 14aea9388b5b48fd92066a90e6ab4bdb
 msgid "Symbols"
@@ -64,7 +64,7 @@ msgstr "標的現貨價格"
 
 #: ../../maths/index.md 71cf32b5e1cf4c0b857d541e194bcedb
 msgid "a `Quote` in the session's market"
-msgstr ""
+msgstr "工作階段市場中的一個 `Quote`"
 
 #: ../../maths/index.md 8ea32e0cf1754c39abd7da6611597758
 msgid "$K$"

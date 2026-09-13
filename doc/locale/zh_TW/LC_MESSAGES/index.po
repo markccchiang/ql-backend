@@ -21,7 +21,7 @@ msgstr ""
 
 #: ../../index.md:119
 msgid "Documentation"
-msgstr ""
+msgstr "文件"
 
 #: ../../index.md:130
 msgid "API"
@@ -41,13 +41,13 @@ msgid ""
 "WebSocket, with Protobuf as the wire format. A session keeps a live "
 "QuantLib object graph alive between requests, so a what-if from the UI "
 "moves a quote and recomputes only the instruments that depend on it."
-msgstr ""
+msgstr "一個有狀態的 C++ 定價後端，透過 WebSocket 驅動 TypeScript 前端，並以 Protobuf 作為傳輸格式。工作階段在請求之間維持一個即時的 QuantLib 物件圖，因此從 UI 發出的假設情境會移動一個報價，並只重新計算依賴它的商品。"
 
 #: ../../index.md:8 b7b2b0f2a8634803abc63828dac9d169
 msgid ""
 "The design, and the QuantLib constraints that force it, are in the "
 "[design document](DESIGN.md)."
-msgstr ""
+msgstr "設計，以及迫使它如此設計的 QuantLib 限制，都在[設計文件](DESIGN.md)裡。"
 
 #: ../../index.md:11 d89aa0884be14010a52f31b94d6d1fd5
 msgid ""
@@ -56,7 +56,7 @@ msgid ""
 " live graph, one frame sweeps a quote across a spot ladder, Monte Carlo "
 "reports progress, and a cancel comes back as `CANCELLED` with the session"
 " still alive."
-msgstr ""
+msgstr "**現況。** 它能執行，而且定價正確。`ql-backend` 透過 WebSocket 提供此協定：工作階段開啟、推移一個報價就從即時物件圖重新定價、一個訊框就讓報價掃描過一整排現貨價、蒙地卡羅回報進度，而取消會以 `CANCELLED` 回來，工作階段依然存活。"
 
 #: ../../index.md:16 c62fa98dc50d4582b283ac32e9ac3904
 msgid ""
@@ -70,7 +70,7 @@ msgid ""
 "around another engine on the list. A `Hello` frame answers with the whole"
 " of that as data, from `src/session/capabilities.cpp`, so a client never "
 "has to send a request to find out what this build prices."
-msgstr ""
+msgstr "傳輸結構描述是 `v2`（DESIGN §6.3），它是從 QuantLib 自己的測試套件所呈現的「定價請求必須攜帶什麼」推導出來的：一個選擇權由收益函數、履約方式、標的與樣式組成，而 quanto 是疊加組合在樣式之上，而不是與它們相乘、各自衍生出獨立的訊息。目前已實作八種收益函數、三種履約方式，以及結構描述十二種樣式中的十種，它們共觸及 49 個不同的已編譯引擎——解析、格點、有限差分、積分與蒙地卡羅，其中 11 個是包在清單上另一個引擎外層的 quanto 包裝。`Hello` 訊框會以資料形式回覆這一整份內容，來源是 `src/session/capabilities.cpp`，因此客戶端永遠不必送出請求，就能知道這個建置能為什麼定價。"
 
 #: ../../index.md:27 65d6776646774ba9aaa006cfe20aa1fb
 msgid ""
@@ -85,7 +85,7 @@ msgid ""
 "`QLSERVICE_WERROR=ON` on both routes — the vendored QuantLib v1.43 and a "
 "1.44-dev install — with AppleClang 21 at C++17, schema clean under "
 "`protoc 34.0`."
-msgstr ""
+msgstr "`test/smoke_v2.py` 透過傳輸線路為 **369 列 QuantLib 公開的參考值**定價，每一列都落在它原本的測試所用的容差之內。這些列不是手抄的：`test/extract_tables.py` 從 `test-suite/*.cpp` 把它們解析出來。它也以 PDE 交叉驗證解析式的 quanto 障礙選擇權，這回應了 `test-suite/quantooption.cpp` 懸而未決的 `TODO: bench against an existing prop calculator`，並發現它記錄的三個值中有一個無法重現（[quanto 障礙選擇權基準測試](BENCHMARK.md)）。在兩條路線上——內附的 QuantLib v1.43 與一份 1.44-dev 安裝——以 AppleClang 21、C++17，在 `QLSERVICE_WERROR=ON` 下建置皆無警告，結構描述在 `protoc 34.0` 下也乾淨無誤。"
 
 #: ../../index.md:38 1f483974d7b64a328fee20769b50baf5
 msgid ""
@@ -94,14 +94,14 @@ msgid ""
 "`ResumeSession` and the token it was given, and the Monte Carlo that was "
 "running is still running (DESIGN §9.4). The bootstrap was never what a "
 "dropped socket cost."
-msgstr ""
+msgstr "工作階段現在會比它的連線多存活一分鐘，其中的工作也是：失去連線的客戶端以 `ResumeSession` 與先前拿到的權杖接回工作階段，而原本在跑的蒙地卡羅仍在繼續跑（DESIGN §9.4）。連線中斷的代價從來就不是建構。"
 
 #: ../../index.md:43 5049f9a00fee4ca3b864d8f0204c6a1f
 msgid ""
 "What is missing is the process boundary. Workers are threads in the "
 "gateway process for now, so a cancel that has to kill cannot (DESIGN §3),"
 " and replay-after-death is never exercised."
-msgstr ""
+msgstr "欠缺的是行程邊界。目前工作者是閘道行程中的執行緒，所以必須靠 kill 才能完成的取消做不到（DESIGN §3），而行程死亡後的重播也從未真正執行過。"
 
 #: ../../index.md:55 460bcec1b95d4801bb4c7fd8909617bf
 msgid ""
@@ -111,7 +111,7 @@ msgid ""
 "anything else needs `--allow-origin URL` (DESIGN §9.6), and `--help` "
 "lists that flag, the two caps, and `--any-origin` for a deployment behind"
 " a proxy that already checks."
-msgstr ""
+msgstr "連接埠 9111 是慣例而非預設——兩個儲存庫中的每一支腳本與測試都傳入 `--port 9111`，而內建預設值是 9001。瀏覽器只有來自 Vite 開發伺服器的連接埠才會被放行；其他來源都需要 `--allow-origin URL`（DESIGN §9.6），而 `--help` 會列出這個旗標、兩項上限，以及供部署在已會檢查的代理之後使用的 `--any-origin`。"
 
 #: ../../index.md:61 ea16b9a5fdf24f0783d615c8333b7821
 msgid ""
@@ -123,7 +123,7 @@ msgid ""
 "loopback is refused without one, because a pricing engine with no "
 "authentication answering the network is an accident rather than a "
 "decision."
-msgstr ""
+msgstr "在有其他使用者的機器上，加上 `--token-file FILE`：Origin 檢查擋住的是瀏覽器，而權杖擋住的是他們的行程——這是任何擋在迴路位址連線前面的代理都做不到的。權杖從該檔案讀取，或在第一次使用時以 `0600` 權限產生並寫入，每個客戶端都要在升級時出示它，否則會得到 `401`。沒有權杖時，非迴路位址的 `--host` 會被拒絕，因為一個沒有驗證卻對網路應答的定價引擎是意外，而不是決定。"
 
 #: ../../index.md:69 f8235dff83c34bed9a53b7bb46baf9a0
 msgid ""
@@ -133,14 +133,14 @@ msgid ""
 "silently share one `Settings::evaluationDate()` (DESIGN §2). Linking an "
 "installed QuantLib instead is the default and is much faster to rebuild, "
 "but it can only be got right by hand."
-msgstr ""
+msgstr "這會從子模組建置 QuantLib，這是從乾淨的 clone 不必修改就能運作的路線：`CMakeLists.txt` 強制設定 `QL_ENABLE_SESSIONS=ON`，少了它，同一個行程中的兩個工作階段會悄悄共用同一個 `Settings::evaluationDate()`（DESIGN §2）。改為連結已安裝的 QuantLib 才是預設做法，重新建置也快得多，但只能靠手動把它弄對。"
 
 #: ../../index.md:76 e5aeb053e76042f6a1cbc50a7178418e
 msgid ""
 "[The build page](INSTALL.md) has both routes, the prerequisites, how to "
 "build a sessions-enabled QuantLib into a prefix of its own, and the "
 "failures that are silent rather than loud."
-msgstr ""
+msgstr "[建置頁面](INSTALL.md)涵蓋兩條路線、先決條件、如何把啟用工作階段的 QuantLib 建置到專屬的前綴，以及那些靜悄悄而非大張旗鼓的失敗。"
 
 #: ../../index.md:80 1daf17ef8db2408bb500c143eabbb60d
 msgid ""
@@ -150,11 +150,11 @@ msgid ""
 "cannot be forward declared, `ql/indexes/ibor/overnightindex.hpp` does not"
 " exist (`OvernightIndex` lives in `iborindex.hpp`), and `std::min` cannot"
 " deduce between `Size` and the `uint64` a proto field returns."
-msgstr ""
+msgstr "實際編譯它是值得的。這份程式碼中有四處錯誤，再怎麼重讀也看不出來：`namespace pb` 與 protobuf 在 `extension_set.h` 中自己的別名衝突、`RateHelper` 是 typedef 而無法前向宣告、`ql/indexes/ibor/overnightindex.hpp` 並不存在（`OvernightIndex` 位於 `iborindex.hpp`），以及 `std::min` 無法在 `Size` 與 proto 欄位回傳的 `uint64` 之間推導型別。"
 
 #: ../../index.md 19ca0d25a40c408dbfd165906272861e
 msgid "File"
-msgstr ""
+msgstr "檔案"
 
 #: ../../index.md a3d924dc7bba4313aa88cd6de9043d7a
 msgid "What it holds"
@@ -162,29 +162,29 @@ msgstr "裝了什麼"
 
 #: ../../index.md 84511ef7d8864ef1983236c73c1e81b1
 msgid "[Build page](INSTALL.md)"
-msgstr ""
+msgstr "[建置頁面](INSTALL.md)"
 
 #: ../../index.md f47670dacc004fb8bcfe442be9af40bc
 msgid "Prerequisites, both build routes, and what fails silently"
-msgstr ""
+msgstr "先決條件、兩條建置路線，以及哪些失敗是靜默的"
 
 #: ../../index.md cbb70d30af704d6d8fe65ef3c1f0cf58
 msgid "[Design document](DESIGN.md)"
-msgstr ""
+msgstr "[設計文件](DESIGN.md)"
 
 #: ../../index.md 1488644fe9b04d22a20612ba1a4c7a5c
 msgid ""
 "The architecture: what each component owns and which QuantLib constraint "
 "forces it"
-msgstr ""
+msgstr "架構：每個元件擁有什麼，以及是哪一項 QuantLib 限制迫使它如此"
 
 #: ../../index.md 6308408d506c4784a1b2ccccf2654893
 msgid "[Handlers](HANDLERS.md)"
-msgstr ""
+msgstr "[處理常式](HANDLERS.md)"
 
 #: ../../index.md 71d91dbc335b4dd795ad066c4e56498d
 msgid "Every handler the service implements today, and how to drive it"
-msgstr ""
+msgstr "服務目前實作的每一個處理常式，以及如何驅動它們"
 
 #: ../../index.md df3c0acb03c143b889c4bfcf143f6013
 msgid ""
@@ -194,7 +194,7 @@ msgstr ""
 
 #: ../../index.md 36b211dbe02e4d69b4bfc27f0f02f658
 msgid "Transport envelope, session lifecycle, pricing, sweeps, cancellation"
-msgstr ""
+msgstr "傳輸信封、工作階段生命週期、定價、掃描、取消"
 
 #: ../../index.md 0f8b9468b5b844638580a3d5c374a3b6
 msgid ""
@@ -204,7 +204,7 @@ msgstr ""
 
 #: ../../index.md 56a083c17e434e29bc923af4e82957f8
 msgid "The market namespace: quotes, curves, volatility, indices, fixings"
-msgstr ""
+msgstr "市場命名空間：報價、曲線、波動率、指數、定盤值"
 
 #: ../../index.md 5ef9ea7b661b480ebbc85e249313c351
 msgid ""
@@ -214,7 +214,7 @@ msgstr ""
 
 #: ../../index.md 7b2eeacf05234ecab9a93f3487d7ba4f
 msgid "Payoff × exercise × underlying × style, and the legs"
-msgstr ""
+msgstr "收益函數 × 履約 × 標的 × 樣式，以及各條腿（legs）"
 
 #: ../../index.md bab20d3799f14890af24a273ad7a32ab
 msgid ""
@@ -224,7 +224,7 @@ msgstr ""
 
 #: ../../index.md 38361a01699e400590c27f244358e82a
 msgid "Method × model, and the parameter block each one takes"
-msgstr ""
+msgstr "方法 × 模型，以及各自接受的參數區塊"
 
 #: ../../index.md b1d15ad8fcd844d49590973a30225fe2
 msgid ""
@@ -234,7 +234,7 @@ msgstr ""
 
 #: ../../index.md bacc60799b4241e8b6d0c99543acf11a
 msgid "What comes back: the `Value` variant, cash flows, plot series"
-msgstr ""
+msgstr "回傳的內容：`Value` variant、現金流、繪圖序列"
 
 #: ../../index.md f7ce6f11005d486482fe9dc4d6447f9e
 msgid ""
@@ -244,7 +244,7 @@ msgstr ""
 
 #: ../../index.md d80995edf5174dc2bcd7090a26159384
 msgid "Convention enums and messages — shared by both schema versions"
-msgstr ""
+msgstr "慣例列舉與訊息——由兩個結構描述版本共用"
 
 #: ../../index.md 9204931cc5354fd3be98d17d3a668287
 msgid "[`src/conventions/registry.hpp`](../src/conventions/registry.hpp)"
@@ -252,7 +252,7 @@ msgstr ""
 
 #: ../../index.md 7a51bda6d39d45269884119aa059766d
 msgid "Registry interface: proto → QuantLib objects"
-msgstr ""
+msgstr "登錄表介面：proto → QuantLib 物件"
 
 #: ../../index.md 505fccd0cdac4926af948991f17f4485
 msgid "[`src/conventions/registry.cpp`](../src/conventions/registry.cpp)"
@@ -260,7 +260,7 @@ msgstr ""
 
 #: ../../index.md b8681e3476d249a4835e79502a35d476
 msgid "Reference implementation of the translation"
-msgstr ""
+msgstr "轉換的參考實作"
 
 #: ../../index.md aa1723928bc346b29ab164ff23134c1d
 msgid ""
@@ -270,7 +270,7 @@ msgstr ""
 
 #: ../../index.md cf72a7ed8ca5420bb24a169dd9aabd9b
 msgid "One client's live object graph: quotes, curves, pricing"
-msgstr ""
+msgstr "單一客戶端的即時物件圖：報價、曲線、定價"
 
 #: ../../index.md a2711765046d4fc999e5cb2d0589e9b9
 msgid "[`src/session/updateguard.hpp`](../src/session/updateguard.hpp)"
@@ -278,7 +278,7 @@ msgstr ""
 
 #: ../../index.md 7d2677cc7d2a4a23b8a23842ed4764cd
 msgid "RAII batching of observer notifications"
-msgstr ""
+msgstr "以 RAII 批次處理觀察者通知"
 
 #: ../../index.md b6ee29972e4841a58b4ef52ca98a6d7b
 msgid ""
@@ -288,7 +288,7 @@ msgstr ""
 
 #: ../../index.md c4668343739d4a239c427f97dc710d03
 msgid "What this build prices, as data: the answer to `Hello`"
-msgstr ""
+msgstr "這個建置能定價什麼，以資料呈現：對 `Hello` 的回答"
 
 #: ../../index.md 6a5bcb77b73e4210b80bf352554f90b9
 msgid ""
@@ -298,7 +298,7 @@ msgstr ""
 
 #: ../../index.md 84e997f5f81a471a8f5d68d410402d80
 msgid "The thread owning a session; serializes its requests"
-msgstr ""
+msgstr "擁有一個工作階段的執行緒；依序處理它的請求"
 
 #: ../../index.md 5cbbf29f38ad431f9b9529bb31d77533
 msgid ""
@@ -308,7 +308,7 @@ msgstr ""
 
 #: ../../index.md a92e6e8b171b44bc937a71707a30d78a
 msgid "Session log, worker pool and placement, cancel-by-kill with replay"
-msgstr ""
+msgstr "工作階段日誌、工作者池與安置、以 kill 取消並重播"
 
 #: ../../index.md d854733a51794e86bdc7b1f46a439233
 msgid "[`src/errors/fielderror.hpp`](../src/errors/fielderror.hpp)"
@@ -316,7 +316,7 @@ msgstr ""
 
 #: ../../index.md 2e35aff8f525421d9d9d2daf5843183d
 msgid "The exception that carries a wire code and the proto field to blame"
-msgstr ""
+msgstr "攜帶傳輸錯誤碼與該負責之 proto 欄位的例外"
 
 #: ../../index.md ebca777be96d4ffca39e73a02151a66a
 msgid ""
@@ -326,7 +326,7 @@ msgstr ""
 
 #: ../../index.md ebd259005bb74312908966982ebbe890
 msgid "The WebSocket front end: loop, session ids, backpressure, deadlines"
-msgstr ""
+msgstr "WebSocket 前端：事件迴圈、工作階段 id、背壓、截止時間"
 
 #: ../../index.md a7aeaf9dd11246e49f7215f45a6f9421
 msgid ""
@@ -336,7 +336,7 @@ msgstr ""
 
 #: ../../index.md 3be609916b96443996a9f703afc4eadc
 msgid "The staging `ProcessHost`: workers as threads, so a kill only disowns"
-msgstr ""
+msgstr "過渡用的 `ProcessHost`：工作者是執行緒，因此 kill 只是放手不管"
 
 #: ../../index.md 4faaa125a7394eb799f44649f405e403
 msgid "[`src/app/main.cpp`](../src/app/main.cpp)"
@@ -344,17 +344,17 @@ msgstr ""
 
 #: ../../index.md 47390d12d1844619948b2be46e86a693
 msgid "`ql-backend` entry point"
-msgstr ""
+msgstr "`ql-backend` 進入點"
 
 #: ../../index.md 7c726cd316114d5391d19c7a023642d4
 msgid "[Smoke tests](TESTING.md)"
-msgstr ""
+msgstr "[冒煙測試](TESTING.md)"
 
 #: ../../index.md 4839eb9ac1e5452e9678b8195fa235e5
 msgid ""
 "The end-to-end smoke script, the reference-table generator, and how to "
 "run them"
-msgstr ""
+msgstr "端對端冒煙測試腳本、參考表產生器，以及如何執行它們"
 
 #: ../../index.md 722d0a5464f041dca04996ad97e2ebc2
 msgid "[`CMakeLists.txt`](../CMakeLists.txt)"
@@ -362,7 +362,7 @@ msgstr ""
 
 #: ../../index.md 425d536130f449f4b33cf8dd61d09834
 msgid "protoc invocation, the library, uSockets, and the executable"
-msgstr ""
+msgstr "protoc 呼叫、函式庫、uSockets，以及執行檔"
 
 #: ../../index.md c7e2ccf673ed4a42926e91830cd74f36
 msgid "`proto`"
@@ -372,7 +372,7 @@ msgstr ""
 msgid ""
 "Submodule: the wire schema, [ql-protobuf](https://github.com/markccchiang"
 "/ql-protobuf)"
-msgstr ""
+msgstr "子模組：傳輸結構描述，[ql-protobuf](https://github.com/markccchiang/ql-protobuf)"
 
 #: ../../index.md f38a4c8864cd41209478205c30830666
 msgid "`third_party/uWebSockets`"
@@ -380,7 +380,7 @@ msgstr ""
 
 #: ../../index.md 584e6abab3654428ad72f6a582141c37
 msgid "Submodule pinned at v20.66.0, with uSockets nested inside"
-msgstr ""
+msgstr "固定在 v20.66.0 的子模組，內含巢狀的 uSockets"
 
 #: ../../index.md c2897c4322514a9189e16524e085171f
 msgid "`third_party/QuantLib`"
@@ -388,5 +388,5 @@ msgstr ""
 
 #: ../../index.md 2552fe4424c24c7885c325d030bbed8e
 msgid "Opt-in submodule pinned at v1.43, for `-DQLSERVICE_VENDOR_QUANTLIB=ON`"
-msgstr ""
+msgstr "選用的子模組，固定在 v1.43，供 `-DQLSERVICE_VENDOR_QUANTLIB=ON` 使用"
 

@@ -79,7 +79,7 @@ msgid ""
 "zero-rate curve, and why a compounding set beside a discount-factor "
 "request is refused: a discount factor has no convention, and accepting "
 "one would imply it did."
-msgstr ""
+msgstr "$\\tau$ 是日計方式算出的計息因子，一般而言*不等於* $t$——Actual/360 與 Actual/365 相差 1.4%，而 30/360 與兩者都不同。這正是曲線取樣請求在產出零息利率曲線之前，必須指明複利方式、頻率與日計方式的原因；也是在折現因子請求旁邊設定複利方式會被拒絕的原因：折現因子沒有慣例，收下一個慣例會暗示它有。"
 
 #: ../../maths/rates.md:23 d13cc8c34de54137bee9d3814ac02214
 msgid "The forward rate between $t_1$ and $t_2$ follows:"

@@ -109,7 +109,7 @@ msgstr ""
 msgid ""
 "with the payoff as terminal condition at $t = T$. Every method in "
 "{doc}`../HANDLERS` is a way of solving that equation:"
-msgstr ""
+msgstr "並以收益函數作為 $t = T$ 的終端條件。{doc}`../HANDLERS` 中的每一種方法，都是求解這個方程式的一種方式："
 
 #: ../../maths/black-scholes.md:29 ea4e14be703f4582a602debcbb1ad784
 msgid ""

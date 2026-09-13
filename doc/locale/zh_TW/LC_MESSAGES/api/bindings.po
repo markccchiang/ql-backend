@@ -21,7 +21,7 @@ msgstr ""
 
 #: ../../api/bindings.md:1 f22d30666f84410b81092e7c39944372
 msgid "Generating bindings"
-msgstr ""
+msgstr "產生繫結"
 
 #: ../../api/bindings.md:3 2718c8ddcdb641cfbbac9a76d89e8134
 msgid ""
@@ -30,17 +30,17 @@ msgid ""
 "the `proto/` submodule. **No generated code is checked in anywhere** — "
 "each consumer runs its own generator, so there is one source of truth and"
 " no stale binding sitting beside a schema that moved."
-msgstr ""
+msgstr "結構描述自成一個原始碼庫 [ql-protobuf](https://github.com/markccchiang/ql-protobuf)，在這裡以 `proto/` 子模組掛載。**任何地方都不簽入產生出來的程式碼**——每個使用端各自執行自己的產生器，因此只有單一事實來源，也不會有過期的繫結擺在一份已經改動的結構描述旁邊。"
 
 #: ../../api/bindings.md:13 392bd54ac17347dba04635426bf21821
 msgid "The layout is what you import against:"
-msgstr ""
+msgstr "你匯入時依據的就是這個目錄配置："
 
 #: ../../api/bindings.md:24 0a37a6be60e94227bfab88072c309557
 msgid ""
 "`v2` imports `v1`'s `conventions.proto`, so generate both even though "
 "only `v2` is served."
-msgstr ""
+msgstr "`v2` 會匯入 `v1` 的 `conventions.proto`，所以即使服務只提供 `v2`，兩者都要產生。"
 
 #: ../../api/bindings.md:27 aff1958f33494d6c84838a0bc5bb7207
 msgid "Python"
@@ -51,7 +51,7 @@ msgid ""
 "The `touch` is not optional: `protoc` writes the package directories "
 "without `__init__.py`, and the import fails without them. Put `pb` on "
 "`sys.path` and the modules are `quantlib.v2.envelope_pb2` and friends."
-msgstr ""
+msgstr "`touch` 不是可有可無的：`protoc` 寫出套件目錄時不會附上 `__init__.py`，少了它們匯入就會失敗。把 `pb` 放上 `sys.path`，模組就是 `quantlib.v2.envelope_pb2` 等等。"
 
 #: ../../api/bindings.md:40 fad8595124a34ceabb246c8c901eca55
 msgid ""
@@ -59,7 +59,7 @@ msgid ""
 "`envelope_pb2` where the request that carries it lives; and the `Value` "
 "variant's oneof is called `v`, so the accessor is "
 "`value.WhichOneof(\"v\")`."
-msgstr ""
+msgstr "有兩個名稱常讓人踩坑。`ResultKind` 位於 `results_pb2`，而不是攜帶它的那個請求所在的 `envelope_pb2`；另外 `Value` 變體的 oneof 名叫 `v`，所以存取方式是 `value.WhichOneof(\"v\")`。"
 
 #: ../../api/bindings.md:44 da56fdc9fd434b32b068fb3c25c12f31
 msgid "TypeScript"
@@ -69,13 +69,13 @@ msgstr ""
 msgid ""
 "The frontend generates with [buf](https://buf.build) and `protoc-gen-es`,"
 " which produces plain ES modules with no runtime service dependency:"
-msgstr ""
+msgstr "前端用 [buf](https://buf.build) 與 `protoc-gen-es` 產生繫結，產出的是純粹的 ES 模組，執行期不需要任何服務（service）相關的依賴："
 
 #: ../../api/bindings.md:66 70431795bfd84c199065a21da988efac
 msgid ""
 "Encode and decode with the schema objects rather than methods on the "
 "message:"
-msgstr ""
+msgstr "編碼與解碼要透過結構描述物件，而不是訊息上的方法："
 
 #: ../../api/bindings.md:76 a39c66d00b5d42d7a0ea88c8883188a1
 msgid ""
@@ -83,7 +83,7 @@ msgid ""
 "install — the frontend gitignores `src/gen` and runs its `gen` script "
 "from `prepare`, so a moved schema cannot be shadowed by a checked-in "
 "binding."
-msgstr ""
+msgstr "讓輸出目錄留在版本控制之外，並在安裝時重新產生——前端把 `src/gen` 加入 gitignore，並從 `prepare` 執行它的 `gen` 腳本，因此改動過的結構描述不會被簽入的舊繫結遮蔽。"
 
 #: ../../api/bindings.md:80 6af8198cf44946a899bc45013dc972d4
 msgid "C++"
@@ -95,23 +95,23 @@ msgid ""
 "worked example. `protobuf_generate` is given the `.proto` files directly "
 "and writes into `<builddir>/generated/`, whose root goes on the include "
 "path so a header is included by its package path:"
-msgstr ""
+msgstr "本原始碼庫在建置時產生自己的繫結；`CMakeLists.txt` 就是現成的範例。`protobuf_generate` 直接接收 `.proto` 檔並寫入 `<builddir>/generated/`，該目錄的根會加進 include 路徑，因此標頭檔是以它的套件路徑來 include："
 
 #: ../../api/bindings.md:91 ead74c59be8e4057997066178fad2d62
 msgid ""
 "Find Protobuf in CONFIG mode (`find_package(Protobuf CONFIG REQUIRED)`) —"
 " the deprecated `FindProtobuf` module misses the abseil dependencies "
 "libprotobuf now carries."
-msgstr ""
+msgstr "以 CONFIG 模式尋找 Protobuf（`find_package(Protobuf CONFIG REQUIRED)`）——已棄用的 `FindProtobuf` 模組會漏掉 libprotobuf 現在所帶的 abseil 依賴。"
 
 #: ../../api/bindings.md:95 7249772d55514e0ea2cda317c506574d
 msgid "Versions"
-msgstr ""
+msgstr "版本"
 
 #: ../../api/bindings.md:97 1ca453b92ed1442583192e2b8c307b00
 msgid ""
 "The schema is clean under `protoc 34.0`. Anything recent enough to know "
 "about `optional` in proto3 will do; the schema uses no extensions, no "
 "services and no `Any`."
-msgstr ""
+msgstr "在 `protoc 34.0` 下，結構描述編譯起來乾乾淨淨。只要新到認得 proto3 的 `optional`，任何版本都行；結構描述沒有用到 extensions、沒有 services，也沒有 `Any`。"
 

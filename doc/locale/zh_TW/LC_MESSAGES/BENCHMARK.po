@@ -21,17 +21,17 @@ msgstr ""
 
 #: ../../BENCHMARK.md:1 d13addb029584b77937e550c0fa104bb
 msgid "Quanto barrier benchmark"
-msgstr ""
+msgstr "Quanto 障礙選擇權基準測試"
 
 #: ../../BENCHMARK.md:3 1a9d34a4e4a6499396924e01bf027d87
 msgid ""
 "The benchmark `smoke_v2.py` runs, and the numbers it produced. Extracted "
 "from [the smoke tests page](TESTING.md), which now points here."
-msgstr ""
+msgstr "`smoke_v2.py` 執行的基準測試，以及它產生的數字。本頁從[冒煙測試頁面](TESTING.md)抽出，該頁現在改為指向這裡。"
 
 #: ../../BENCHMARK.md:6 5ec2b0cac1344cae98717c486c89e785
 msgid "What is being benchmarked, and why"
-msgstr ""
+msgstr "測試的對象是什麼，以及原因"
 
 #: ../../BENCHMARK.md:8 84dce2c8f32348e69036e7a63e9d621a
 msgid ""
@@ -43,21 +43,21 @@ msgid ""
 "PDE at `2e-4`. `FdBlackScholesBarrierEngine` is single-argument "
 "constructible, so `QuantoEngine` can wrap it and the same trick works for"
 " barriers. That is what `FdParameters` exists for."
-msgstr ""
+msgstr "QuantLib 的 `test-suite/quantooption.cpp` 中，`testBarrierValues` 帶著一條 `TODO: bench results against an existing prop calculator`，以及與之相稱的 `0.5` 容差——它的三個值沒有出處。我們同樣沒有廠商的定價器，但同一個檔案指出了替代做法：`testPDEOptionValues` 以 `2e-4` 將解析式的 quanto 陽春選擇權對 PDE 做基準比對。`FdBlackScholesBarrierEngine` 可以用單一引數建構，所以 `QuantoEngine` 能包裝它，同樣的手法也適用於障礙選擇權。`FdParameters` 就是為此而存在的。"
 
 #: ../../BENCHMARK.md:17 b3aa43dbbe1b4b4d9d1dd0d8f7510655
 msgid "The market"
-msgstr ""
+msgstr "市場"
 
 #: ../../BENCHMARK.md:19 fabd917a69af4ad19bd2e2ef9e7d2022
 msgid ""
 "All three rows share one market, from `QUANTO_BARRIER` in "
 "`reference_tables.py`, itself extracted from `quantooption.cpp`:"
-msgstr ""
+msgstr "三列共用同一個市場，取自 `reference_tables.py` 中的 `QUANTO_BARRIER`，而它本身是從 `quantooption.cpp` 抽出的："
 
 #: ../../BENCHMARK.md 45346f3a796749eb8d0c68dc0a082dac
 msgid "spot"
-msgstr ""
+msgstr "現貨價"
 
 #: ../../BENCHMARK.md 30eb872cc9d64825bfcc29aacd22652a
 msgid "100.0"
@@ -65,7 +65,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md cb2ec5f6c4074f9c8e46488d7e3baecf
 msgid "strike"
-msgstr ""
+msgstr "履約價"
 
 #: ../../BENCHMARK.md 17afa86885ba4e33b42e73022a58e2b5
 msgid "90.0"
@@ -81,7 +81,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 31886d0284b74936adbfcbbf75ee580f
 msgid "dividend yield `q`"
-msgstr ""
+msgstr "股利率 `q`"
 
 #: ../../BENCHMARK.md 48a0e55fd45d4f1bb9c68deeece65500
 msgid "0.04"
@@ -89,7 +89,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md f83b190b85764558b0145f3cbf3b3b44
 msgid "risk-free `r`"
-msgstr ""
+msgstr "無風險利率 `r`"
 
 #: ../../BENCHMARK.md c797c2581893404ab6b6156bbf1abb1b
 msgid "0.0212"
@@ -97,7 +97,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 551adee1bd2a482ea7fa0498478e7f2b
 msgid "maturity `t`"
-msgstr ""
+msgstr "到期期間 `t`"
 
 #: ../../BENCHMARK.md 45e8f50661784c90a9913aa1af78a70c
 msgid "0.50"
@@ -105,7 +105,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 166c708f68234438bd1f77b3388c61b2
 msgid "volatility `v`"
-msgstr ""
+msgstr "波動率 `v`"
 
 #: ../../BENCHMARK.md eeb691cf62cb4286aa22211b3d24c153
 msgid "0.25"
@@ -113,7 +113,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md f2b93ee579784bbebfebfc92f31a7e6f
 msgid "FX risk-free `fxr`"
-msgstr ""
+msgstr "外匯無風險利率 `fxr`"
 
 #: ../../BENCHMARK.md 5e74535b128644d387bfd9802167d3c1
 msgid "0.05"
@@ -121,7 +121,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 1af5c5f0475043098f8e6bfe927c49b6
 msgid "FX volatility `fxv`"
-msgstr ""
+msgstr "外匯波動率 `fxv`"
 
 #: ../../BENCHMARK.md e3d671d0395541f2ba3f8ce444992d08
 msgid "0.2"
@@ -129,7 +129,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md edae275ad4b04bbe965ab96d345d308e
 msgid "correlation"
-msgstr ""
+msgstr "相關係數"
 
 #: ../../BENCHMARK.md 4a4a09c648514b9d998dbfb3327b8aa8
 msgid "0.3"
@@ -139,39 +139,39 @@ msgstr ""
 msgid ""
 "The two `DOWN_OUT` rows carry a rebate of 3.0; the `DOWN_IN` row carries "
 "none."
-msgstr ""
+msgstr "兩列 `DOWN_OUT` 帶有 3.0 的返還金（rebate）；`DOWN_IN` 那一列則沒有。"
 
 #: ../../BENCHMARK.md:37 75e6bf2bc9f44350b3f8a64548375e74
 msgid "Results"
-msgstr ""
+msgstr "結果"
 
 #: ../../BENCHMARK.md 20721f5a37ce498d8a4623a4e9b40247
 msgid "Row"
-msgstr ""
+msgstr "列"
 
 #: ../../BENCHMARK.md 94b0b52e1e1b445a92fdc5b09bda1b02
 msgid "Recorded"
-msgstr ""
+msgstr "記錄值"
 
 #: ../../BENCHMARK.md 5f4afc805ed047908e8a480d5e482d1e
 msgid "Ours (analytic)"
-msgstr ""
+msgstr "我們的值（解析）"
 
 #: ../../BENCHMARK.md 7aa4f24cffd5449d9d82e18a08175348
 msgid "PDE, fine grid"
-msgstr ""
+msgstr "PDE，細網格"
 
 #: ../../BENCHMARK.md 76627bf883544d2bb23da3663a49fafe
 msgid "Analytic vs PDE"
-msgstr ""
+msgstr "解析對 PDE"
 
 #: ../../BENCHMARK.md f0957c62e44549689607d1caf49e6a7b
 msgid "Recorded vs ours"
-msgstr ""
+msgstr "記錄值對我們的值"
 
 #: ../../BENCHMARK.md d058553b1ea64ad1aff188c15e794c88
 msgid "DownOut call"
-msgstr ""
+msgstr "DownOut 買權"
 
 #: ../../BENCHMARK.md c331780dfbd64a8d948a5ac8afcc2810
 msgid "8.247"
@@ -195,7 +195,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 0ca49f9e09f9481081f7654e22b073bb
 msgid "DownOut put"
-msgstr ""
+msgstr "DownOut 賣權"
 
 #: ../../BENCHMARK.md 3d2e870034d545a5b4f164dc8cf39370
 msgid "**2.274**"
@@ -219,7 +219,7 @@ msgstr ""
 
 #: ../../BENCHMARK.md 5f4507bac5fa44998725156d0ddeb34c
 msgid "DownIn put"
-msgstr ""
+msgstr "DownIn 賣權"
 
 #: ../../BENCHMARK.md 793726902c114802aa88f0663cbe9066
 msgid "2.85"
@@ -248,7 +248,7 @@ msgid ""
 "different matter: 0.103, and the PDE sides with us to 8.6e-05. The error "
 "also shrinks by about 4x per grid refinement, so the two methods are "
 "converging to the same number rather than agreeing by accident."
-msgstr ""
+msgstr "第 1 列與第 3 列和記錄值的差距，與分別只記錄到四位及三位有效數字的值相符。第 2 列則是另一回事：差了 0.103，而 PDE 站在我們這邊，差距僅 8.6e-05。誤差也隨每次網格加密縮小約 4 倍，所以兩種方法是在收斂到同一個數字，而不是碰巧一致。"
 
 #: ../../BENCHMARK.md:51 96c211a9becd4783b49d67f16559811a
 msgid ""
@@ -256,11 +256,11 @@ msgid ""
 " `PRESET_STANDARD` (400 x 200) and `PRESET_FINE` (2000 x 800). The script"
 " asserts `coarse > standard > fine` on the gap to the analytic price, and"
 " that `PriceResult.engine` echoes the grid the number came from."
-msgstr ""
+msgstr "三種網格分別是 `PRESET_COARSE`（100 x 100，QuantLib 自己的預設值）、`PRESET_STANDARD`（400 x 200）與 `PRESET_FINE`（2000 x 800）。腳本斷言與解析價格的差距滿足 `coarse > standard > fine`，並斷言 `PriceResult.engine` 回報的正是該數字所用的網格。"
 
 #: ../../BENCHMARK.md:56 a081e4fe84e14bc4ba57321b5c93e5ab
 msgid "What this establishes, precisely"
-msgstr ""
+msgstr "這確切證明了什麼"
 
 #: ../../BENCHMARK.md:58 e77db8c82889455fbee770a841ff46c7
 msgid ""
@@ -273,14 +273,14 @@ msgid ""
 "there is already pinned to Haug, so a disagreement would indict the PDE "
 "rather than the closed form. It agrees, which is what makes the barrier "
 "result above worth anything. The two legs together cover the price."
-msgstr ""
+msgstr "兩條路徑都從同一個 `QuantoTermStructure` 取得 quanto 調整，所以這項交叉驗證*並不*測試 quanto 包裝——它測試的是疊在其上的障礙選擇權封閉解。包裝則另外、獨立地由 quanto 陽春選擇權的各列涵蓋：它們透過同一段程式碼，以 2e-05 的精度重現 Haug 公開的值，而這些列也同樣與 PDE 交叉驗證：那裡的解析側已經釘在 Haug 的數值上，因此若出現不一致，受質疑的會是 PDE 而不是封閉解。結果兩者一致，這正是上面的障礙選擇權結果之所以有意義的原因。兩條線合起來涵蓋了整個價格。"
 
 #: ../../BENCHMARK.md:67 b5eaf55d469347d98095d6b43166ac03
 msgid ""
 "Two guardrails that need no second engine agree as well: in-out parity "
 "(`down_in + down_out == vanilla` at zero rebate) holds to 1e-9, and an "
 "unreachable barrier degrades to the vanilla price exactly."
-msgstr ""
+msgstr "另外兩道不需要第二個引擎的護欄也同樣一致：敲入敲出平價（返還金為零時 `down_in + down_out == vanilla`）成立到 1e-9，而無法觸及的障礙會精確地退化為陽春選擇權的價格。"
 
 #: ../../BENCHMARK.md:71 6c7b5d88635a49f985c638f4786d5b15
 msgid ""
@@ -288,11 +288,11 @@ msgid ""
 " The table check stays at the C++ test's own `0.5`: those numbers are "
 "what is under test, and tightening the tolerance against a value we "
 "believe is wrong would be backwards."
-msgstr ""
+msgstr "腳本只回報與記錄值的差距，而不對它們做斷言。表格檢查維持在 C++ 測試自己的 `0.5`：那些數字才是受測的對象，而針對一個我們認為錯誤的值收緊容差，就本末倒置了。"
 
 #: ../../BENCHMARK.md:76 a1a0ca812e1b4f2e9b8c92b6a7bb38fc
 msgid "Reproducing it"
-msgstr ""
+msgstr "重現結果"
 
 #: ../../BENCHMARK.md:78 e0b86065135540668373cc74446b8998
 msgid ""
@@ -300,5 +300,5 @@ msgid ""
 "benchmark is the \"quanto barriers: analytic against the PDE\" section "
 "near the end. The three grid presets it sweeps are `FdParameters` "
 "`PRESET_COARSE`, `PRESET_STANDARD` and `PRESET_FINE`."
-msgstr ""
+msgstr "依[冒煙測試頁面](TESTING.md)的說明執行 `smoke_v2.py`；基準測試是接近結尾的「quanto barriers: analytic against the PDE」段落。它掃描的三個網格預設是 `FdParameters` 的 `PRESET_COARSE`、`PRESET_STANDARD` 與 `PRESET_FINE`。"
 

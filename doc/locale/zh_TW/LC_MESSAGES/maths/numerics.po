@@ -186,7 +186,7 @@ msgid ""
 " form ({doc}`exotics`). The two averages are highly correlated, so the "
 "variance of the difference is far smaller than the variance of either. It"
 " is the single best-value setting on `McParameters`."
-msgstr ""
+msgstr "**控制變量。**算術亞式引擎可以扣掉*幾何*亞式的模擬誤差，而後者的值有封閉解（{doc}`exotics`）。兩種平均高度相關，因此兩者之差的變異數遠小於任一者的變異數。它是 `McParameters` 上最划算的設定。"
 
 #: ../../maths/numerics.md:86 697f376e9f4a41ea9226f74350482beb
 msgid "Reproducibility, and why batching changes the number"
@@ -338,5 +338,5 @@ msgid ""
 "Always read the engine echo. Two prices are only comparable when you know"
 " what produced each, which is why `PriceResult` echoes the whole `Engine`"
 " message back on every result."
-msgstr ""
+msgstr "永遠讀引擎回音。兩個價格唯有在你知道各自出自何處時才可比較，這也是 `PriceResult` 在每個結果上都把整個 `Engine` 訊息回傳的原因。"
 

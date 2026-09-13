@@ -39,7 +39,7 @@ msgid ""
 "differentiate their own solution or **do not publish the quantity at "
 "all**, which is why so many rows come back \"not supplied\" "
 "({doc}`../HANDLERS`)."
-msgstr ""
+msgstr "以下每個公式都是歐式解析解的情形，也就是 QuantLib 的 `BlackCalculator`（`ql/pricingengines/blackcalculator.cpp`）所計算的內容。其他引擎要嘛對自己的解求導，要嘛**根本不發布該量**，這也是為什麼有那麼多列回來是「未提供」（{doc}`../HANDLERS`）。"
 
 #: ../../maths/greeks.md:13 3fa4ce32c78048dda946bcec7f5ec0ef
 msgid "The derivatives"

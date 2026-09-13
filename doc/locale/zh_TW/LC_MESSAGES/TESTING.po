@@ -21,17 +21,17 @@ msgstr ""
 
 #: ../../TESTING.md:1 47aaee5369dd4d2687fc7b22a5bc932f
 msgid "Smoke tests"
-msgstr ""
+msgstr "冒煙測試"
 
 #: ../../TESTING.md:3 26ac537c916f4ee4889e12c84fe8d630
 msgid ""
 "`smoke_v2.py` drives `ql-backend` over a real WebSocket and is the only "
 "proof the service works; there is no unit-test target yet."
-msgstr ""
+msgstr "`smoke_v2.py` 透過真正的 WebSocket 驅動 `ql-backend`，是證明服務能運作的唯一依據；目前還沒有單元測試目標。"
 
 #: ../../TESTING.md:6 272c6511bb3a43829b32678b76c7ae6b
 msgid "It checks two different kinds of thing, and the distinction matters."
-msgstr ""
+msgstr "它檢查兩種不同的東西，而這個區別很重要。"
 
 #: ../../TESTING.md:8 adb3f45b105e4d2baa786e584655d395
 msgid ""
@@ -45,7 +45,7 @@ msgid ""
 "generator is checked in beside its output. Transcribing a benchmark by "
 "hand is how it quietly stops being one — a digit changes and the test "
 "still passes, against the wrong number."
-msgstr ""
+msgstr "**數字。** 369 列 QuantLib 自己公開的參考值——歐式與美式陽春選擇權、障礙與 knock 數位選擇權、遠期生效、複合、選擇者、cliquet 與雙資產籃子選擇權，以及四種 quanto 型態——每一列都經由傳輸線路定價，並以該測試所用的容差，與 C++ 測試套件記錄的值比較。數值與容差都不是手動輸入的：`reference_tables.py` 由 `extract_tables.py` 從 `test-suite/*.cpp` 產生，而產生器就與它的輸出一起簽入。手抄基準值，正是它悄悄不再是基準的方式——某個位數變了，測試照樣通過，比對的卻是錯的數字。"
 
 #: ../../TESTING.md:19 d68ef559e3ef4bafb63c30ca5a077d3b
 msgid ""
@@ -56,15 +56,15 @@ msgid ""
 " from — rather than letting three constants be typed here. A pattern that"
 " stops matching is a hard failure, which is the point: the alternative is"
 " a stale `6.1071` that outlives the number it was copied from."
-msgstr ""
+msgstr "其中三列背後沒有表格。`chooseroption.cpp` 的兩個值與 `cliquetoption.cpp` 的一個值，是以區域變數的形式寫在測試案例的本體中，因此 `extract_tables.py` 逐個變數把它們讀出來——並註明每個欄位來自哪個 C++ 變數——而不是讓三個常數在這裡手動輸入。模式一旦不再匹配就是硬性失敗，而這正是重點：否則的結果，就是一個過時的 `6.1071` 比它當初抄來的數字活得更久。"
 
 #: ../../TESTING.md:26 111b46f2efa24bd7bcfe40b0388f81ce
 msgid "Re-run the generator when the QuantLib checkout moves:"
-msgstr ""
+msgstr "當 QuantLib 的 checkout 移動時，重新執行產生器："
 
 #: ../../TESTING.md:32 d5047448bfab48f9b0872d4c2d4c96e1
 msgid "The diff is then the library's change rather than ours."
-msgstr ""
+msgstr "如此一來，差異就是函式庫的變更，而不是我們的。"
 
 #: ../../TESTING.md:34 2ae428c2b12b498f88155780cdd737c7
 msgid ""
@@ -75,7 +75,7 @@ msgid ""
 " the check that catches the wrong QuantLib being linked: without "
 "`QL_ENABLE_SESSIONS` the two share one `Settings::evaluationDate()` and "
 "agree exactly (DESIGN §2)."
-msgstr ""
+msgstr "**行為。** 一個工作階段的一生——開啟、推移一個報價、從即時物件圖重新定價、掃描一個報價、取消一個批次化的蒙地卡羅、關閉——再加上那些拒絕，讓被遺忘的欄位不會以沒人選過的預設值定價，以及兩個工作階段相差一天的 theta。最後這一項就是能抓出連結了錯誤 QuantLib 的檢查：少了 `QL_ENABLE_SESSIONS`，兩者會共用同一個 `Settings::evaluationDate()` 而完全一致（DESIGN §2）。"
 
 #: ../../TESTING.md:41 2ea918d6562a4c70ae18200f3c5e90cf
 msgid ""
@@ -87,7 +87,7 @@ msgid ""
 "references the curve bootstrapped off it, then bumps a swap pillar and "
 "checks the trade moves — through the rebootstrapped curve *and* the "
 "relinked index, which a copy would not."
-msgstr ""
+msgstr "其中兩項行為檢查其實是變相的重播。一次保留最終值的掃描之後，緊接著一個有限差分請求，它會把工作階段移到可犧牲的工作者上，並從工作階段日誌重建；保留下來的現貨價必須撐過這一步，而這只有在監督者已把它併入日誌時才成立。另外，交換的段落會建立一個指數，它前向參照從它拔靴出來的曲線，接著推移一個交換的 pillar，並檢查交易是否跟著變動——透過重新拔靴的曲線*以及*重新連結的指數，而一份複本做不到這一點。"
 
 #: ../../TESTING.md:50 7c07b8e58e4e4621b4cf6e997a9c6321
 msgid ""
@@ -97,7 +97,7 @@ msgid ""
 " The numbers, and what they do and do not establish, are in [the quanto "
 "barrier benchmark](BENCHMARK.md). One of the three recorded values does "
 "not reproduce."
-msgstr ""
+msgstr "它也做基準測試，而這是值得一讀的部分：它以 PDE 交叉驗證解析式的 quanto 障礙選擇權價格，因為 `quantooption.cpp` 中的 `testBarrierValues` 要求的正是這個基準，卻從來沒得到過。數字，以及它們能證明與不能證明什麼，都在[quanto 障礙選擇權基準測試](BENCHMARK.md)裡。三個記錄值中有一個無法重現。"
 
 #: ../../TESTING.md:56 ce2fc0e39bd249c9acc8394effed0c40
 msgid ""
@@ -106,17 +106,17 @@ msgid ""
 "(DESIGN §6.3), so they could not be left in place; everything they "
 "covered is here, and the quanto tables and the PDE benchmark came across "
 "intact."
-msgstr ""
+msgstr "先前的三支腳本——`smoke_pricing.py`、`smoke_sessions.py` 與 `smoke_quanto.py`——都是 `v1` 客戶端。服務現在使用 `v2`（DESIGN §6.3），所以它們不能繼續留著；它們涵蓋的一切都在這裡，quanto 表格與 PDE 基準也完整地搬了過來。"
 
 #: ../../TESTING.md:61 932443b8659f48d5bf8d67afd3563f56
 msgid ""
 "It needs Python bindings for the schema and a client library, neither of "
 "which the repository carries:"
-msgstr ""
+msgstr "它需要結構描述的 Python 繫結與一個客戶端函式庫，而儲存庫兩者都沒有附帶："
 
 #: ../../TESTING.md:73 d0c9ffaea75743cc8dcb381d516578ce
 msgid "It prints one line per check and exits non-zero if any failed."
-msgstr ""
+msgstr "它每項檢查印出一行，只要有任何一項失敗，就以非零值結束。"
 
 #: ../../TESTING.md:75 cac046d3b78c43e08620e12e3d8d472a
 msgid ""
@@ -124,25 +124,25 @@ msgid ""
 "written to a directory outside the repository and nothing rebuilds them "
 "for you, so a suite run against a stale copy fails on a field the service"
 " is sending and the bindings have never heard of."
-msgstr ""
+msgstr "每當 `proto` 子模組移動，就重新產生繫結。它們會寫到儲存庫外的目錄，而且沒有任何東西會替你重建，所以拿過時的複本跑測試套件，會在某個服務正在傳送、繫結卻從沒聽過的欄位上失敗。"
 
 #: ../../TESTING.md:80 2127309a8e51449bbae7636f91b57962
 msgid ""
 "Against a daemon started with `--token-file`, put the secret in "
 "`QL_TOKEN` and every connection the suite opens carries it as an "
 "`Authorization` header:"
-msgstr ""
+msgstr "面對以 `--token-file` 啟動的常駐程式，把密鑰放進 `QL_TOKEN`，測試套件開啟的每一條連線都會以 `Authorization` 標頭攜帶它："
 
 #: ../../TESTING.md:88 63bfa821be294c638b5e883c15152d4c
 msgid ""
 "The whole suite passes either way. One check reads differently: "
 "`/healthz` stops reporting its connection and session counts once a token"
 " is required, and the check asserts whichever shape applies."
-msgstr ""
+msgstr "兩種情況下整個測試套件都會通過。只有一項檢查的結果看起來不同：一旦需要權杖，`/healthz` 就不再回報連線數與工作階段數，而該檢查會依適用的形式來斷言。"
 
 #: ../../TESTING.md:92 22268ac2b5884f85a1e571f83d59f94e
 msgid "One check only runs when the daemon is started with a short resume window:"
-msgstr ""
+msgstr "有一項檢查只在常駐程式以較短的接回時間窗啟動時才會執行："
 
 #: ../../TESTING.md:98 c24cbbd9e138465a9626eecb260a3e21
 msgid ""
@@ -150,5 +150,5 @@ msgid ""
 "running in it, survive a dropped socket — but the window *expiring* is a "
 "wall-clock wait, and sixty seconds of it does not belong in a test run. "
 "With a two-second window it is one more check."
-msgstr ""
+msgstr "除此之外，接回段落證明的是工作階段以及其中正在執行的計算能撐過連線中斷——但時間窗*到期*得實際等待時間流逝，而六十秒的等待不該出現在一次測試執行裡。時間窗改為兩秒，它就只是多一項檢查。"
 

@@ -21,29 +21,29 @@ msgstr ""
 
 #: ../../api/first-price.md:1 6d073cd136d748428b9c8e83af5263d7
 msgid "Your first price"
-msgstr ""
+msgstr "你的第一個價格"
 
 #: ../../api/first-price.md:3 0c8f85478a094f0f9845aea2d23ec0a9
 msgid ""
 "One script, start to finish: connect, ask what the build prices, open a "
 "session, price a European call, hand the seat back. It needs the Python "
 "bindings from the previous page and a running service."
-msgstr ""
+msgstr "一支腳本，從頭到尾：連線、詢問這個版本能計價什麼、開啟工作階段、為一個歐式買權計價，再把座位交還。它需要上一頁的 Python 繫結，以及一個正在執行的服務。"
 
 #: ../../api/first-price.md:105 571a16825de84f6ebf2037c7b850c489
 msgid "What it prints, against this build:"
-msgstr ""
+msgstr "對著這個版本執行，它印出的是："
 
 #: ../../api/first-price.md:115 b32defe6300546b4a24af36666de0730
 msgid "What each step is doing"
-msgstr ""
+msgstr "每一步在做什麼"
 
 #: ../../api/first-price.md:117 c4459821668342fb934d077299d1a8b0
 msgid ""
 "**`Hello` needs no session.** What a build can price is a property of the"
 " service, so a client can ask before it commits a worker seat — and "
 "should, rather than hardcoding a list that will drift."
-msgstr ""
+msgstr "**`Hello` 不需要工作階段。**一個版本能計價什麼，是服務本身的屬性，所以用戶端可以在占用一個工作者座位之前先問——而且應該問，而不是寫死一份遲早會與實際脫節的清單。"
 
 #: ../../api/first-price.md:121 4c1286440eaa46c0bc6df8f265ea99d2
 msgid ""
@@ -52,13 +52,13 @@ msgid ""
 " one exception is an index naming a curve defined later, which is how a "
 "bootstrapped curve and the index its pillars quote can refer to each "
 "other."
-msgstr ""
+msgstr "**市場依相依順序送達。**工作階段一邊填入一邊解析代號，所以 `RC` 能指名報價 `R`，只因為 `R` 先到。唯一的例外是指名一條較晚才定義之曲線的指數：拔靴建構的曲線與其支柱所報價的指數，就是這樣彼此指涉的。"
 
 #: ../../api/first-price.md:126 a8e0e25785164caab6c479df8030e77f
 msgid ""
 "**Omitting the dividend curve means a flat zero yield**, not the risk-"
 "free curve. That is the single most common surprise in a first price."
-msgstr ""
+msgstr "**省略股利曲線代表收益率平坦為零**，而不是沿用無風險曲線。這是第一次計價時最常見的意外。"
 
 #: ../../api/first-price.md:129 dfc948ea0fe34f34973a0e32901138cf
 msgid ""
@@ -67,12 +67,12 @@ msgid ""
 "`RESULT_KIND_THETA_PER_DAY` under `\"thetaPerDay\"` — the same keys an "
 "engine uses in its `additionalResults`, so a client dumping both reads "
 "one vocabulary."
-msgstr ""
+msgstr "**結果對照表以 QuantLib 自己的名稱為鍵**，所以 `RESULT_KIND_DELTA` 會以 `\"delta\"` 帶回，`RESULT_KIND_THETA_PER_DAY` 則以 `\"thetaPerDay\"` 帶回——與引擎在其 `additionalResults` 中使用的鍵相同，因此把兩者都印出來的用戶端讀到的是同一套詞彙。"
 
 #: ../../api/first-price.md:134 0a223735b6a041e687cd059f8b890e46
 msgid ""
 "**Closing is optional but polite.** A session holds a worker seat until "
 "it is closed, the socket drops and its grace expires, or the cap evicts "
 "the longest-waiting one."
-msgstr ""
+msgstr "**關閉不是必要的，但算是禮貌。**工作階段會一直占著一個工作者座位，直到它被關閉、連線中斷且寬限期屆滿，或是上限機制把等待最久的那一個逐出為止。"
 
