@@ -15,5 +15,4 @@ if [ -z "$PYTHON" ]; then
 fi
 
 "$PYTHON" -m sphinx -b html doc doc/_build/html "$@"
-"$PYTHON" -m sphinx -b html -D language=zh_TW -D html_title="ql-backend 文件" \
-    doc doc/_build/html/zh-tw "$@"
+"$PYTHON" -m sphinx -b html -D language=zh_TW doc doc/_build/html/zh-tw "$@"

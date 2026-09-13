@@ -1,5 +1,15 @@
 {% extends "!layout.html" %}
 
+{# The browser tab. A page's tab reads "Page — ql-backend", but the front page's
+   own title is the project name, so the theme would print it twice. #}
+{% block htmltitle %}
+{%- if pagename == (root_doc or master_doc) %}
+  <title>{{ docstitle|e }}</title>
+{%- else %}
+{{ super() }}
+{%- endif %}
+{% endblock %}
+
 {# The language switch. Both builds come out of one source tree — English at
    the root, Traditional Chinese under zh-tw/ — so the other language's copy of
    the page you are on is a relative path away, and the link keeps you on the
