@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ql-backend \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-13 14:22+0800\n"
+"POT-Creation-Date: 2026-09-13 14:50+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_TW\n"
@@ -19,15 +19,15 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: ../../HANDLERS.md:1 dcc5dc8a442d45758d69786a300c674a
+#: ../../HANDLERS.md:1 921df50834d04d6fa0fb474294cc5065
 msgid "Handlers"
 msgstr "處理常式"
 
-#: ../../HANDLERS.md:3 562c6302870b4b09a40719deeb67cfc7
+#: ../../HANDLERS.md:3 1dc14bba22e44e72835d40f7e433b290
 msgid "What the running service accepts today, and how to drive it."
 msgstr "執行中的服務目前接受什麼，以及如何驅動它。"
 
-#: ../../HANDLERS.md:5 bdd839988a674a0687c0f2681584b21b
+#: ../../HANDLERS.md:5 c7d0f2a4986a455092a068f828fb280d
 msgid ""
 "This page is the flat list, derived from the code rather than from the "
 "schema. The [design document](DESIGN.md) says *why* each handler is "
@@ -35,131 +35,140 @@ msgid ""
 "The distinction matters: the schema describes more than the service "
 "builds, and everything in it that is not on this page is **rejected as "
 "`UNSUPPORTED` naming the field**, never priced on a substitute."
-msgstr "這一頁是扁平的清單，依據程式碼而非結構描述整理而成。[設計文件](DESIGN.md)說明每個處理常式*為什麼*長成這個樣子，並引用迫使它如此的 QuantLib 限制。這個區別很重要：結構描述所描述的比服務實作的更多，而其中凡是不在這一頁上的，都會**以 `UNSUPPORTED` 拒絕並指名該欄位**，絕不會拿替代品去計價。"
+msgstr ""
+"這一頁是扁平的清單，依據程式碼而非結構描述整理而成。[設計文件](DESIGN.md)說明每個處理常式*為什麼*長成這個樣子，並引用迫使它如此的 "
+"QuantLib 限制。這個區別很重要：結構描述所描述的比服務實作的更多，而其中凡是不在這一頁上的，都會**以 `UNSUPPORTED` "
+"拒絕並指名該欄位**，絕不會拿替代品去計價。"
 
-#: ../../HANDLERS.md:12 fa4c65d7821141deb1a896a6d2fcbd75
+#: ../../HANDLERS.md:12 92adf16c60ba49e189144febfee4701e
 msgid ""
 "The schema itself is a separate repository, mounted here as the "
 "[`proto/`](https://github.com/markccchiang/ql-protobuf) submodule."
-msgstr "結構描述本身是另一個儲存庫，在這裡以 [`proto/`](https://github.com/markccchiang/ql-protobuf) 子模組的形式掛載。"
+msgstr ""
+"結構描述本身是另一個儲存庫，在這裡以 [`proto/`](https://github.com/markccchiang/ql-"
+"protobuf) 子模組的形式掛載。"
 
-#: ../../HANDLERS.md:15 d6fbaee5b9bd4f13a299a46d6d3c561e
+#: ../../HANDLERS.md:15 bd3d9cb5e65d408892fcca45dcb87d8e
 msgid "The protocol"
 msgstr "協定"
 
-#: ../../HANDLERS.md:17 b3d727bd83004b8682f9e7ce86dae7a5
+#: ../../HANDLERS.md:17 f8ea3468e65e48a3bc449e43029d9da7
 msgid "The frames"
 msgstr "訊框"
 
-#: ../../HANDLERS.md:19 ea3ea580200f4042ad3cbc0ea72f717d
+#: ../../HANDLERS.md:19 2d04f6633d3748d78f22aef0349fcdcd
 msgid ""
 "One `ClientFrame` in, one *terminal* `ServerFrame` out. Always exactly "
 "one, including for failures and for the cancel itself — a client that "
 "never sees a terminal frame waits forever (DESIGN §9.5)."
-msgstr "一個 `ClientFrame` 進，一個*終結* `ServerFrame` 出。永遠恰好一個，失敗時如此，取消本身也如此——從未收到終結訊框的用戶端會永遠等下去（DESIGN §9.5）。"
+msgstr ""
+"一個 `ClientFrame` 進，一個*終結* `ServerFrame` "
+"出。永遠恰好一個，失敗時如此，取消本身也如此——從未收到終結訊框的用戶端會永遠等下去（DESIGN §9.5）。"
 
-#: ../../HANDLERS.md 47cfa161c2294f8694c1987119ddfd82
+#: ../../HANDLERS.md 223fb4be309d4e06b95945c87c202fe5
 msgid "`ClientFrame.payload`"
 msgstr ""
 
-#: ../../HANDLERS.md cd1e798e181545f3873c30b1ec1057fa
+#: ../../HANDLERS.md 8f49bbff7c8248d5b9ad47c5f0e1c834
 msgid "Handled in"
 msgstr "處理位置"
 
-#: ../../HANDLERS.md 997d21432b1d40f5bde57ca838401401
+#: ../../HANDLERS.md 85c0fbd52b9c453a877bdaf3e25f26e6
 msgid "Terminal reply"
 msgstr "終結回覆"
 
-#: ../../HANDLERS.md 688889ea8f634cef9e58b4189cf9ae87
+#: ../../HANDLERS.md c57c24a7077c49bbbbbcc0422f479e35
 msgid "`open_session`"
 msgstr ""
 
-#: ../../HANDLERS.md c4df2a33f24549578e21487aeeadabd5
+#: ../../HANDLERS.md b16d96aad05346838b66b0bc9d87749a
 msgid "`Supervisor::dispatch` → `Worker::serve`"
 msgstr ""
 
-#: ../../HANDLERS.md 3520a1cd63e84db2a49ae6339d8dba32
+#: ../../HANDLERS.md d22b1b76cbbb4447b3d636ce1e765b0d
 msgid "`SessionOpened`"
 msgstr ""
 
-#: ../../HANDLERS.md cfadd9bd5c8a40b7b1d525e5dcb6bd8b
+#: ../../HANDLERS.md 1fac6331dcaa42f9bda73e3e652735e7
 msgid "`update_market`"
 msgstr ""
 
-#: ../../HANDLERS.md dc88edd7a7b141c1bb429997c6afbbec
+#: ../../HANDLERS.md 512ec1ac22974fe495f82259f7dec3a7
 msgid "`Worker::serve`, under one `UpdateGuard`"
 msgstr "`Worker::serve`，包在單一個 `UpdateGuard` 之下"
 
-#: ../../HANDLERS.md 440eaa70a8d84d4bb70c463f0c4f9881
-#: 7c704cab9f024bbfb624b74e703a9407 cf40a7df9c884dc8ad9b1e3f49522b37
+#: ../../HANDLERS.md 796665f0e3144ed98c6db9716238d524
+#: aeb9b7fdf5fe4e31ae2ad14660c4484e bf995b1a2fe847be9de202c0dee0acf7
 msgid "`Ack`"
 msgstr ""
 
-#: ../../HANDLERS.md 14b348aeba4b4bc3967658b2120fcf55
+#: ../../HANDLERS.md 43cd2f1222b049b294add68bf0863c79
 msgid "`price`"
 msgstr ""
 
-#: ../../HANDLERS.md 56a76f9a03b24ca896752e064c2c7717
+#: ../../HANDLERS.md a301311aac6d4b7c9c062ff2ac40f249
 msgid "`Worker::serve` → `Session::price`"
 msgstr ""
 
-#: ../../HANDLERS.md 35aa33220e8a400e9a81d8b39d3c3e9d
+#: ../../HANDLERS.md 1591fbd422ce4d66bb3a97578f157f05
 msgid "`PriceResult`, or `ScenarioResult` when `scenarios` is non-empty"
 msgstr "`PriceResult`；`scenarios` 非空時為 `ScenarioResult`"
 
-#: ../../HANDLERS.md 4c338fc8969d41fabd28ac04dda6b3d2
+#: ../../HANDLERS.md d42fc4d6478046a180a20e491136eeb9
 msgid "`batch`"
 msgstr ""
 
-#: ../../HANDLERS.md 95416d116dd9416cb46b524427798afe
+#: ../../HANDLERS.md 6ed948dd5427496a8138c111b1713c47
 msgid "`Worker::serveBatch` → `Session::price`, once per entry"
 msgstr "`Worker::serveBatch` → `Session::price`，每個項目一次"
 
-#: ../../HANDLERS.md c2c33d035aaa49649b2968056dd523fa
+#: ../../HANDLERS.md 4e547b425c34405c9c3569c79c8951f0
 msgid "`BatchResult`"
 msgstr ""
 
-#: ../../HANDLERS.md 291835494a534f528840e3117a0aa202
+#: ../../HANDLERS.md 4746362e47704685937ddf50e4a5b39b
 msgid "`cancel`"
 msgstr ""
 
-#: ../../HANDLERS.md 12ed9232e13744f1a97aa9698de17612
-#: 7886fc8ea09f42229882f7c65c3cb8ec f23e11e63ceb4583b1eeb4496bc21778
+#: ../../HANDLERS.md 23c0f34bb45940188b2eb45f4e727914
+#: 396ee1ccdd224f3eba9d7f4648a5cf31 50c1f803e5d94c2eafe15ce193d802a5
 msgid "`Gateway`, which answers it itself"
 msgstr "`Gateway`，由它自己回覆"
 
-#: ../../HANDLERS.md b76edc3d67cd4dcaa2a9fa2fdd30cf53
+#: ../../HANDLERS.md 145528a864f94ddd8feddadb616b755f
 msgid "`hello`"
 msgstr ""
 
-#: ../../HANDLERS.md ef04ba8719a14e8ba8a5dd020cd01c03
+#: ../../HANDLERS.md 992c81f341784ca2b04e46dedc3ed8ab
 msgid "`Capabilities`"
 msgstr ""
 
-#: ../../HANDLERS.md d5abfbbf013e481894284d205bdb8793
+#: ../../HANDLERS.md b922013a24bd4968b8e8711081c3dfab
 msgid "`close_session`"
 msgstr ""
 
-#: ../../HANDLERS.md 9f6da571eb264d898a79746dbd049f80
+#: ../../HANDLERS.md c6d13fc393a34e5e81db5d2080e29a1c
 msgid "`Gateway` / `Supervisor`"
 msgstr ""
 
-#: ../../HANDLERS.md 74dc2233ee7a41deaa25ef1f10ba3ae6
+#: ../../HANDLERS.md 5170dd9f3a2a4a2e8d567cae5237ab23
 msgid "`resume_session`"
 msgstr ""
 
-#: ../../HANDLERS.md e4f437523e224118b88c09e9c5600198
+#: ../../HANDLERS.md a2ead9a886ab40358a7f9a2b84f48b03
 msgid "`SessionOpened` with `resumed` set"
 msgstr "設定了 `resumed` 的 `SessionOpened`"
 
-#: ../../HANDLERS.md:34 2d74b62edee447858b9bf74e214f936d
+#: ../../HANDLERS.md:34 b03e1ade0e664de88e15561e53d02d5c
 msgid ""
 "There is one thing that is not a frame at all: `GET /healthz` answers "
 "over plain HTTP, for a proxy or an orchestrator that cannot speak this "
 "protocol. See [Liveness](#liveness)."
-msgstr "有一樣東西根本不是訊框：`GET /healthz` 透過一般 HTTP 回覆，給不會講這個協定的代理伺服器或編排器使用。見[存活檢查](#liveness)。"
+msgstr ""
+"有一樣東西根本不是訊框：`GET /healthz` 透過一般 HTTP "
+"回覆，給不會講這個協定的代理伺服器或編排器使用。見[存活檢查](#liveness)。"
 
-#: ../../HANDLERS.md:38 194145b740424144afca9312256f7175
+#: ../../HANDLERS.md:38 46f4bd0b81b540d09eb031af05406bc1
 msgid ""
 "`hello` needs no session: what the build can price is a property of the "
 "service, and a client has to be able to ask before it opens one. The "
@@ -172,116 +181,125 @@ msgid ""
 "lists while every client's copy of this page says otherwise. "
 "`src/session/capabilities.cpp` is where the lists live, next to the "
 "dispatch they describe."
-msgstr "`hello` 不需要工作階段：這個建置能為什麼計價是服務本身的屬性，用戶端必須能在開啟工作階段之前就先問。回覆帶的是**集合**——這個建置實作的類型、方法、樹、近似法、結果種類、市場形狀與交易腳種類——而刻意不帶組合：解析解障礙能否接受美式履約，是關於一對值的規則，而這樣的配對多到不值得放上線路。這次握手消除的是真正會發生的漂移，也就是某個值被加進或移出這些清單，而每個用戶端手上的這一頁卻還寫著另一回事。這些清單放在 `src/session/capabilities.cpp`，就在它們所描述的分派邏輯旁邊。"
+msgstr ""
+"`hello` "
+"不需要工作階段：這個建置能為什麼計價是服務本身的屬性，用戶端必須能在開啟工作階段之前就先問。回覆帶的是**集合**——這個建置實作的類型、方法、樹、近似法、結果種類、市場形狀與交易腳種類——而刻意不帶組合：解析解障礙能否接受美式履約，是關於一對值的規則，而這樣的配對多到不值得放上線路。這次握手消除的是真正會發生的漂移，也就是某個值被加進或移出這些清單，而每個用戶端手上的這一頁卻還寫著另一回事。這些清單放在"
+" `src/session/capabilities.cpp`，就在它們所描述的分派邏輯旁邊。"
 
-#: ../../HANDLERS.md:49 e029d60062f9491d825ab671d98aea62
+#: ../../HANDLERS.md:49 dae8b68689a64595b3fb7685241a9abf
 msgid ""
 "`Progress` is the one non-terminal frame. Three shapes emit it: a batched"
 " Monte Carlo (`engine.mc.progress_every_paths`), a scenario sweep, and a "
 "batch. Those are also the three that can be stopped where they stand — "
 "see [Cancellation](#cancellation)."
-msgstr "`Progress` 是唯一的非終結訊框。會送出它的有三種形狀：分批的蒙地卡羅（`engine.mc.progress_every_paths`）、情境掃描，以及批次。這三種也正是能在原地停下的——見[取消](#cancellation)。"
+msgstr ""
+"`Progress` "
+"是唯一的非終結訊框。會送出它的有三種形狀：分批的蒙地卡羅（`engine.mc.progress_every_paths`）、情境掃描，以及批次。這三種也正是能在原地停下的——見[取消](#cancellation)。"
 
-#: ../../HANDLERS.md:54 8ac68b37c2db4c578123a02ffbbbacd8
+#: ../../HANDLERS.md:54 89b90e00812d4978b966a7f592be6447
 msgid ""
 "Every frame carries `request_id` (yours, echoed on every reply) and "
 "`session_id` (set on every server frame, because one socket can hold "
 "several sessions)."
-msgstr "每個訊框都帶著 `request_id`（由你配發，每個回覆都會回傳）與 `session_id`（每個伺服器訊框都會設定，因為一條連線可以持有好幾個工作階段）。"
+msgstr ""
+"每個訊框都帶著 `request_id`（由你配發，每個回覆都會回傳）與 "
+"`session_id`（每個伺服器訊框都會設定，因為一條連線可以持有好幾個工作階段）。"
 
-#: ../../HANDLERS.md:58 486b9d93b1e64acb80fa5b712d84e76e
+#: ../../HANDLERS.md:58 760d5c95b4df43fd94a7f12c22e36826
 msgid "A session, end to end"
 msgstr "一個工作階段，從頭到尾"
 
-#: ../../HANDLERS.md:60 7e80c38724a94be682b616d57528d256
+#: ../../HANDLERS.md:60 a7d2010174f84426bbb0883d51380bc8
 msgid ""
 "The wire is Protobuf over WebSocket. This is the idiom `test/smoke_v2.py`"
 " uses:"
 msgstr "線路格式是跑在 WebSocket 上的 Protobuf。以下是 `test/smoke_v2.py` 使用的慣用寫法："
 
-#: ../../HANDLERS.md:114 e8dccb5c4db84fea82566420fed9bfe7
+#: ../../HANDLERS.md:114 36a6280d9ff543bbac0fa069a0b90130
 msgid ""
 "The session holds the live QuantLib graph. `update_market` writes quotes "
 "and reprices off the same objects; anything that changes graph "
 "*structure* — a new curve shape, a new index — is a new session."
-msgstr "工作階段持有即時的 QuantLib 物件圖。`update_market` 寫入報價，並以同一批物件重新計價；任何會改變物件圖*結構*的東西——新的曲線形狀、新的利率指標——都要開新的工作階段。"
+msgstr ""
+"工作階段持有即時的 QuantLib 物件圖。`update_market` "
+"寫入報價，並以同一批物件重新計價；任何會改變物件圖*結構*的東西——新的曲線形狀、新的利率指標——都要開新的工作階段。"
 
-#: ../../HANDLERS.md:118 2c8b42830ced412bb1e8c7d56412b14a
+#: ../../HANDLERS.md:118 24b8d479ae25450dab0a4788c337429b
 msgid "Market objects"
 msgstr "市場物件"
 
-#: ../../HANDLERS.md:120 ffb5031b36b440659d45ccf06f789434
+#: ../../HANDLERS.md:120 054308ea042046a8bb7e4d87c2a3cff4
 msgid ""
 "`OpenSession.market` is an ordered, id-addressed namespace. Ids are "
 "unique within the session and are what instruments name."
 msgstr "`OpenSession.market` 是一個有順序、以代號定址的命名空間。代號在工作階段內唯一，商品就是以代號來指名它們。"
 
-#: ../../HANDLERS.md 6b90623c16104d6bb785ea735cdcd58e
+#: ../../HANDLERS.md fc199c281afe47d68acad2f12ea3c8a2
 msgid "`MarketObject.kind`"
 msgstr ""
 
-#: ../../HANDLERS.md 90f61922a43f41a9952f5c34a38a49e7
+#: ../../HANDLERS.md 2d8bbe94173b4fa78c294870ad0cb603
 msgid "Built"
 msgstr "已實作"
 
-#: ../../HANDLERS.md 4fdbb52ae7ae4fbb91878055f93b2b6f
+#: ../../HANDLERS.md 83405f1a9adc45ce87ff11ce950a49a1
 msgid "`quote`"
 msgstr ""
 
-#: ../../HANDLERS.md de5c8c6a67644171b949e4f05691dd23
+#: ../../HANDLERS.md d08ea0e415d340beb6004cfb82dcec9e
 msgid "yes — the concrete `SimpleQuote`s everything else observes"
 msgstr "是——其他一切所觀察的具體 `SimpleQuote`"
 
-#: ../../HANDLERS.md c60843eb434d4535aa658a9ccb7240c5
+#: ../../HANDLERS.md 86cf73607d5a4616b2b87fb6c751f760
 msgid "`yield_curve`"
 msgstr ""
 
-#: ../../HANDLERS.md 40a15443363047b5813e29375c1c0e18
+#: ../../HANDLERS.md 89504823b8354998b5c334cdad6c6062
 msgid "yes, four of six shapes"
 msgstr "是，六種形狀中的四種"
 
-#: ../../HANDLERS.md 2439fd5b61f045a6987a182badcdd9b0
+#: ../../HANDLERS.md 8a07964d68d349f89031d3fbb2b24e5f
 msgid "`volatility`"
 msgstr ""
 
-#: ../../HANDLERS.md 03eb179c1d0c4c5b92f1252c0c60477c
+#: ../../HANDLERS.md c3668c56ce5a4eeca4f2e21e74faf0b0
 msgid "yes, three of four shapes"
 msgstr "是，四種形狀中的三種"
 
-#: ../../HANDLERS.md b85c0aa042f849ffabc8f776a57048a5
+#: ../../HANDLERS.md 7c6b0072052c4ca7a5d0f193a277fd87
 msgid "`index`"
 msgstr ""
 
-#: ../../HANDLERS.md dc3816270af74ea1b8fb7a8193635ee7
+#: ../../HANDLERS.md 52b413cd5f2841d2956c491f7611d730
 msgid "yes, two of six families"
 msgstr "是，六個家族中的兩個"
 
-#: ../../HANDLERS.md c5df00b6554e49a19bcf8f2e9ec1a5ce
+#: ../../HANDLERS.md 9111cada5d7a48aead44d66ea6a04079
 msgid "`fixings`"
 msgstr ""
 
-#: ../../HANDLERS.md 1e12f02de4b348f48d32948102534f1d
-#: 48c63395e9c841ab9c24e26593e75811
+#: ../../HANDLERS.md 89821699cb23417194844bb91392791a
+#: ee5ce60f8a644a5f9d07cb224bef79e0
 msgid "yes"
 msgstr "是"
 
-#: ../../HANDLERS.md 4253c80c61ae4f158bca1789e9219c04
+#: ../../HANDLERS.md 010c757966554634a846da9a1b997b54
 msgid "`correlation`"
 msgstr ""
 
-#: ../../HANDLERS.md 36c514c24c89441babdb4ca47ef2e3f8
+#: ../../HANDLERS.md eeaf261984df49fd9d6605debc149254
 msgid "yes — a basket names one"
 msgstr "是——一籃子會指名一個"
 
-#: ../../HANDLERS.md 070fa0c1282d45969b423708777a6f13
+#: ../../HANDLERS.md 19d7d9ccdcf74c99b0d80e5b09156eb8
 msgid "`default_curve`, `inflation_curve`"
 msgstr ""
 
-#: ../../HANDLERS.md d378526887ed47a491e220f2d46436cd
+#: ../../HANDLERS.md c5b53308c0104b25a17bcb0a8c21d3f1
 msgid "no — `UNSUPPORTED`"
 msgstr "否——`UNSUPPORTED`"
 
-#: ../../HANDLERS.md:133 7da13285d7594d899a93deaa798ee5cd
+#: ../../HANDLERS.md:133 f4fa276f57ca444fbe706bfc80398786
 msgid ""
 "**Objects must arrive in dependency order**, because the session resolves"
 " ids against its maps as it fills. One exception: "
@@ -290,170 +308,187 @@ msgid ""
 "curve. The index is built on a `RelinkableHandle` and linked when its "
 "curve appears; one that never appears is `UNKNOWN_ID` against "
 "`Index.forwarding_curve_id`."
-msgstr "**物件必須依相依順序送達**，因為工作階段是一邊填入、一邊對照自己的對應表解析代號。有一個例外：`Index.forwarding_curve_id` 可以指名*稍後*才定義的曲線，因為拔靴曲線的支點會指名利率指標，而利率指標又指名該曲線。利率指標建立在 `RelinkableHandle` 上，等它的曲線出現時才連結；始終沒有出現的曲線會在 `Index.forwarding_curve_id` 上得到 `UNKNOWN_ID`。"
+msgstr ""
+"**物件必須依相依順序送達**，因為工作階段是一邊填入、一邊對照自己的對應表解析代號。有一個例外：`Index.forwarding_curve_id`"
+" 可以指名*稍後*才定義的曲線，因為拔靴曲線的支點會指名利率指標，而利率指標又指名該曲線。利率指標建立在 `RelinkableHandle` "
+"上，等它的曲線出現時才連結；始終沒有出現的曲線會在 `Index.forwarding_curve_id` 上得到 `UNKNOWN_ID`。"
 
-#: ../../HANDLERS.md:140 d4963530801d4ae7a544c0a84f6db530
+#: ../../HANDLERS.md:140 c6181a9a9b4f4999a4f2ad3e81f739f7
 msgid "Yield curves"
 msgstr "殖利率曲線"
 
-#: ../../HANDLERS.md ae0598e10149407e8cccd7e3bb127243
+#: ../../HANDLERS.md 4e9af455d73647539a2ed39e21a94a5b
 msgid "`YieldCurve.shape`"
 msgstr ""
 
-#: ../../HANDLERS.md afc365886dad4fac969c9cae8c44da52
+#: ../../HANDLERS.md d9d6dbaf85ba46a7afc45327e0948191
 msgid "Live pillars?"
 msgstr "支點是即時的？"
 
-#: ../../HANDLERS.md d2d55ca457c14bfe8c4e7271d73139ef
+#: ../../HANDLERS.md 9e116a16550945f3957f2881cbe9f5ab
 msgid "`flat`"
 msgstr ""
 
-#: ../../HANDLERS.md 544c19cc18e549beb7dd621b30ed606c
+#: ../../HANDLERS.md cf60a3d8c7664bce9833822402750741
 msgid "**yes** — `rate` may be a `quote_id`"
 msgstr "**是**——`rate` 可以是 `quote_id`"
 
-#: ../../HANDLERS.md 12d2a3bae5d845a2a620b7b0f6071dde
+#: ../../HANDLERS.md 33a49423f12e4a619983960519db2a01
 msgid "`bootstrap`"
 msgstr ""
 
-#: ../../HANDLERS.md 58985cf5a7f54f4d8d9a15b53bb328cb
+#: ../../HANDLERS.md fe4ff2619e64493484b41c4c217b32a2
 msgid "**yes** — helper quotes are live"
 msgstr "**是**——輔助工具的報價是即時的"
 
-#: ../../HANDLERS.md 3ee487e3544c493ea961f5bae313155c
+#: ../../HANDLERS.md 8943dc96696d4dd6be219526a0275665
 msgid "`zero`"
 msgstr ""
 
-#: ../../HANDLERS.md 01097063b18c4f45849fb9127c331643
-#: 16624e9af4ad4e7885c724b8eab4d23c
+#: ../../HANDLERS.md 188a0f05d3c04674ab57f150a8771a1c
+#: 208c348e796746bd98c77111d22b4770
 msgid "no — nodes must be `Number.fixed`"
 msgstr "否——節點必須是 `Number.fixed`"
 
-#: ../../HANDLERS.md ce51dd1fec8342c08475f6a9431e7204
+#: ../../HANDLERS.md 73a2cb029ad245b2b97ec46159354efe
 msgid "`discount`"
 msgstr ""
 
-#: ../../HANDLERS.md 06eef5ab9e4f4f2d9790a9a9d3148d24
+#: ../../HANDLERS.md 690152ef133f43b29ef6f86f691d390d
 msgid "`forward`, `spread`"
 msgstr ""
 
-#: ../../HANDLERS.md 247cb89ea28f44b8a17c0854cfd27aeb
-#: 672325c0a6674e3eac5e093366a43871
+#: ../../HANDLERS.md 3050acb4030645f380424dc519cfba53
+#: efbaad84980c4676a822332974949204
 msgid "not built — `UNSUPPORTED`"
 msgstr "未實作——`UNSUPPORTED`"
 
-#: ../../HANDLERS.md:150 b64d1486b9114c6f931a58ac7430d8d0
+#: ../../HANDLERS.md:150 1dd360e9b031464a82555fdfcd7f0add
 msgid ""
 "A `quote_id` on an interpolated node is rejected rather than accepted and"
 " never observed: QuantLib's interpolated curves copy their nodes at "
 "construction. The first node must also equal the session's evaluation "
 "date, because `InterpolatedZeroCurve` takes `dates[0]` as its reference."
-msgstr "內插節點上的 `quote_id` 會被拒絕，而不是收下之後永遠不被觀察：QuantLib 的內插曲線在建構時就把節點複製起來了。第一個節點也必須等於工作階段的評價日，因為 `InterpolatedZeroCurve` 以 `dates[0]` 作為參考日。"
+msgstr ""
+"內插節點上的 `quote_id` 會被拒絕，而不是收下之後永遠不被觀察：QuantLib "
+"的內插曲線在建構時就把節點複製起來了。第一個節點也必須等於工作階段的評價日，因為 `InterpolatedZeroCurve` 以 "
+"`dates[0]` 作為參考日。"
 
-#: ../../HANDLERS.md:155 3fb9d27557c944a9877e4b6d20d08494
+#: ../../HANDLERS.md:155 d54ea768f3ae4260b87f51ee8ead8dfb
 msgid ""
 "`bootstrap` is an explicit instantiation table — three traits × three "
 "interpolators, nine compiled types:"
 msgstr "`bootstrap` 是一張明確具現化的表——三種 traits × 三種內插器，共九個編譯出來的型別："
 
-#: ../../HANDLERS.md 94b3840febb04a5ea122aba54b721f86
+#: ../../HANDLERS.md c07ccd5c68d54793ae4dd099793502b1
 msgid "`traits`"
 msgstr ""
 
-#: ../../HANDLERS.md c00960936910415aa88c5fae442fc6fd
+#: ../../HANDLERS.md 1694348b3811464cb0b5caff620e2be5
 msgid "`interpolator`"
 msgstr ""
 
-#: ../../HANDLERS.md 6f0a0528c9444ba08239ba62f27ee48d
+#: ../../HANDLERS.md 64852236d33042dfb23df686766b4385
 msgid "`DISCOUNT`, `ZERO_YIELD`, `FORWARD_RATE`"
 msgstr ""
 
-#: ../../HANDLERS.md 159e1383a7e54950bd4e8ae6aafe5a79
+#: ../../HANDLERS.md 4f844131d0f049c6a92ee65fbc25ca5e
 msgid "`LINEAR`, `LOG_LINEAR`, `CUBIC`"
 msgstr ""
 
-#: ../../HANDLERS.md:162 41373b3755334cb2a72a5ee53e74c950
+#: ../../HANDLERS.md:162 ddd808452a1e4311990ff225c6e07274
 msgid ""
 "Adding a pair is a line of source and a recompile (DESIGN §6.1). Deposit "
 "helpers take their tenor from the pillar and their conventions from the "
 "named index — one index can therefore back pillars of several tenors."
-msgstr "新增一種配對只需要一行原始碼加上重新編譯（DESIGN §6.1）。存款輔助工具的期限取自支點，慣例取自具名的利率指標——因此一個利率指標可以支撐多種期限的支點。"
+msgstr ""
+"新增一種配對只需要一行原始碼加上重新編譯（DESIGN "
+"§6.1）。存款輔助工具的期限取自支點，慣例取自具名的利率指標——因此一個利率指標可以支撐多種期限的支點。"
 
-#: ../../HANDLERS.md:166 a3a92a5e9a204cc8aa239167a95bd4fd
+#: ../../HANDLERS.md:166 05878313772d442a86f28eb5d3a8af91
 msgid "Volatility"
 msgstr "波動率"
 
-#: ../../HANDLERS.md af3717df271b4e978d33c623a561c5b8
+#: ../../HANDLERS.md fca96bf85714487c986e224a2bf61e0f
 msgid "`VolatilitySurface.shape`"
 msgstr ""
 
-#: ../../HANDLERS.md b6c8f7328a9f431e86073beb4d8ef13c
+#: ../../HANDLERS.md 6e9af697ea7d4433b081afca84335683
 msgid "Live?"
 msgstr "可即時更新？"
 
-#: ../../HANDLERS.md aa3440f032654626bdcc5d28365fc839
+#: ../../HANDLERS.md b3a5604180284e6ab68bf6d9242ec7e6
 msgid "`constant`"
 msgstr ""
 
-#: ../../HANDLERS.md 5094ecd5753e4f978c25ede0817d6c9b
+#: ../../HANDLERS.md e7846fd1f97b48518cb327552e0cb1c8
 msgid "**yes** — `volatility` may be a `quote_id`"
 msgstr "**是**——`volatility` 可以是 `quote_id`"
 
-#: ../../HANDLERS.md df8dc786470442629b0cc59b84f21aca
+#: ../../HANDLERS.md 571e38377e70499baf2264c8ece0f245
 msgid "`variance_curve`"
 msgstr ""
 
-#: ../../HANDLERS.md 781700b939634b9884fc991769af96b8
+#: ../../HANDLERS.md cade010e18a4401eaf0d5cec76b5da27
 msgid "built, frozen"
 msgstr "已實作，凍結"
 
-#: ../../HANDLERS.md 0ecf431ab5004305b18a5c602dc4fc0e
+#: ../../HANDLERS.md 72f762ece5fe4af29403444f7cfe8ef2
 msgid "`variance_surface`"
 msgstr ""
 
-#: ../../HANDLERS.md d18f979511d3436d855bc3be69353006
+#: ../../HANDLERS.md 6fe58706cf724c3789294e9e4098eb92
 msgid ""
 "built, frozen (wire is row-major expiries × strikes; transposed on the "
 "way in)"
 msgstr "已實作，凍結（線路上是以列為主的到期日 × 履約價；進來時會轉置）"
 
-#: ../../HANDLERS.md 13af3b95e4624e5ba3f338f570f23b27
+#: ../../HANDLERS.md a1cbeec61c55415fad11742c095abfba
 msgid "`local`"
 msgstr ""
 
-#: ../../HANDLERS.md:175 8802b740d60f46b69d632b925349afda
+#: ../../HANDLERS.md:175 e031e32542e0406083ca5cf24506fb29
 msgid "Indices and fixings"
 msgstr "利率指標與定盤值"
 
-#: ../../HANDLERS.md:177 c31753a1928347cf927845ef5a1e7659
+#: ../../HANDLERS.md:177 7da51743e02d483e819a9cca66e5b425
 msgid ""
 "`FAMILY_IBOR` and `FAMILY_OVERNIGHT` build. `SWAP`, `INFLATION_ZERO` and "
 "`INFLATION_YOY` are `UNSUPPORTED`. `name` is required — the service "
 "builds the index from the conventions you send rather than looking it up "
 "in a table of hardcoded indices, because that table is what goes stale."
-msgstr "`FAMILY_IBOR` 與 `FAMILY_OVERNIGHT` 可以建構。`SWAP`、`INFLATION_ZERO` 與 `INFLATION_YOY` 是 `UNSUPPORTED`。`name` 為必填——服務依照你送來的慣例建構利率指標，而不是去一張寫死的指標表裡查，因為會過時的正是那張表。"
+msgstr ""
+"`FAMILY_IBOR` 與 `FAMILY_OVERNIGHT` 可以建構。`SWAP`、`INFLATION_ZERO` 與 "
+"`INFLATION_YOY` 是 `UNSUPPORTED`。`name` "
+"為必填——服務依照你送來的慣例建構利率指標，而不是去一張寫死的指標表裡查，因為會過時的正是那張表。"
 
-#: ../../HANDLERS.md:182 f6364a66c8b442ec8d2905a889a14e7b
+#: ../../HANDLERS.md:182 213fd9e50be04e6b8ecfe3489daf3428
 msgid ""
 "`FixingSeries` may arrive in `OpenSession` or in `UpdateMarket`: past "
 "fixings are graph input, not graph structure, so a leg that cannot price "
 "without one does not need a new session to get it."
-msgstr "`FixingSeries` 可以在 `OpenSession` 或 `UpdateMarket` 中送達：過去的定盤值是物件圖的輸入，不是物件圖的結構，所以缺了定盤值就無法計價的交易腳，不需要開新的工作階段才能拿到它。"
+msgstr ""
+"`FixingSeries` 可以在 `OpenSession` 或 `UpdateMarket` "
+"中送達：過去的定盤值是物件圖的輸入，不是物件圖的結構，所以缺了定盤值就無法計價的交易腳，不需要開新的工作階段才能拿到它。"
 
-#: ../../HANDLERS.md:186 b33133fbcc744a328a27c9c13e468180
+#: ../../HANDLERS.md:186 47a4d48f4d6442e4bd3513117d8435d8
 msgid "Correlation matrices"
 msgstr "相關係數矩陣"
 
-#: ../../HANDLERS.md:188 cf11cdbbf0374372b89846379a6f0fb2
+#: ../../HANDLERS.md:188 6e740804272743f48aad91882c941037
 msgid ""
 "`labels` names the rows and columns, and an `Underlying.label` is what "
 "finds a row; `values` is row-major, `labels²` entries, each a `Number` so"
 " an off-diagonal can be a live `quote_id` and drag like anything else in "
 "the quote bar. The diagonal must be exactly 1, the matrix symmetric, "
 "every entry within [-1, 1] and the whole thing positive semi-definite."
-msgstr "`labels` 為列與欄命名，而 `Underlying.label` 就是用來找到某一列的依據；`values` 以列為主排列，共 `labels²` 個元素，每個都是 `Number`，所以非對角元素可以是即時的 `quote_id`，並像報價列上的其他東西一樣拖動。對角線必須恰好為 1，矩陣必須對稱，每個元素都在 [-1, 1] 之內，而整個矩陣必須是半正定的。"
+msgstr ""
+"`labels` 為列與欄命名，而 `Underlying.label` 就是用來找到某一列的依據；`values` 以列為主排列，共 "
+"`labels²` 個元素，每個都是 `Number`，所以非對角元素可以是即時的 "
+"`quote_id`，並像報價列上的其他東西一樣拖動。對角線必須恰好為 1，矩陣必須對稱，每個元素都在 [-1, 1] "
+"之內，而整個矩陣必須是半正定的。"
 
-#: ../../HANDLERS.md:194 08f284937b974156a809316266d1ae9f
+#: ../../HANDLERS.md:194 284a6f9435f342ab8a678a67a2c1ae79
 msgid ""
 "All four are checked **when the object is built and again on every "
 "request that uses it**, because the entries are quotes: a matrix that was"
@@ -465,190 +500,199 @@ msgid ""
 "the negative eigenvalues and renormalising. An impossible market is "
 "therefore neither refused nor mispriced — it is silently replaced by the "
 "nearest possible one and priced correctly for that."
-msgstr "這四項**在物件建構時檢查，每個用到它的請求也會再檢查一次**，因為元素都是報價：工作階段開啟時還是相關係數矩陣的矩陣，可能被拖成不是的樣子。這是唯一一個 QuantLib 本身不會抱怨的市場物件。`StulzEngine` 把 rho 當成單純的 `Real`；`StochasticProcessArray` 則以 `SalvagingAlgorithm::Spectral` 分解，它會把負的特徵值歸零再重新正規化，藉此*修補*不是半正定的矩陣。因此一個不可能存在的市場既不會被拒絕，也不會被算錯價——它會被無聲地換成最接近的可能市場，並針對那個市場正確計價。"
+msgstr ""
+"這四項**在物件建構時檢查，每個用到它的請求也會再檢查一次**，因為元素都是報價：工作階段開啟時還是相關係數矩陣的矩陣，可能被拖成不是的樣子。這是唯一一個"
+" QuantLib 本身不會抱怨的市場物件。`StulzEngine` 把 rho 當成單純的 "
+"`Real`；`StochasticProcessArray` 則以 `SalvagingAlgorithm::Spectral` "
+"分解，它會把負的特徵值歸零再重新正規化，藉此*修補*不是半正定的矩陣。因此一個不可能存在的市場既不會被拒絕，也不會被算錯價——它會被無聲地換成最接近的可能市場，並針對那個市場正確計價。"
 
-#: ../../HANDLERS.md:204 8e1dcdf49ae34f92926fccada17978c2
+#: ../../HANDLERS.md:204 8102867a3bcd47299fb30966f46e917b
 msgid "Instruments"
 msgstr "商品"
 
-#: ../../HANDLERS.md:206 2c7776525df54ec1bec583ee34c3c512
+#: ../../HANDLERS.md:206 a02ae2e2dbf043ddb958718b980eb9e3
 msgid ""
 "Two of the nine `Instrument.kind` arms are dispatched: `option` and "
 "`swap`. The rest — `swaption`, `cap_floor`, `bond`, "
 "`credit_default_swap`, `fra`, `fx_forward`, `variance_swap` — are "
 "`UNSUPPORTED`."
-msgstr "`Instrument.kind` 的九個分支中有兩個會被分派：`option` 與 `swap`。其餘——`swaption`、`cap_floor`、`bond`、`credit_default_swap`、`fra`、`fx_forward`、`variance_swap`——都是 `UNSUPPORTED`。"
+msgstr ""
+"`Instrument.kind` 的九個分支中有兩個會被分派：`option` 與 "
+"`swap`。其餘——`swaption`、`cap_floor`、`bond`、`credit_default_swap`、`fra`、`fx_forward`、`variance_swap`——都是"
+" `UNSUPPORTED`。"
 
-#: ../../HANDLERS.md:210 b85316f2fc7b47efa98781dcd453a04e
+#: ../../HANDLERS.md:210 8ac15d6662314a6f8d751f4981c0ad49
 msgid "Option"
 msgstr "選擇權"
 
-#: ../../HANDLERS.md:212 c393f28c259f493dba6d09ab894fc4d3
+#: ../../HANDLERS.md:212 bf6244644a5645e7bb8ef03945704789
 msgid ""
 "An option is **payoff × exercise × underlying × style**, with quanto "
 "orthogonal to all four. Ten of twelve styles are built:"
 msgstr "一個選擇權是**收益函數 × 履約 × 標的 × 類型**，而 quanto 與這四者都正交。十二種類型中實作了十種："
 
-#: ../../HANDLERS.md 63bcd7d17d114d99a06179c73e9d7733
+#: ../../HANDLERS.md 1886ea6b153045088bd8562263a038e3
 msgid "`Option.style`"
 msgstr ""
 
-#: ../../HANDLERS.md 71b8e71791eb47f0b518a781f1668b5d
+#: ../../HANDLERS.md 87be9f4c09454fc79b4356b7cff7a580
 msgid "Exercise"
 msgstr "履約"
 
-#: ../../HANDLERS.md 2a48c477d27349c19b251c78fb37fa3c
+#: ../../HANDLERS.md 516b1eb1c95044a5af5efc60445a314c
 msgid "Engine methods"
 msgstr "引擎方法"
 
-#: ../../HANDLERS.md d3bd82ba32364e71a8b080375f546a72
+#: ../../HANDLERS.md 27dcc3c1829d4672b6adaf7ab15107da
 msgid "Quanto"
 msgstr "Quanto"
 
-#: ../../HANDLERS.md c9a35e2a697a45e18813a9f8181aeb4b
+#: ../../HANDLERS.md 07b84becc7af4cf398c7f13ed78402ff
 msgid "`vanilla`"
 msgstr ""
 
-#: ../../HANDLERS.md fa02bf345ca74208b9f338155125c9f8
+#: ../../HANDLERS.md 24895a0406354859922d0baad54277ad
 msgid "European, American, Bermudan"
 msgstr "歐式、美式、百慕達式"
 
-#: ../../HANDLERS.md b3c7e544d7ac44dab51c79abcbf5178d
+#: ../../HANDLERS.md fc93ab107cd546439ca06c21426b17a0
 msgid ""
 "`ANALYTIC`, `LATTICE`, `FINITE_DIFFERENCE`; `INTEGRAL` and `MONTE_CARLO` "
 "European only"
 msgstr "`ANALYTIC`、`LATTICE`、`FINITE_DIFFERENCE`；`INTEGRAL` 與 `MONTE_CARLO` 僅限歐式"
 
-#: ../../HANDLERS.md aff39dcd787a42299aeb9eca1c31d7da
-#: deb1c9ccb1ab4aa28376287bcfcd3872
+#: ../../HANDLERS.md 0fc2f216a2ef480d958244f501adff2f
+#: f7e90b4ae56e489985b04b8b6334de1e
 msgid "`ANALYTIC` or `FINITE_DIFFERENCE`, European"
 msgstr "`ANALYTIC` 或 `FINITE_DIFFERENCE`，歐式"
 
-#: ../../HANDLERS.md f71daa77b0c24d17b385f486b2e9fe82
+#: ../../HANDLERS.md 10b659a583eb4ac2960f619af996989b
 msgid "`barrier`"
 msgstr ""
 
-#: ../../HANDLERS.md a41a57d4cbe74ee78ab9d6895f657e16
+#: ../../HANDLERS.md 862bff575db9403ba4af61512525efa5
 msgid "European; American via lattice or FD"
 msgstr "歐式；美式須走格點或有限差分"
 
-#: ../../HANDLERS.md 41ed256f33ed46c3b322cb5fc834cc66
+#: ../../HANDLERS.md 344a82e859e8409492096029cfcc3f6c
 msgid "`ANALYTIC` (European only), `LATTICE`, `FINITE_DIFFERENCE`, `MONTE_CARLO`"
 msgstr "`ANALYTIC`（僅限歐式）、`LATTICE`、`FINITE_DIFFERENCE`、`MONTE_CARLO`"
 
-#: ../../HANDLERS.md 9cbbe0d4dfe540dca7589b8681d2225e
+#: ../../HANDLERS.md 0f7b45051d53471ebf36fa5b84519117
 msgid "`double_barrier`"
 msgstr ""
 
-#: ../../HANDLERS.md 1f46db7d2f1c4b47aee6efef1733c6ac
-#: 49d62f9256a841629f1c0a8d881ef995 5aacd439659a4fe5a801b2f0896420be
-#: ca0d0eaf76b74032b5fa48fdc687c790 fbcaaf0221a64a1e96eca7c201f1b160
+#: ../../HANDLERS.md 01d2ee38952d484b88cdf9b02475a0af
+#: 675a8bfc20924c82949bd6d9edbbfff6 6f4e61f0d03e42ec87a08b2b8219d398
+#: c1016b55cfad4c948095528b371d5f6a ee12dc5e610d405d92c1ab7a3660c2af
 msgid "European"
 msgstr "歐式"
 
-#: ../../HANDLERS.md 0c772c26301d4f90995c9e738eb9ce4e
-#: 109a7da749cc42b4ae214bf32646a53b 58f2b5800d9742669ba5977f615ee9f8
-#: 680a3a74689f42d2983d0c2de5f66ee9 8a8e7ba76b6548179de1f147666ef4ea
+#: ../../HANDLERS.md 7e3fc4e5a0394da69968a640990a3276
+#: a9f15f6c6ff047829e845478234162d0 b6d1ca47e9a2491ea55b9b17a4e06c0d
+#: bf65a382abf84909b1f2f36e9ab2b7b3 cbb0f15208584531b7b5e43cca3d17ea
 msgid "`ANALYTIC`"
 msgstr ""
 
-#: ../../HANDLERS.md 717f9d870298444fb9efa411203e97f8
+#: ../../HANDLERS.md 73deb32dbca1492cbe85a5e125492c62
 msgid "yes, `ANALYTIC`"
 msgstr "是，`ANALYTIC`"
 
-#: ../../HANDLERS.md 4f8692754efc46ee8397962a6939d28e
+#: ../../HANDLERS.md 64f6f17d91e24c0e8e9bb004be965b7b
 msgid "`forward_start`"
 msgstr ""
 
-#: ../../HANDLERS.md 0d55c3f63ff9454f93c0044430fb0c79
+#: ../../HANDLERS.md 181c7c1cc6364544957944597ac05675
 msgid "`asian`"
 msgstr ""
 
-#: ../../HANDLERS.md f29b14d1a29d499880e614e59ee70a38
+#: ../../HANDLERS.md 5e52ab8eba8847b6a2d86166be667ab8
 msgid "`ANALYTIC` (geometric), `MONTE_CARLO` (arithmetic)"
 msgstr "`ANALYTIC`（幾何平均）、`MONTE_CARLO`（算術平均）"
 
-#: ../../HANDLERS.md 2d359e38fe1d45c4ab4016935906989f
+#: ../../HANDLERS.md 73aec34c4caa466084cf6305a9904e2a
 msgid "no — QuantLib has no quanto Asian engine"
 msgstr "否——QuantLib 沒有 quanto 亞式引擎"
 
-#: ../../HANDLERS.md f63fd56b0cb245e080714a2911854ffd
+#: ../../HANDLERS.md 5d714974aef6456d85becbec2b4f6bb5
 msgid "`lookback`"
 msgstr ""
 
-#: ../../HANDLERS.md 6530024e9b9b4851a52394642b13aa71
+#: ../../HANDLERS.md 0f0253c978204979b060db161fab592f
 msgid "no"
 msgstr "否"
 
-#: ../../HANDLERS.md eadcd9885fac410da924c9df29213d9d
+#: ../../HANDLERS.md f06de7562c594ac9a175bc87ce734619
 msgid "`compound`"
 msgstr ""
 
-#: ../../HANDLERS.md 082584905a114e9a93795a05d1429639
-#: 8da58b7340b5435ba3d51938260f862c
+#: ../../HANDLERS.md 43b308d51d8f461f832c04a6350e7312
+#: 56514199e08d4d49b9bc606a88bce0e8
 msgid "European, on both legs"
 msgstr "兩腳都是歐式"
 
-#: ../../HANDLERS.md fd9b124d1d71477fb8c8a8aee641ced5
+#: ../../HANDLERS.md e8ce2e3de8a046eeab15f763aeb02325
 msgid "no — QuantLib has no quanto compound engine"
 msgstr "否——QuantLib 沒有 quanto 複合式引擎"
 
-#: ../../HANDLERS.md 4bda4ae1d90c429785b4293eaedf89cc
+#: ../../HANDLERS.md 5483f66dbfbd42f9b58848425e23214c
 msgid "`chooser`"
 msgstr ""
 
-#: ../../HANDLERS.md cdc93089e00648cb949c7df0a008db9c
+#: ../../HANDLERS.md babb545befda47c689800f4cad79669e
 msgid "no — QuantLib has no quanto chooser engine"
 msgstr "否——QuantLib 沒有 quanto 選擇者引擎"
 
-#: ../../HANDLERS.md efcb38204446431583eed03c2727b38c
+#: ../../HANDLERS.md c9aae1c71f5440068106d5bd4e94c902
 msgid "`cliquet`"
 msgstr ""
 
-#: ../../HANDLERS.md 430d1c2b66194a6db307d09542d8e280
+#: ../../HANDLERS.md 077dc95ab59a4c9b9564870f42a1cb7b
 msgid "`ANALYTIC`; `MONTE_CARLO` for the performance form"
 msgstr "`ANALYTIC`；表現型另有 `MONTE_CARLO`"
 
-#: ../../HANDLERS.md 9f5d4e0101c044099c21bdc54da7e02b
+#: ../../HANDLERS.md d654c22d8b78474f95df5c5920e0b845
 msgid "no — QuantLib has no quanto cliquet engine"
 msgstr "否——QuantLib 沒有 quanto 棘輪式引擎"
 
-#: ../../HANDLERS.md cfc4e61ecd59431baf57ba14d6432487
+#: ../../HANDLERS.md d8f9a29edb5748e49d82549f0d1e96a2
 msgid "`basket`"
 msgstr ""
 
-#: ../../HANDLERS.md ad7403ef0c0d42bb9c08755db05365ca
+#: ../../HANDLERS.md 77c1bf8347cf44d885ed7c1b0e706374
 msgid "European, **two or more underlyings**"
 msgstr "歐式，**兩個以上的標的**"
 
-#: ../../HANDLERS.md b7956fbbbb1941a9946e5bb945da9cb7
+#: ../../HANDLERS.md 4f931abc2e0743f588769aaff156b9e1
 msgid "`ANALYTIC` on two assets; `MONTE_CARLO` on any number"
 msgstr "兩個資產時用 `ANALYTIC`；任意個數都可用 `MONTE_CARLO`"
 
-#: ../../HANDLERS.md 6e19c9ae93c540e3b1a035923dfbdd03
+#: ../../HANDLERS.md 38c9dfd59c22476d8090fab802454fe1
 msgid "no — QuantLib has no quanto basket engine"
 msgstr "否——QuantLib 沒有 quanto 一籃子引擎"
 
-#: ../../HANDLERS.md 827b416e29c641e1ab657e5bccc11b44
+#: ../../HANDLERS.md 902921cc8c154062bb3d6e6d8810fe8d
 msgid "`spread`, `digital`"
 msgstr ""
 
-#: ../../HANDLERS.md 6e4a9a65f43343c7ab77f84426bbfd28
-#: b76295d6144c42fb9225b25c5997359c e6c44ea225264357b5f7ab2b71890ff1
+#: ../../HANDLERS.md 55d8876d32f34f1fbe568d8dcba87f34
+#: e36744a5c3114e3bb48207285a60a301 ed2c425cd6254eab9def6d9a8e2ea8a4
 msgid "—"
 msgstr ""
 
-#: ../../HANDLERS.md 135c90f8b9104e6aaa3a274c8a561b02
+#: ../../HANDLERS.md e6005245eebd4985afd2bae7c5feabfa
 msgid ""
 "not built — `UNSUPPORTED`; a spread is a `basket` with `KIND_SPREAD`, a "
 "knock digital a `barrier` with a binary payoff"
-msgstr "未實作——`UNSUPPORTED`；價差是帶 `KIND_SPREAD` 的 `basket`，敲出入二元選擇權則是帶二元收益函數的 `barrier`"
+msgstr ""
+"未實作——`UNSUPPORTED`；價差是帶 `KIND_SPREAD` 的 `basket`，敲出入二元選擇權則是帶二元收益函數的 "
+"`barrier`"
 
-#: ../../HANDLERS.md:229 0323c2e4b872417d8c2552745cffa140
+#: ../../HANDLERS.md:229 56994d106bd64b47b44c70f61cb64a0d
 msgid "Style-specific rules worth knowing before you send one:"
 msgstr "送出之前值得先知道的各類型專屬規則："
 
-#: ../../HANDLERS.md:231 9df775b501b247109fbf2ed9fdc9db44
+#: ../../HANDLERS.md:231 120b9a22cd2f43ecb5a1e6ec3007ca82
 msgid ""
 "**Barrier.** `ANALYTIC` is European only and takes a `plain` payoff; an "
 "American barrier goes to `LATTICE` or `FINITE_DIFFERENCE`. The barrier "
@@ -657,39 +701,52 @@ msgid ""
 " a full menu would be trees × discretisations. `monitoring_dates` and "
 "`window_start` are `UNSUPPORTED`: discrete and partial-time barriers are "
 "not built."
-msgstr "**障礙。**`ANALYTIC` 僅限歐式，且只接受 `plain` 收益函數；美式障礙要走 `LATTICE` 或 `FINITE_DIFFERENCE`。障礙格點**僅支援 Cox-Ross-Rubinstein**（含 Derman-Kani 修正）——該引擎的第二個樣板參數是離散化方式，所以完整選單會變成樹 × 離散化。`monitoring_dates` 與 `window_start` 是 `UNSUPPORTED`：離散觀察與部分期間障礙沒有實作。"
+msgstr ""
+"**障礙。**`ANALYTIC` 僅限歐式，且只接受 `plain` 收益函數；美式障礙要走 `LATTICE` 或 "
+"`FINITE_DIFFERENCE`。障礙格點**僅支援 Cox-Ross-Rubinstein**（含 Derman-Kani "
+"修正）——該引擎的第二個樣板參數是離散化方式，所以完整選單會變成樹 × 離散化。`monitoring_dates` 與 "
+"`window_start` 是 `UNSUPPORTED`：離散觀察與部分期間障礙沒有實作。"
 
-#: ../../HANDLERS.md:238 416715e447e6463286da91692f809849
+#: ../../HANDLERS.md:238 1051e44adb9d40e0981df72ccd1f228a
 msgid ""
 "**Double barrier.** Needs `0 < lower < upper`. `ANALYTIC` only — "
 "QuantLib's sole FD double-barrier engine is Heston, which takes a "
 "calibrated model rather than a process."
-msgstr "**雙障礙。**需要 `0 < lower < upper`。僅限 `ANALYTIC`——QuantLib 唯一的有限差分雙障礙引擎是 Heston，它吃的是校準過的模型，而不是過程。"
+msgstr ""
+"**雙障礙。**需要 `0 < lower < upper`。僅限 `ANALYTIC`——QuantLib 唯一的有限差分雙障礙引擎是 "
+"Heston，它吃的是校準過的模型，而不是過程。"
 
-#: ../../HANDLERS.md:241 4243bd9f51f74e80a686f8de09ec1442
+#: ../../HANDLERS.md:241 2a764e8a6bcf4532a2e86dfdb781acca
 msgid ""
 "**Forward start.** Send no strike: it is `moneyness` × the spot at "
 "`reset`, filled in by the forward engine, and a struck payoff would be "
 "silently overwritten. `performance` is a `Flag` — it pays the return "
 "rather than the amount, a different price for the same trade description."
-msgstr "**遠期起始。**不要送履約價：履約價是 `moneyness` × `reset` 時的現貨價，由遠期引擎填入，送了帶履約價的收益函數會被無聲覆寫。`performance` 是一個 `Flag`——它支付報酬率而非金額，同一段交易描述會得到不同的價格。"
+msgstr ""
+"**遠期起始。**不要送履約價：履約價是 `moneyness` × `reset` "
+"時的現貨價，由遠期引擎填入，送了帶履約價的收益函數會被無聲覆寫。`performance` 是一個 "
+"`Flag`——它支付報酬率而非金額，同一段交易描述會得到不同的價格。"
 
-#: ../../HANDLERS.md:245 8524a73fcb1940fab107804f6ca0a77c
+#: ../../HANDLERS.md:245 f1d9eb65d5bf45619b8d0d972c8f7bfc
 msgid ""
 "**Asian.** No `fixing_dates` means continuously averaged, which has a "
 "closed form for the **geometric** average only. With fixing dates, "
 "geometric goes to `ANALYTIC` and arithmetic to `MONTE_CARLO`."
-msgstr "**亞式。**沒有 `fixing_dates` 代表連續平均，而連續平均只有**幾何**平均才有封閉解。有定盤日時，幾何平均走 `ANALYTIC`，算術平均走 `MONTE_CARLO`。"
+msgstr ""
+"**亞式。**沒有 `fixing_dates` 代表連續平均，而連續平均只有**幾何**平均才有封閉解。有定盤日時，幾何平均走 "
+"`ANALYTIC`，算術平均走 `MONTE_CARLO`。"
 
-#: ../../HANDLERS.md:248 eb34a08421a547418b7c6759b49f204e
+#: ../../HANDLERS.md:248 9273e8963f134bfd92622087bb0ca319
 msgid ""
 "**Lookback.** Continuous only; `window_start` is `UNSUPPORTED`. "
 "`running_extremum` is required and must be positive — an option already "
 "running whose extremum is dropped prices as if it had just started. A "
 "`floating` payoff selects the floating-strike instrument."
-msgstr "**回顧式。**僅限連續觀察；`window_start` 是 `UNSUPPORTED`。`running_extremum` 為必填且必須為正——一個已經在存續中、卻漏掉極值的選擇權，會被當成剛剛才開始那樣計價。`floating` 收益函數會選到浮動履約價的商品。"
+msgstr ""
+"**回顧式。**僅限連續觀察；`window_start` 是 `UNSUPPORTED`。`running_extremum` "
+"為必填且必須為正——一個已經在存續中、卻漏掉極值的選擇權，會被當成剛剛才開始那樣計價。`floating` 收益函數會選到浮動履約價的商品。"
 
-#: ../../HANDLERS.md:252 1866da29ebbb4c8d9496de8514129a12
+#: ../../HANDLERS.md:252 7cbce4a6b4a84275aa19723d1310326d
 msgid ""
 "**Knock digital.** A `barrier` carrying a `cash_or_nothing` or "
 "`asset_or_nothing` payoff, priced by `AnalyticBinaryBarrierEngine`. It "
@@ -699,9 +756,15 @@ msgid ""
 "dropped. The `digital` style arm is `UNSUPPORTED` and says this: its "
 "three fields re-declare `Barrier.type`, `Barrier.level` and "
 "`CashOrNothingPayoff.cash_payoff`, which the request already carries."
-msgstr "**敲出入二元選擇權。**帶著 `cash_or_nothing` 或 `asset_or_nothing` 收益函數的 `barrier`，由 `AnalyticBinaryBarrierEngine` 計價。它接受 `ANALYTIC`、`payoff_at_expiry` 為 **true** 的 `AMERICAN` 履約、不得有晚於評價日的 `earliest_date`，而且**不接受回饋金**——引擎根本不會讀它，所以送到這裡的回饋金會被收下並丟棄。`digital` 類型分支是 `UNSUPPORTED`，並且會這樣說明：它的三個欄位只是把 `Barrier.type`、`Barrier.level` 與 `CashOrNothingPayoff.cash_payoff` 再宣告一次，而這些請求本來就帶著了。"
+msgstr ""
+"**敲出入二元選擇權。**帶著 `cash_or_nothing` 或 `asset_or_nothing` 收益函數的 `barrier`，由 "
+"`AnalyticBinaryBarrierEngine` 計價。它接受 `ANALYTIC`、`payoff_at_expiry` 為 "
+"**true** 的 `AMERICAN` 履約、不得有晚於評價日的 "
+"`earliest_date`，而且**不接受回饋金**——引擎根本不會讀它，所以送到這裡的回饋金會被收下並丟棄。`digital` 類型分支是 "
+"`UNSUPPORTED`，並且會這樣說明：它的三個欄位只是把 `Barrier.type`、`Barrier.level` 與 "
+"`CashOrNothingPayoff.cash_payoff` 再宣告一次，而這些請求本來就帶著了。"
 
-#: ../../HANDLERS.md:260 0ee5d911fef24186b2e96f47625bad49
+#: ../../HANDLERS.md:260 8524bb8585344fd19b72522d5d1dabd8
 msgid ""
 "**Compound.** The mother option *is* the option's own `payoff` and "
 "`exercise` — `CompoundOption` hands those straight to `OneAssetOption` — "
@@ -711,9 +774,14 @@ msgid ""
 "`daughter_exercise` in the style block. Both legs are `plain` and "
 "European, and the compound has to expire **on or before** the option it "
 "is written on."
-msgstr "**複合式。**母選擇權*就是*這個選擇權自己的 `payoff` 與 `exercise`——`CompoundOption` 直接把它們交給 `OneAssetOption`——所以 `Compound.mother_payoff` 與 `Compound.mother_exercise` 是在重複宣告請求本來就帶著的欄位，屬於 `UNSUPPORTED`；把母選擇權放在其他每一種類型都用的位置，類型區塊裡只放 `daughter_payoff` 與 `daughter_exercise`。兩腳都是 `plain` 且為歐式，而且複合式的到期日必須**不晚於**它所寫在其上的那個選擇權。"
+msgstr ""
+"**複合式。**母選擇權*就是*這個選擇權自己的 `payoff` 與 `exercise`——`CompoundOption` 直接把它們交給 "
+"`OneAssetOption`——所以 `Compound.mother_payoff` 與 "
+"`Compound.mother_exercise` 是在重複宣告請求本來就帶著的欄位，屬於 "
+"`UNSUPPORTED`；把母選擇權放在其他每一種類型都用的位置，類型區塊裡只放 `daughter_payoff` 與 "
+"`daughter_exercise`。兩腳都是 `plain` 且為歐式，而且複合式的到期日必須**不晚於**它所寫在其上的那個選擇權。"
 
-#: ../../HANDLERS.md:267 eb65dd3a15fc4fa4ab882f362de1b1c1
+#: ../../HANDLERS.md:267 b7ffd12a3a1f4321ad007bbb8e5d510b
 msgid ""
 "**Chooser.** The strike and the expiry are the option's own `payoff` and "
 "`exercise`, for the same reason the compound's mother is — both chooser "
@@ -732,7 +800,11 @@ msgid ""
 "must be `EUROPEAN`, since neither engine reads the type and an American "
 "one would price as European; and each complex leg must expire more than "
 "**twice** the choice time out, because `AnalyticComplexChooserEngine` "
-"solves for the critical spot at `maturity - 2 × choice time`. - "
+"solves for the critical spot at `maturity - 2 × choice time`."
+msgstr "**選擇者。**履約價與到期日就是這個選擇權自己的 `payoff` 與 `exercise`，理由和複合式的母選擇權相同——兩種選擇者商品都把一個 `PlainVanillaPayoff` 與（買權的）履約交給 `OneAssetOption`——所以 `Chooser.call_strike` 與 `Chooser.call_expiry` 是 `UNSUPPORTED`。送出 `payoff.plain.strike`，並且**不要設定 `payoff.type`**：選擇者在選擇日之前沒有買賣方向，而這是結構描述中唯一一處，設定了的 `type` 會被讀進來再丟掉的地方。類型區塊中有 `put_expiry`，才使它成為*複雜型*選擇者，旁邊搭配 `put_strike`；沒有的話就是簡單型選擇者，共用單一的履約價與到期日，而單獨送 `put_strike` 則是 `INVALID_ARGUMENT`。`choice_date` 必須落在評價日之後、每一個到期日之前。另外三條規則屬於引擎，而非商品本身：三條曲線必須以相同方式計日（簡單型引擎會檢查，複雜型引擎則不檢查就直接假設）；履約必須是 `EUROPEAN`，因為兩個引擎都不讀型態，美式會被當成歐式計價；而複雜型的每一腳到期日都必須超過選擇時間的**兩倍**，因為 `AnalyticComplexChooserEngine` 是在 `maturity - 2 × choice time` 求解臨界現貨價。"
+
+#: ../../HANDLERS.md:285 45525ed8ca354ecfbfd3e4392ba39843
+msgid ""
 "**Cliquet.** A series of forward starts, so it takes a "
 "`percentage_strike` payoff for the same reason one does, plus "
 "`reset_dates` — in order, distinct, each on or after the evaluation date "
@@ -749,9 +821,9 @@ msgid ""
 "closed forms write `results_.gamma += 0.0` — and the performance one does"
 " the same to delta — so those come back in `unavailable_results` rather "
 "than as a zero nobody computed."
-msgstr "**選擇者。**履約價與到期日就是這個選擇權自己的 `payoff` 與 `exercise`，理由和複合式的母選擇權相同——兩種選擇者商品都把一個 `PlainVanillaPayoff` 與（買權的）履約交給 `OneAssetOption`——所以 `Chooser.call_strike` 與 `Chooser.call_expiry` 是 `UNSUPPORTED`。送出 `payoff.plain.strike`，並且**不要設定 `payoff.type`**：選擇者在選擇日之前沒有買賣方向，而這是結構描述中唯一一處，設定了的 `type` 會被讀進來再丟掉的地方。類型區塊中有 `put_expiry`，才使它成為*複雜型*選擇者，旁邊搭配 `put_strike`；沒有的話就是簡單型選擇者，共用單一的履約價與到期日，而單獨送 `put_strike` 則是 `INVALID_ARGUMENT`。`choice_date` 必須落在評價日之後、每一個到期日之前。另外三條規則屬於引擎，而非商品本身：三條曲線必須以相同方式計日（簡單型引擎會檢查，複雜型引擎則不檢查就直接假設）；履約必須是 `EUROPEAN`，因為兩個引擎都不讀型態，美式會被當成歐式計價；而複雜型的每一腳到期日都必須超過選擇時間的**兩倍**，因為 `AnalyticComplexChooserEngine` 是在 `maturity - 2 × choice time` 求解臨界現貨價。 - **棘輪式。**一連串的遠期起始，所以基於同樣的理由吃 `percentage_strike` 收益函數，另外還要 `reset_dates`——依序排列、彼此相異，每一個都不早於評價日且早於到期日。`performance` 是一個 `Flag`，用來選擇引擎，和它在遠期起始上的作用完全一樣：false 是 `AnalyticCliquetEngine`（棘輪型），true 是 `AnalyticPerformanceEngine`，而 `MONTE_CARLO` 會走到 `MCPerformanceEngine`，那是 QuantLib 唯一的抽樣型棘輪引擎——`MONTE_CARLO` 的棘輪型是 `UNSUPPORTED`，並且會這樣說明。**`local_cap`、`local_floor`、`global_cap` 與 `global_floor` 是 `UNSUPPORTED`**，而且並不是因為缺少引擎：`CliquetOption::setupArguments` 只複製重設日，其他什麼都不複製（`cliquetoption.cpp:32`），所以上限根本到不了任何引擎，得到的價格會是掛著有上限描述的無上限棘輪型。兩個封閉解都寫了 `results_.gamma += 0.0`——表現型對 delta 也做了同樣的事——所以這些會出現在 `unavailable_results` 裡，而不是以一個沒人算過的零回傳。"
+msgstr "**棘輪式。**一連串的遠期起始，所以基於同樣的理由吃 `percentage_strike` 收益函數，另外還要 `reset_dates`——依序排列、彼此相異，每一個都不早於評價日且早於到期日。`performance` 是一個 `Flag`，用來選擇引擎，和它在遠期起始上的作用完全一樣：false 是 `AnalyticCliquetEngine`（棘輪型），true 是 `AnalyticPerformanceEngine`，而 `MONTE_CARLO` 會走到 `MCPerformanceEngine`，那是 QuantLib 唯一的抽樣型棘輪引擎——`MONTE_CARLO` 的棘輪型是 `UNSUPPORTED`，並且會這樣說明。**`local_cap`、`local_floor`、`global_cap` 與 `global_floor` 是 `UNSUPPORTED`**，而且並不是因為缺少引擎：`CliquetOption::setupArguments` 只複製重設日，其他什麼都不複製（`cliquetoption.cpp:32`），所以上限根本到不了任何引擎，得到的價格會是掛著有上限描述的無上限棘輪型。兩個封閉解都寫了 `results_.gamma += 0.0`——表現型對 delta 也做了同樣的事——所以這些會出現在 `unavailable_results` 裡，而不是以一個沒人算過的零回傳。"
 
-#: ../../HANDLERS.md:299 6bfcc59c0fb54813a6fa9851a5385e8d
+#: ../../HANDLERS.md:300 303510c081824f57a23fb7cf1028c07a
 msgid ""
 "**Basket.** The only style that takes more than one underlying, and the "
 "only one that names a `correlation` market object. Every underlying needs"
@@ -767,16 +839,27 @@ msgid ""
 "`MultiAssetOption` does not declare — `thetaPerDay`, `deltaForward`, "
 "`elasticity`, `strikeSensitivity`, `itmCashProbability` — come back named"
 " absent."
-msgstr "**一籃子。**唯一一個吃超過一個標的的類型，也是唯一一個會指名 `correlation` 市場物件的類型。每個標的都需要一個 **`label`**，因為矩陣是依標籤而非位置索引。`ANALYTIC` 限兩個資產、封閉解：`KIND_MIN` 與 `KIND_MAX` 用 `StulzEngine`，`KIND_SPREAD` 用 `KirkEngine`——Kirk 是一條寫在期貨上的公式，所以參考列送的是 `PROCESS_BLACK`。`KIND_AVERAGE` 以及任何第三個資產都走 `MONTE_CARLO`。`weights` 只有 `AverageBasketPayoff` 會讀，其他都不會，所以在另外三種種類上它是 `UNSUPPORTED`，而不是收下再丟掉。`FINITE_DIFFERENCE` 是 `UNSUPPORTED`：`Fd2dBlackScholesVanillaEngine` 需要兩個空間網格，而 `FdParameters` 只描述一個。`MultiAssetOption` 沒有宣告的五個希臘字母——`thetaPerDay`、`deltaForward`、`elasticity`、`strikeSensitivity`、`itmCashProbability`——會以具名缺席的方式回傳。"
+msgstr ""
+"**一籃子。**唯一一個吃超過一個標的的類型，也是唯一一個會指名 `correlation` 市場物件的類型。每個標的都需要一個 "
+"**`label`**，因為矩陣是依標籤而非位置索引。`ANALYTIC` 限兩個資產、封閉解：`KIND_MIN` 與 `KIND_MAX` 用"
+" `StulzEngine`，`KIND_SPREAD` 用 `KirkEngine`——Kirk 是一條寫在期貨上的公式，所以參考列送的是 "
+"`PROCESS_BLACK`。`KIND_AVERAGE` 以及任何第三個資產都走 `MONTE_CARLO`。`weights` 只有 "
+"`AverageBasketPayoff` 會讀，其他都不會，所以在另外三種種類上它是 "
+"`UNSUPPORTED`，而不是收下再丟掉。`FINITE_DIFFERENCE` 是 "
+"`UNSUPPORTED`：`Fd2dBlackScholesVanillaEngine` 需要兩個空間網格，而 `FdParameters` "
+"只描述一個。`MultiAssetOption` "
+"沒有宣告的五個希臘字母——`thetaPerDay`、`deltaForward`、`elasticity`、`strikeSensitivity`、`itmCashProbability`——會以具名缺席的方式回傳。"
 
-#: ../../HANDLERS.md:312 621d00b5687a47a89d350d76306d53a1
+#: ../../HANDLERS.md:313 1207e35fa23d4cdc9e269919c86ed070
 msgid ""
 "**Vanilla.** A binary payoff on an American exercise is a one-touch and "
 "goes to `AnalyticDigitalAmericanEngine`. An American `ANALYTIC` price "
 "**must** name an approximation (below)."
-msgstr "**一般型。**美式履約上的二元收益函數是 one-touch，會走 `AnalyticDigitalAmericanEngine`。美式的 `ANALYTIC` 價格**必須**指名一種近似法（見下文）。"
+msgstr ""
+"**一般型。**美式履約上的二元收益函數是 one-touch，會走 `AnalyticDigitalAmericanEngine`。美式的 "
+"`ANALYTIC` 價格**必須**指名一種近似法（見下文）。"
 
-#: ../../HANDLERS.md:316 12cea5b042384f94bf6fdc5bd4c2e4fc
+#: ../../HANDLERS.md:317 697edb318c4b4a2790100d77aaae5edb
 msgid ""
 "**Payoffs.** Seven build: `plain`, `percentage_strike`, "
 "`asset_or_nothing`, `cash_or_nothing`, `gap`, `super_fund`, "
@@ -784,17 +867,23 @@ msgid ""
 " payoffs select an engine rather than a formula: on a `vanilla` with an "
 "American exercise they give a one-touch, and on a `barrier` a knock "
 "digital."
-msgstr "**收益函數。**實作了七種：`plain`、`percentage_strike`、`asset_or_nothing`、`cash_or_nothing`、`gap`、`super_fund`、`super_share`。`floating` 只在回顧式上有效，而兩種二元收益函數選的是引擎而不是公式：在美式履約的 `vanilla` 上得到 one-touch，在 `barrier` 上則得到敲出入二元選擇權。"
+msgstr ""
+"**收益函數。**實作了七種：`plain`、`percentage_strike`、`asset_or_nothing`、`cash_or_nothing`、`gap`、`super_fund`、`super_share`。`floating`"
+" 只在回顧式上有效，而兩種二元收益函數選的是引擎而不是公式：在美式履約的 `vanilla` 上得到 one-touch，在 `barrier` "
+"上則得到敲出入二元選擇權。"
 
-#: ../../HANDLERS.md:322 dcabc63f4dc1438bac60443d9f844dc7
+#: ../../HANDLERS.md:323 57a873a9e06b462f9603aba1d66f7727
 msgid ""
 "**Exercise.** `EUROPEAN`, `AMERICAN` and `BERMUDAN` all build. "
 "`Exercise.dates` carries one date for European and American and every "
 "exercise date for Bermudan. `payoff_at_expiry` is a `Flag` read on "
 "American and Bermudan only, where it must be set explicitly."
-msgstr "**履約。**`EUROPEAN`、`AMERICAN` 與 `BERMUDAN` 都可以建構。`Exercise.dates` 在歐式與美式時帶一個日期，在百慕達式時帶每一個履約日。`payoff_at_expiry` 是一個 `Flag`，只在美式與百慕達式上讀取，而且在這兩者上必須明確設定。"
+msgstr ""
+"**履約。**`EUROPEAN`、`AMERICAN` 與 `BERMUDAN` 都可以建構。`Exercise.dates` "
+"在歐式與美式時帶一個日期，在百慕達式時帶每一個履約日。`payoff_at_expiry` 是一個 "
+"`Flag`，只在美式與百慕達式上讀取，而且在這兩者上必須明確設定。"
 
-#: ../../HANDLERS.md:327 962f5a16f73444b5a2dae60589cc10f7
+#: ../../HANDLERS.md:328 5950e468812343e5b868848466906d8c
 msgid ""
 "**Underlying.** `PROCESS_BLACK_SCHOLES_MERTON` (the default), "
 "`PROCESS_BLACK_SCHOLES` and `PROCESS_BLACK` build; `GARMAN_KOHLHAGEN`, "
@@ -803,9 +892,14 @@ msgid ""
 "ignoring it. **Omitting `dividend_curve_id` means a flat zero dividend "
 "yield**, not the risk-free curve. Exactly one underlying — a second is "
 "`INVALID_ARGUMENT` on `instrument.option.underlyings`."
-msgstr "**標的。**`PROCESS_BLACK_SCHOLES_MERTON`（預設）、`PROCESS_BLACK_SCHOLES` 與 `PROCESS_BLACK` 可以建構；`GARMAN_KOHLHAGEN`、`HESTON`、`BATES` 與 `LOCAL_VOL` 是 `UNSUPPORTED`。`PROCESS_BLACK_SCHOLES` 會拒絕 `dividend_curve_id`，而不是忽略它。**省略 `dividend_curve_id` 代表股利率為平坦的零**，而不是無風險曲線。恰好一個標的——第二個會在 `instrument.option.underlyings` 上得到 `INVALID_ARGUMENT`。"
+msgstr ""
+"**標的。**`PROCESS_BLACK_SCHOLES_MERTON`（預設）、`PROCESS_BLACK_SCHOLES` 與 "
+"`PROCESS_BLACK` 可以建構；`GARMAN_KOHLHAGEN`、`HESTON`、`BATES` 與 `LOCAL_VOL` 是 "
+"`UNSUPPORTED`。`PROCESS_BLACK_SCHOLES` 會拒絕 `dividend_curve_id`，而不是忽略它。**省略"
+" `dividend_curve_id` 代表股利率為平坦的零**，而不是無風險曲線。恰好一個標的——第二個會在 "
+"`instrument.option.underlyings` 上得到 `INVALID_ARGUMENT`。"
 
-#: ../../HANDLERS.md:335 85c94902d3f04b7a92dde514de2acaac
+#: ../../HANDLERS.md:336 ef2b43492d9f4e66b1869a731392f7ee
 msgid ""
 "**Quanto** needs all three of `fx_risk_free_curve_id`, `fx_volatility_id`"
 " and `correlation_id`, and is not a product: it wraps the *engine*, so it"
@@ -814,163 +908,182 @@ msgid ""
 " — `QuantoEngine` builds its inner engine as "
 "`make_shared<Engine>(process)` and leaves no seam for grid sizes, so "
 "`engine.fd.custom` is `UNSUPPORTED` there."
-msgstr "**Quanto** 需要 `fx_risk_free_curve_id`、`fx_volatility_id` 與 `correlation_id` 三者齊備，而且它不是一種商品：它包裝的是*引擎*，所以能套在任何一種引擎僅憑過程就能建構的類型上。這也是為什麼 quanto 的有限差分路徑只接受 `engine.fd.preset`——`QuantoEngine` 以 `make_shared<Engine>(process)` 建構內部引擎，沒有留下任何可以指定網格大小的接縫，所以 `engine.fd.custom` 在那裡是 `UNSUPPORTED`。"
+msgstr ""
+"**Quanto** 需要 `fx_risk_free_curve_id`、`fx_volatility_id` 與 "
+"`correlation_id` 三者齊備，而且它不是一種商品：它包裝的是*引擎*，所以能套在任何一種引擎僅憑過程就能建構的類型上。這也是為什麼 "
+"quanto 的有限差分路徑只接受 `engine.fd.preset`——`QuantoEngine` 以 "
+"`make_shared<Engine>(process)` 建構內部引擎，沒有留下任何可以指定網格大小的接縫，所以 "
+"`engine.fd.custom` 在那裡是 `UNSUPPORTED`。"
 
-#: ../../HANDLERS.md:342 2e8a59d4531b47bda31990c8f3af1ae2
+#: ../../HANDLERS.md:343 bce26825feb14ad6b076a07e96d13b30
 msgid "Swap"
 msgstr "利率交換"
 
-#: ../../HANDLERS.md:344 fd1f6063019c457b8993b3dad5e37e09
+#: ../../HANDLERS.md:345 b86736138b2f427fa98c76e072703736
 msgid ""
 "A general n-leg `Swap`. Two of the leg kinds build — `KIND_FIXED` and "
 "`KIND_IBOR` — and `engine.method` must be `METHOD_DISCOUNTING`."
-msgstr "一般化的 n 腳 `Swap`。交易腳種類中實作了兩種——`KIND_FIXED` 與 `KIND_IBOR`——而 `engine.method` 必須是 `METHOD_DISCOUNTING`。"
+msgstr ""
+"一般化的 n 腳 `Swap`。交易腳種類中實作了兩種——`KIND_FIXED` 與 `KIND_IBOR`——而 "
+"`engine.method` 必須是 `METHOD_DISCOUNTING`。"
 
-#: ../../HANDLERS.md:347 236d2c7e22d24357bdf7c00fc2c298e7
+#: ../../HANDLERS.md:348 b09bff8f34b34d8990a7894285845e9e
 msgid "`pays` is a `Flag` on every leg and must be set."
 msgstr "`pays` 是每一腳上的 `Flag`，而且必須設定。"
 
-#: ../../HANDLERS.md:348 2f80c919d9f9413f998ad6464910ebb8
+#: ../../HANDLERS.md:349 103b50921b4e48559f260ca22fc5b625
 msgid ""
 "`RESULT_KIND_FAIR_RATE` requires exactly two legs, **fixed first, then "
 "Ibor**; any other arrangement is `UNSUPPORTED` on `instrument.swap.legs` "
 "rather than a fair rate computed off the wrong leg."
-msgstr "`RESULT_KIND_FAIR_RATE` 需要恰好兩腳，**先固定、後 Ibor**；任何其他排列都會在 `instrument.swap.legs` 上得到 `UNSUPPORTED`，而不是用錯的那一腳算出一個公平利率。"
+msgstr ""
+"`RESULT_KIND_FAIR_RATE` 需要恰好兩腳，**先固定、後 Ibor**；任何其他排列都會在 "
+"`instrument.swap.legs` 上得到 `UNSUPPORTED`，而不是用錯的那一腳算出一個公平利率。"
 
-#: ../../HANDLERS.md:351 fe1fbd19c5114d32b78ffeabc069ef8f
+#: ../../HANDLERS.md:352 2e7d698f3bfa4e37b169b7eac162251b
 msgid ""
 "Per-leg `caps`, `floors`, `discount_curve_id` and `currency` are "
 "`UNSUPPORTED`."
 msgstr "各腳的 `caps`、`floors`、`discount_curve_id` 與 `currency` 是 `UNSUPPORTED`。"
 
-#: ../../HANDLERS.md:353 84e8b927227f4ae9840ebe4cc3afb1ba
+#: ../../HANDLERS.md:354 1fe72b66d2bc4144b791ae46b9d39c2a
 msgid ""
 "**A fixed leg freezes its rate.** `FixedRateLeg` takes a value rather "
 "than a handle, so `rate_quote_id` is read once at construction; bumping "
 "that quote needs a new `PriceRequest`, not an `UpdateMarket`. It is the "
 "one place the Handle discipline of DESIGN §5 is knowingly not kept."
-msgstr "**固定腳會凍結它的利率。**`FixedRateLeg` 吃的是值而不是控點，所以 `rate_quote_id` 只在建構時讀一次；推動那個報價需要新的 `PriceRequest`，而不是 `UpdateMarket`。這是唯一一處明知而不遵守 DESIGN §5 控點紀律的地方。"
+msgstr ""
+"**固定腳會凍結它的利率。**`FixedRateLeg` 吃的是值而不是控點，所以 `rate_quote_id` "
+"只在建構時讀一次；推動那個報價需要新的 `PriceRequest`，而不是 `UpdateMarket`。這是唯一一處明知而不遵守 DESIGN"
+" §5 控點紀律的地方。"
 
-#: ../../HANDLERS.md:358 94f88f9b878948ceb76895306f0e5eea
+#: ../../HANDLERS.md:359 92d7f48e34a74fa7ade7d4a3f72230a9
 msgid "Engines"
 msgstr "引擎"
 
-#: ../../HANDLERS.md:360 30408b79a3454c9784fe0b2d8bc42cd0
+#: ../../HANDLERS.md:361 071721f9375d4fffb163b9186cc03436
 msgid ""
 "`method` selects the parameter block. A field that does not apply cannot "
 "be set, rather than being set and dropped."
 msgstr "`method` 選擇參數區塊。不適用的欄位無法設定，而不是設定了再被丟掉。"
 
-#: ../../HANDLERS.md fa6771df70fa4e75ac03544890cb165c
+#: ../../HANDLERS.md 14e6c78a09fc452eb3cc741519936bc1
 msgid "`Engine.Method`"
 msgstr ""
 
-#: ../../HANDLERS.md fb8165ec9b684b7bb3ebe28da70cd1f2
+#: ../../HANDLERS.md 486218f8a55a494dbcc42de2b1ab4077
 msgid "Parameters"
 msgstr "參數"
 
-#: ../../HANDLERS.md 50d7b13b89f94b68b0159e8e61cc0659
+#: ../../HANDLERS.md a9176211b2c447a0a2031d0fb10501ca
 msgid "Notes"
 msgstr "備註"
 
-#: ../../HANDLERS.md 98e3a5b68c494651920163afebfd49ba
+#: ../../HANDLERS.md c63dbfe395f6435cb0037f60db62310d
 msgid "`METHOD_ANALYTIC`"
 msgstr ""
 
-#: ../../HANDLERS.md 44306de9409d47b2997e33e27d0645d7
+#: ../../HANDLERS.md 92de4c61d73c4047b228c8da2bf34fe0
 msgid "`analytic`"
 msgstr ""
 
-#: ../../HANDLERS.md f4faecc9044e4c78bc07e216568824d4
+#: ../../HANDLERS.md 62244458c38d499bb739bf8bb130b827
 msgid "`approximation` required for an American vanilla"
 msgstr "美式一般型必須提供 `approximation`"
 
-#: ../../HANDLERS.md ff717d357e13458c8d930ec79db6d4a9
+#: ../../HANDLERS.md 4a9f0425ba474a4d9db4deb7bf2e3ed3
 msgid "`METHOD_LATTICE`"
 msgstr ""
 
-#: ../../HANDLERS.md bb011c1c642b4f80a9b150045758f487
+#: ../../HANDLERS.md 9f4f220c4693442098312db849bdb973
 msgid "`lattice`"
 msgstr ""
 
-#: ../../HANDLERS.md e46ee3da2a1a4cd7814ff92221e88969
+#: ../../HANDLERS.md 4b7dd98b79f141fc92ffdc313b865055
 msgid "`tree` and non-zero `steps` both required"
 msgstr "`tree` 與非零的 `steps` 皆為必填"
 
-#: ../../HANDLERS.md 988e05d97ad04bafb2bebae0332c964e
+#: ../../HANDLERS.md c504142de0a745ecadcb6cc687b10a13
 msgid "`METHOD_FINITE_DIFFERENCE`"
 msgstr ""
 
-#: ../../HANDLERS.md dbf46c6297b64c649f10b079fd6fa738
+#: ../../HANDLERS.md 97d8bba4b62849fb906481f603b2df5c
 msgid "`fd`"
 msgstr ""
 
-#: ../../HANDLERS.md 53cd3f7036c545ae83d3dc0ebea06a1b
+#: ../../HANDLERS.md 47d060bee0364a2e96912c7bde90b3c0
 msgid "`preset` or `custom`"
 msgstr "`preset` 或 `custom`"
 
-#: ../../HANDLERS.md 3ab88e1dcc2444daa975cfacd8427ec2
+#: ../../HANDLERS.md 71409afe466a49c3b6b61bdb47ab8bf9
 msgid "`METHOD_MONTE_CARLO`"
 msgstr ""
 
-#: ../../HANDLERS.md 4d7ba6c61aa743dcbfeea6255c0e0ca4
+#: ../../HANDLERS.md d591c174c50942e8b2af4bb95922b6ae
 msgid "`mc`"
 msgstr ""
 
-#: ../../HANDLERS.md 04ee1658e34c4a599bde21de956dfd50
+#: ../../HANDLERS.md 371d8c3bc8954a36b6eae3723bf2524e
 msgid "non-zero `seed` required"
 msgstr "必須提供非零的 `seed`"
 
-#: ../../HANDLERS.md c0e2358da237434f898fc0bfeb63006d
+#: ../../HANDLERS.md efac4a4d48bc4199aa27321a578b1e68
 msgid "`METHOD_INTEGRAL`"
 msgstr ""
 
-#: ../../HANDLERS.md 1ccd245d41df409eb6d56c984625d87f
+#: ../../HANDLERS.md 0f63ebfea2df4ac9a71a1f548dd0b4fd
 msgid "European vanilla only"
 msgstr "僅歐式一般型"
 
-#: ../../HANDLERS.md 399e6f891b8b4f77a6fffc6a2b8da172
+#: ../../HANDLERS.md 9a83ac55863e4b95b8df3e1e3116bd7b
 msgid "`METHOD_DISCOUNTING`"
 msgstr ""
 
-#: ../../HANDLERS.md b93504af90594587aec4ed3f9a54cb1b
+#: ../../HANDLERS.md 6e117a1683e54a95964129d089b8e772
 msgid "swaps"
 msgstr "利率交換"
 
-#: ../../HANDLERS.md 183dce6f3b324df9bfd7e2d3ea4079f3
+#: ../../HANDLERS.md 0bdd8130b4b942eeb5278be5ead9fb35
 msgid "`METHOD_FOURIER`"
 msgstr ""
 
-#: ../../HANDLERS.md 10560a0fa2164cc482c4ca2667aa958d
+#: ../../HANDLERS.md 2afc8e703eea4d1985e93034acf29aea
 msgid "`fourier`"
 msgstr ""
 
-#: ../../HANDLERS.md ae8e9734df504407b7ccf671dc9d6ebf
+#: ../../HANDLERS.md a731a15b54a04c60b303fb2f22ec55d6
 msgid "not built — the models it exists for are not built"
 msgstr "未實作——它所服務的那些模型都沒有實作"
 
-#: ../../HANDLERS.md:373 4d8e35e3e2494b5cad4b348e90265d52
+#: ../../HANDLERS.md:374 e38f8dee900245ed96732d16f8ab4a26
 msgid ""
 "`Engine.model` is carried but only `MODEL_BLACK_SCHOLES` is reachable, "
 "since Heston, Bates and local vol are not built."
-msgstr "`Engine.model` 會被帶著，但只有 `MODEL_BLACK_SCHOLES` 走得到，因為 Heston、Bates 與局部波動率都沒有實作。"
+msgstr ""
+"`Engine.model` 會被帶著，但只有 `MODEL_BLACK_SCHOLES` 走得到，因為 Heston、Bates "
+"與局部波動率都沒有實作。"
 
-#: ../../HANDLERS.md:376 c080fc9ff7d7492293b2092ace5a5a87
+#: ../../HANDLERS.md:377 434819834c23441786aa54183ebd3d3e
 msgid ""
 "**American approximations.** QuantLib has three and they disagree in the "
 "third decimal, so the client names one rather than inheriting a default: "
 "`BARONE_ADESI_WHALEY`, `BJERKSUND_STENSLAND`, `JU_QUADRATIC`. Omitting it"
 " is `UNSPECIFIED_ENUM` on `engine.analytic.approximation`."
-msgstr "**美式近似法。**QuantLib 有三種，而它們在小數點後第三位就不一致，所以由用戶端指名一種，而不是繼承預設值：`BARONE_ADESI_WHALEY`、`BJERKSUND_STENSLAND`、`JU_QUADRATIC`。省略它會在 `engine.analytic.approximation` 上得到 `UNSPECIFIED_ENUM`。"
+msgstr ""
+"**美式近似法。**QuantLib "
+"有三種，而它們在小數點後第三位就不一致，所以由用戶端指名一種，而不是繼承預設值：`BARONE_ADESI_WHALEY`、`BJERKSUND_STENSLAND`、`JU_QUADRATIC`。省略它會在"
+" `engine.analytic.approximation` 上得到 `UNSPECIFIED_ENUM`。"
 
-#: ../../HANDLERS.md:381 c4a30e57ccae44beae1ee34dfadec889
+#: ../../HANDLERS.md:382 6a1537c2e16441c794a9f68f132785c1
 msgid ""
 "**Lattice trees.** Seven compile for a vanilla — `COX_ROSS_RUBINSTEIN`, "
 "`JARROW_RUDD`, `ADDITIVE_EQUIPROBABILITIES`, `TRIGEORGIS`, `TIAN`, "
 "`LEISEN_REIMER`, `JOSHI4`. A barrier takes `COX_ROSS_RUBINSTEIN` only."
-msgstr "**格點樹。**一般型編譯了七種——`COX_ROSS_RUBINSTEIN`、`JARROW_RUDD`、`ADDITIVE_EQUIPROBABILITIES`、`TRIGEORGIS`、`TIAN`、`LEISEN_REIMER`、`JOSHI4`。障礙只接受 `COX_ROSS_RUBINSTEIN`。"
+msgstr ""
+"**格點樹。**一般型編譯了七種——`COX_ROSS_RUBINSTEIN`、`JARROW_RUDD`、`ADDITIVE_EQUIPROBABILITIES`、`TRIGEORGIS`、`TIAN`、`LEISEN_REIMER`、`JOSHI4`。障礙只接受"
+" `COX_ROSS_RUBINSTEIN`。"
 
-#: ../../HANDLERS.md:385 37953a54b1a74481a08ddacfd705400a
+#: ../../HANDLERS.md:386 39488837e15c43bc81bcbc7beea07b2c
 msgid ""
 "**Finite difference.** `preset` is `COARSE` (100×100), `STANDARD` "
 "(400×200) or `FINE` (2000×800), each of them Douglas with no damping. "
@@ -978,72 +1091,76 @@ msgid ""
 "`scheme` — works on the plain paths and is `UNSUPPORTED` under quanto. "
 "All four fields are read: a custom grid that named a scheme and got "
 "Douglas anyway would be a defect rather than a simplification."
-msgstr "**有限差分。**`preset` 是 `COARSE`（100×100）、`STANDARD`（400×200）或 `FINE`（2000×800），每一個都是不帶阻尼的 Douglas。`custom`——明確指定 `time_steps`、`asset_steps`、`damping_steps` 與 `scheme`——在一般路徑上可用，在 quanto 之下則是 `UNSUPPORTED`。這四個欄位都會被讀取：一個指名了某種差分格式、結果卻還是拿到 Douglas 的自訂網格，是缺陷而不是簡化。"
+msgstr ""
+"**有限差分。**`preset` 是 `COARSE`（100×100）、`STANDARD`（400×200）或 "
+"`FINE`（2000×800），每一個都是不帶阻尼的 Douglas。`custom`——明確指定 "
+"`time_steps`、`asset_steps`、`damping_steps` 與 `scheme`——在一般路徑上可用，在 quanto "
+"之下則是 `UNSUPPORTED`。這四個欄位都會被讀取：一個指名了某種差分格式、結果卻還是拿到 Douglas 的自訂網格，是缺陷而不是簡化。"
 
-#: ../../HANDLERS.md:392 e636923d7aa34b7f8804ef6b1a0838ab
+#: ../../HANDLERS.md:393 99a3a7fdaa9d47d3aa021130d9143d14
 msgid ""
 "`scheme` has no default, for the reason the grid has none: two schemes "
 "are two prices for one trade. Five of the six arms build."
 msgstr "`scheme` 沒有預設值，理由和網格沒有預設值一樣：兩種差分格式就是同一筆交易的兩個價格。六個分支中實作了五個。"
 
-#: ../../HANDLERS.md 262a4e7e5559448eb4d8c0676c459b24
+#: ../../HANDLERS.md 2ea145965d9149ff92a75a8276ebe747
 msgid "`Scheme`"
 msgstr ""
 
-#: ../../HANDLERS.md 12e2b7efcb2f49ef81b359d2c9e94eda
+#: ../../HANDLERS.md 59a3c9ca6288435799c674b12654c9aa
 msgid "What it is here"
 msgstr "在這裡是什麼"
 
-#: ../../HANDLERS.md 0fb83f06f61943e6b0112cbec77f4d78
+#: ../../HANDLERS.md e068b9497a634e1c88f26cd4b6b11e89
 msgid "`DOUGLAS`"
 msgstr ""
 
-#: ../../HANDLERS.md 91ea2e90307246e6a58838bb79068f13
+#: ../../HANDLERS.md cceeaf02f4d44008966dbd48a11cde05
 msgid "QuantLib's own default, second order. What to send with no opinion"
 msgstr "QuantLib 自己的預設值，二階。沒有特別偏好時就送這個"
 
-#: ../../HANDLERS.md 847a1378c64749ec819a2d7a9a539609
+#: ../../HANDLERS.md fd4eac8cc8204622985a1dee0ea2489d
 msgid "`CRANK_NICOLSON`"
 msgstr ""
 
-#: ../../HANDLERS.md 67d369a74a8f4065bb35327f586a57b4
+#: ../../HANDLERS.md f06d34f02a9d4796ba84cd43d11541b6
 msgid "Douglas to within a bit in one dimension"
 msgstr "在一維下與 Douglas 只差一點點"
 
-#: ../../HANDLERS.md 38184e02b5954503b7e327155751fc84
+#: ../../HANDLERS.md b41da53e6fea458da6da2e1b204c5d41
 msgid "`CRAIG_SNEYD`"
 msgstr ""
 
-#: ../../HANDLERS.md cd329de710f74b8da1550a07f63d559f
+#: ../../HANDLERS.md c3abb1cf507c4c56a5a403cc58ac3856
 msgid "Douglas *exactly* in one dimension — there are no directions to alternate"
 msgstr "在一維下與 Douglas *完全相同*——沒有方向可以交替"
 
-#: ../../HANDLERS.md a49a2efa90554e50a5d73bdadd4a70b0
+#: ../../HANDLERS.md 241117ba329d41d681b8932fc141055b
 msgid "`HUNDSDORFER`"
 msgstr ""
 
-#: ../../HANDLERS.md 33c30c39a794463d8bf263bf196d3aa5
+#: ../../HANDLERS.md 3db83805be704996a06b7057d5c4b4f4
 msgid "A different theta; differs from Douglas in the seventh digit"
 msgstr "不同的 theta；與 Douglas 在第七位數才有差異"
 
-#: ../../HANDLERS.md b30cd2cb042642189a707e56b79381a9
+#: ../../HANDLERS.md c3670938f7cc41419e03cf1cbc6b024b
 msgid "`IMPLICIT_EULER`"
 msgstr ""
 
-#: ../../HANDLERS.md 7ee648fe2bde4dbab2386eb889aaf1d6
+#: ../../HANDLERS.md 2a67ee9ae84f4a58941ebb81b016d3e8
 msgid "First order, unconditionally stable; differs in the third digit"
 msgstr "一階，無條件穩定；在第三位數字就有差異"
 
-#: ../../HANDLERS.md bd139ad948594fbcade7104a9060a8c6
+#: ../../HANDLERS.md 6d3a0b9868484d22a4abc8465aae88b2
 msgid "`EXPLICIT_EULER`"
 msgstr ""
 
-#: ../../HANDLERS.md 162dea1a77784cd59305d723bda36712
-#: 4946066c82374bc58b6fcca875f4a311
+#: ../../HANDLERS.md 2d94243b35bc424a9cbf170707b3226d
+#: 5e7672be7f7c45139d3eb97bc3ec1f00
 msgid "`UNSUPPORTED`"
 msgstr ""
 
-#: ../../HANDLERS.md:404 671b541ca0ee4d4db8e09f0bee7dcbc3
+#: ../../HANDLERS.md:405 d8af0c9a1e954097be157d510a345d81
 msgid ""
 "Explicit Euler is refused rather than offered because it is stable only "
 "while the time step is small against the square of the asset step, and "
@@ -1051,18 +1168,24 @@ msgid ""
 "rather than to anything on the frame. An unstable run does not fail: at "
 "100×200 this build answered 2.4e140 and at 400×200 a NaN. Implicit Euler "
 "is first order too, with no such condition."
-msgstr "顯式 Euler 被拒絕而不提供，因為它只有在時間步長相對於資產步長的平方夠小時才穩定，而資產步長屬於 QuantLib 在引擎內部建構的網格產生器，不屬於訊框上的任何東西。不穩定的計算並不會失敗：在 100×200 時這個建置回答了 2.4e140，在 400×200 時則是 NaN。隱式 Euler 同樣是一階，但沒有這樣的條件。"
+msgstr ""
+"顯式 Euler 被拒絕而不提供，因為它只有在時間步長相對於資產步長的平方夠小時才穩定，而資產步長屬於 QuantLib "
+"在引擎內部建構的網格產生器，不屬於訊框上的任何東西。不穩定的計算並不會失敗：在 100×200 時這個建置回答了 2.4e140，在 "
+"400×200 時則是 NaN。隱式 Euler 同樣是一階，但沒有這樣的條件。"
 
-#: ../../HANDLERS.md:411 9471fa24c93b42f398409cc3e99c51d7
+#: ../../HANDLERS.md:412 00835128727a4eed86cbb3b675821e90
 msgid ""
 "`damping_steps` are Rannacher's fix for the oscillation a Crank-Nicolson-"
 "family scheme shows against a kinked payoff or a barrier — the first few "
 "steps taken fully implicit. They are counted out of `time_steps`, so a "
 "request with at least as many damping steps as time steps is "
 "`INVALID_ARGUMENT`."
-msgstr "`damping_steps` 是 Rannacher 針對 Crank-Nicolson 家族格式在折角收益函數或障礙附近出現震盪所提出的修正——前幾步採完全隱式。它們是從 `time_steps` 中扣出來的，所以阻尼步數不少於時間步數的請求會是 `INVALID_ARGUMENT`。"
+msgstr ""
+"`damping_steps` 是 Rannacher 針對 Crank-Nicolson "
+"家族格式在折角收益函數或障礙附近出現震盪所提出的修正——前幾步採完全隱式。它們是從 `time_steps` "
+"中扣出來的，所以阻尼步數不少於時間步數的請求會是 `INVALID_ARGUMENT`。"
 
-#: ../../HANDLERS.md:416 28cf9078ecb74c01846f78f422a2dc1d
+#: ../../HANDLERS.md:417 2a59ba6b0b41497fb635b03e43b6b926
 msgid ""
 "**Monte Carlo.** `seed` must be non-zero, because QuantLib otherwise "
 "seeds from the clock and the same inputs would price differently on every"
@@ -1073,13 +1196,19 @@ msgid ""
 "the RNG stream differently from one run of the same total. "
 "Reproducibility keys on `(seed, samples, progress_every_paths)`, which is"
 " why `PriceResult` echoes the whole `Engine` message back."
-msgstr "**蒙地卡羅。**`seed` 必須非零，因為否則 QuantLib 會以時鐘作為種子，同樣的輸入在每次請求都會算出不同的價格。給 `samples` 或 `absolute_tolerance`，不要兩者都給。設定 `progress_every_paths` 會切換到分批路徑，那正是送出 `Progress` 訊框、並讓取消真正停下工作而不只是停下等待的東西——而且它**會改變答案**，因為分批從亂數串流中取樣的方式，和總數相同的單次計算不一樣。可重現性取決於 `(seed, samples, progress_every_paths)`，這也是為什麼 `PriceResult` 會把整個 `Engine` 訊息回傳。"
+msgstr ""
+"**蒙地卡羅。**`seed` 必須非零，因為否則 QuantLib 會以時鐘作為種子，同樣的輸入在每次請求都會算出不同的價格。給 "
+"`samples` 或 `absolute_tolerance`，不要兩者都給。設定 `progress_every_paths` "
+"會切換到分批路徑，那正是送出 `Progress` "
+"訊框、並讓取消真正停下工作而不只是停下等待的東西——而且它**會改變答案**，因為分批從亂數串流中取樣的方式，和總數相同的單次計算不一樣。可重現性取決於"
+" `(seed, samples, progress_every_paths)`，這也是為什麼 `PriceResult` 會把整個 "
+"`Engine` 訊息回傳。"
 
-#: ../../HANDLERS.md:426 ecad1c170ca541e29dea7ce32c60083b
+#: ../../HANDLERS.md:427 02f3405ea793440dbc717cf0826814ad
 msgid "Results"
 msgstr "結果"
 
-#: ../../HANDLERS.md:428 4bb7779a2cd3439fad3f33887f5c2633
+#: ../../HANDLERS.md:429 b53e11bcf2d24b3392ff7320b1281f3c
 msgid ""
 "`PriceResult.npv` always. `results` is a `map<string, Value>` keyed by "
 "QuantLib's own name for each `ResultKind` named in `PriceRequest.results`"
@@ -1087,9 +1216,14 @@ msgid ""
 "`RESULT_KIND_THETA_PER_DAY` under `thetaPerDay`, so a client asking by "
 "kind and a client dumping an engine's `additionalResults` read one "
 "vocabulary. Nineteen are mapped:"
-msgstr "`PriceResult.npv` 一定有。`results` 是一個 `map<string, Value>`，對 `PriceRequest.results` 中指名的每個 `ResultKind`，以 QuantLib 自己的名稱為鍵——`RESULT_KIND_DELTA` 放在 `delta` 之下回傳，`RESULT_KIND_THETA_PER_DAY` 放在 `thetaPerDay` 之下，所以依種類詢問的用戶端，和直接傾印引擎 `additionalResults` 的用戶端，讀的是同一套詞彙。共對應了十九種："
+msgstr ""
+"`PriceResult.npv` 一定有。`results` 是一個 `map<string, Value>`，對 "
+"`PriceRequest.results` 中指名的每個 `ResultKind`，以 QuantLib "
+"自己的名稱為鍵——`RESULT_KIND_DELTA` 放在 `delta` 之下回傳，`RESULT_KIND_THETA_PER_DAY` "
+"放在 `thetaPerDay` 之下，所以依種類詢問的用戶端，和直接傾印引擎 `additionalResults` "
+"的用戶端，讀的是同一套詞彙。共對應了十九種："
 
-#: ../../HANDLERS.md:434 e243ba0871334592b3599af12deada5c
+#: ../../HANDLERS.md:435 cbdb76ed72f0424a9b805b8131599961
 msgid ""
 "`NPV`, `DELTA`, `GAMMA`, `THETA`, `VEGA`, `RHO`, `DIVIDEND_RHO`, "
 "`THETA_PER_DAY`, `DELTA_FORWARD`, `ELASTICITY`, `STRIKE_SENSITIVITY`, "
@@ -1097,7 +1231,7 @@ msgid ""
 " `FAIR_RATE`, `LEG_NPV`, `LEG_BPS`."
 msgstr ""
 
-#: ../../HANDLERS.md:439 f6c2054b2a60425397a4c97fb77582f1
+#: ../../HANDLERS.md:440 ce43f5a5cd7f420a84f55494cd24db36
 msgid ""
 "`IMPLIED_VOLATILITY` is the one that takes an input of its own. It is a "
 "root find, not a published result, so `PriceRequest.implied_volatility` "
@@ -1107,15 +1241,19 @@ msgid ""
 "volatility the client sent. QuantLib can invert a vanilla, a barrier and "
 "a double barrier; asked of any other style the kind comes back in "
 "`unavailable_results` like any other result an engine cannot supply."
-msgstr "`IMPLIED_VOLATILITY` 是唯一需要自己專屬輸入的那一個。它是求根，而不是引擎發布的結果，所以 `PriceRequest.implied_volatility` 帶著要反推的價格，以及可選的搜尋區間與容忍度；沒有目標價時請求會是 `INVALID_ARGUMENT`，因為去反推這個請求即將算出的價格，只會把用戶端送來的波動率原樣交回去。QuantLib 能反推一般型、障礙與雙障礙；對任何其他類型要求時，這個種類會和其他引擎無法提供的結果一樣，出現在 `unavailable_results` 裡。"
+msgstr ""
+"`IMPLIED_VOLATILITY` 是唯一需要自己專屬輸入的那一個。它是求根，而不是引擎發布的結果，所以 "
+"`PriceRequest.implied_volatility` 帶著要反推的價格，以及可選的搜尋區間與容忍度；沒有目標價時請求會是 "
+"`INVALID_ARGUMENT`，因為去反推這個請求即將算出的價格，只會把用戶端送來的波動率原樣交回去。QuantLib "
+"能反推一般型、障礙與雙障礙；對任何其他類型要求時，這個種類會和其他引擎無法提供的結果一樣，出現在 `unavailable_results` 裡。"
 
-#: ../../HANDLERS.md:448 24a6c849a59e4f71902f82febf9961ab
+#: ../../HANDLERS.md:449 e8e1d7a57afb41d5b1d4aeacce2f69fa
 msgid ""
 "Anything else in the enum — the bond, credit and remaining cash-flow "
 "kinds — is `UNSUPPORTED`."
 msgstr "列舉中的其他一切——債券、信用以及其餘的現金流種類——都是 `UNSUPPORTED`。"
 
-#: ../../HANDLERS.md:451 6d752fe90d824a8db420457ffcf9731f
+#: ../../HANDLERS.md:452 dec75e47b9674d23b803294721643fc4
 msgid ""
 "An engine that cannot supply a result you asked for **names the "
 "absence**: the kind comes back in `PriceResult.unavailable_results` and "
@@ -1124,25 +1262,34 @@ msgid ""
 "nothing. `AnalyticEuropeanEngine` has vega and the binomial one does not;"
 " a frontend should be able to ask both the same question and be told "
 "which answered."
-msgstr "引擎無法提供你所要求的結果時，會**指名這個缺席**：該種類出現在 `PriceResult.unavailable_results` 中，價格也照樣一起回傳。拒絕整個請求會連價格一起賠掉，而想要 NPV 的用戶端就會學到乾脆什麼都別問。`AnalyticEuropeanEngine` 有 vega，二元樹引擎則沒有；前端應該能對兩者問同一個問題，並被告知是哪一個回答了。"
+msgstr ""
+"引擎無法提供你所要求的結果時，會**指名這個缺席**：該種類出現在 `PriceResult.unavailable_results` "
+"中，價格也照樣一起回傳。拒絕整個請求會連價格一起賠掉，而想要 NPV "
+"的用戶端就會學到乾脆什麼都別問。`AnalyticEuropeanEngine` 有 "
+"vega，二元樹引擎則沒有；前端應該能對兩者問同一個問題，並被告知是哪一個回答了。"
 
-#: ../../HANDLERS.md:458 d2c47760d973409fa07f090f8631bec3
+#: ../../HANDLERS.md:459 57092b7a46534a2997b93c17324ea208
 msgid ""
 "The same field carries a kind that does not apply to the instrument at "
 "all — a fair rate asked of an option, a greek asked of a swap. A kind "
 "this build does not implement anywhere is a different matter, and `Hello`"
 " answers that before the request is sent."
-msgstr "同一個欄位也會帶著根本不適用於該商品的種類——對選擇權要公平利率、對利率交換要希臘字母。這個建置在任何地方都沒有實作的種類則是另一回事，`Hello` 在請求送出之前就會回答這個問題。"
+msgstr ""
+"同一個欄位也會帶著根本不適用於該商品的種類——對選擇權要公平利率、對利率交換要希臘字母。這個建置在任何地方都沒有實作的種類則是另一回事，`Hello`"
+" 在請求送出之前就會回答這個問題。"
 
-#: ../../HANDLERS.md:463 ae842009e3444b4ab8708f5a9fe8e446
+#: ../../HANDLERS.md:464 6ef1a3822cdb4361ad0a0fa75b4acd1e
 msgid ""
 "`include_additional_results` returns whatever the engine published in its"
 " own `additionalResults` map. Every value this layer reports is a "
 "**scalar** — the vector and matrix arms of `Value` are not filled. "
 "`error_estimate` is populated whenever the engine has one."
-msgstr "`include_additional_results` 會回傳引擎在自己的 `additionalResults` 對應表中發布的任何東西。這一層回報的每個值都是**純量**——`Value` 的向量與矩陣分支不會被填入。只要引擎有 `error_estimate`，就會填入。"
+msgstr ""
+"`include_additional_results` 會回傳引擎在自己的 `additionalResults` "
+"對應表中發布的任何東西。這一層回報的每個值都是**純量**——`Value` 的向量與矩陣分支不會被填入。只要引擎有 "
+"`error_estimate`，就會填入。"
 
-#: ../../HANDLERS.md:468 de77cc11442549f2a0fea7b84bc26cb6
+#: ../../HANDLERS.md:469 7014f8b4e2f74c3690ddefb7ee6a4512
 msgid ""
 "`include_cashflows` is served for the cash-flow instruments, which today "
 "means swaps. Each row carries its payment date, amount, the discount the "
@@ -1155,9 +1302,15 @@ msgid ""
 "are left out. Asked of an **option** it is `UNSUPPORTED`: an empty table "
 "would read as an instrument that happens to have no cash flows rather "
 "than one that was never going to have any."
-msgstr "`include_cashflows` 對現金流商品提供，目前指的就是利率交換。每一列帶著支付日、金額、引擎使用的折現因子以及兩者的乘積，所以**現值欄的總和就是 NPV**——正是這個性質讓這張表值得呈現，而不只是裝飾，`test/smoke_v2.py` 也會檢查它。票息另外加上計息期間日期、名目本金與利率；浮動票息再加上定盤日、利差與槓桿倍數，並說明定盤值是來自 `IndexManager` 還是仍屬預測。已經支付過的列會被略去。對**選擇權**要求時是 `UNSUPPORTED`：空的表會讓人以為這個商品只是剛好沒有現金流，而不是本來就不會有。"
+msgstr ""
+"`include_cashflows` "
+"對現金流商品提供，目前指的就是利率交換。每一列帶著支付日、金額、引擎使用的折現因子以及兩者的乘積，所以**現值欄的總和就是 "
+"NPV**——正是這個性質讓這張表值得呈現，而不只是裝飾，`test/smoke_v2.py` "
+"也會檢查它。票息另外加上計息期間日期、名目本金與利率；浮動票息再加上定盤日、利差與槓桿倍數，並說明定盤值是來自 `IndexManager` "
+"還是仍屬預測。已經支付過的列會被略去。對**選擇權**要求時是 "
+"`UNSUPPORTED`：空的表會讓人以為這個商品只是剛好沒有現金流，而不是本來就不會有。"
 
-#: ../../HANDLERS.md:479 564880e4cf6a428187939754afa8e0b6
+#: ../../HANDLERS.md:480 d444882728a04c1ab8e84a8991eb515a
 msgid ""
 "`curve_samples` is served. Each entry names a market object and a "
 "quantity and comes back as a `Series` on the result, sampled from the "
@@ -1169,62 +1322,67 @@ msgid ""
 "`curve_samples[n].dates` or `.times`: each point is a term-structure "
 "query on the live graph, and a chart shows hundreds. Four quantities are "
 "built:"
-msgstr "`curve_samples` 有提供。每個項目指名一個市場物件與一種數量，並以結果上的 `Series` 回傳，取樣自引擎計價時所用的同一個控點——這正是它的重點：另一種做法是把期限結構送出去，再在用戶端重新實作 QuantLib 的內插，而前端就是這樣畫出一條後端並沒有拿來計價的曲線。一次取樣最多可以要求 `Capabilities.max_curve_sample_points` 個點，放在 `curve_samples[n].dates` 或 `.times` 上：每個點都是對即時物件圖的一次期限結構查詢，而一張圖表會顯示好幾百個點。實作了四種數量："
+msgstr ""
+"`curve_samples` 有提供。每個項目指名一個市場物件與一種數量，並以結果上的 `Series` "
+"回傳，取樣自引擎計價時所用的同一個控點——這正是它的重點：另一種做法是把期限結構送出去，再在用戶端重新實作 QuantLib "
+"的內插，而前端就是這樣畫出一條後端並沒有拿來計價的曲線。一次取樣最多可以要求 "
+"`Capabilities.max_curve_sample_points` 個點，放在 `curve_samples[n].dates` 或 "
+"`.times` 上：每個點都是對即時物件圖的一次期限結構查詢，而一張圖表會顯示好幾百個點。實作了四種數量："
 
-#: ../../HANDLERS.md 5e29d03307d14eceb598bedb0ba0198c
+#: ../../HANDLERS.md 8cf6e2b5e94649be94693924739efc88
 msgid "`CurveSample.Quantity`"
 msgstr ""
 
-#: ../../HANDLERS.md fd42c7f0acbd4761ba48c826114d5026
+#: ../../HANDLERS.md f73eba758b97439aa9babbd6e8c7e7c6
 msgid "On"
 msgstr "取樣對象"
 
-#: ../../HANDLERS.md 650241bde46249278cb13677b303cf37
+#: ../../HANDLERS.md 2f4fe48ef3dc443aa2f9a4dbe19d8a2e
 msgid "Needs"
 msgstr "需要什麼"
 
-#: ../../HANDLERS.md f59673039ef24835bf3d01fdf4a141b0
+#: ../../HANDLERS.md 31d8ca50e150410ebd173228e0e6e260
 msgid "`ZERO_RATE`"
 msgstr ""
 
-#: ../../HANDLERS.md 15c46ac488b94898905f082870ee67e4
-#: 6288afbf77554509a05bd02f2cf43fbf 8e69a878352d421c9b4736885335a8fe
+#: ../../HANDLERS.md 4bdc597248a9435cade61e71281e31b5
+#: 6a12c73416b943a28eedcf9ea4d084de 81c908ef96a54a369c4b7e31dcd31282
 msgid "a yield curve"
 msgstr "殖利率曲線"
 
-#: ../../HANDLERS.md 27a1998c216d41de86f6fe916a49377c
+#: ../../HANDLERS.md d56cca34b1ab44609fe29388e4bb13de
 msgid "`compounding`, `frequency`, and `day_counter` when sampling by date"
 msgstr "`compounding`、`frequency`，依日期取樣時還要 `day_counter`"
 
-#: ../../HANDLERS.md 1b13a1894b7e419391c2e6b8df7bd368
+#: ../../HANDLERS.md 572d78ed40d54204a36931fae750ce8c
 msgid "`FORWARD_RATE`"
 msgstr ""
 
-#: ../../HANDLERS.md a25d0572057f4c85a3fade434cd4e7dd
+#: ../../HANDLERS.md cd572309677f4d9594fccfbdb8d10178
 msgid "the same"
 msgstr "同上"
 
-#: ../../HANDLERS.md 9b47e3ad6d1b405eb777493f54f2c17d
+#: ../../HANDLERS.md b0bda2d8d2904c109186e31f87a77fdd
 msgid "`DISCOUNT_FACTOR`"
 msgstr ""
 
-#: ../../HANDLERS.md 91e89c949c274fb5ae666d956ccc060d
+#: ../../HANDLERS.md 0ea7a41a29684e1683802c72b4f26e9e
 msgid "nothing; a `compounding` set beside one is rejected rather than ignored"
 msgstr "不需要；在它旁邊設定 `compounding` 會被拒絕，而不是被忽略"
 
-#: ../../HANDLERS.md 71c8c044ea674c6d9f033348d13ab0f5
+#: ../../HANDLERS.md ed5579700b2847c1a3bcfcb3dbd15454
 msgid "`BLACK_VOLATILITY`"
 msgstr ""
 
-#: ../../HANDLERS.md 58e5f630b9474f8ca9fe3e5bc6c2c799
+#: ../../HANDLERS.md 01b12fdf3fd6470d9643ae96b9911035
 msgid "a volatility surface"
 msgstr "波動率曲面"
 
-#: ../../HANDLERS.md c4fbb07665844052b6e0105b8348fb03
+#: ../../HANDLERS.md 5f21370f7dc7464883432e4d1fc828c2
 msgid "exactly one `strikes` entry"
 msgstr "恰好一個 `strikes` 項目"
 
-#: ../../HANDLERS.md:495 53893a68c41848a29e4737055606cbd1
+#: ../../HANDLERS.md:496 46f20c6d60b0476bba8600a71965ce28
 msgid ""
 "`dates` or `times`, one of the two. The other four quantities in the enum"
 " are `UNSUPPORTED` naming the field: `SURVIVAL_PROBABILITY`, "
@@ -1233,24 +1391,30 @@ msgid ""
 "samples, reported twice. Sampling a surface across several strikes is "
 "refused for a different reason — it would be a matrix rather than a "
 "series."
-msgstr "`dates` 或 `times`，二擇一。列舉中的另外四種數量都是指名該欄位的 `UNSUPPORTED`：`SURVIVAL_PROBABILITY`、`HAZARD_RATE` 與 `LOCAL_VOLATILITY` 需要這個建置不會建構的期限結構，而 `VARIANCE` 取樣的是和 `BLACK_VOLATILITY` 同一個曲面，等於回報兩次。跨多個履約價取樣曲面則基於另一個理由被拒絕——那會是矩陣而不是序列。"
+msgstr ""
+"`dates` 或 `times`，二擇一。列舉中的另外四種數量都是指名該欄位的 "
+"`UNSUPPORTED`：`SURVIVAL_PROBABILITY`、`HAZARD_RATE` 與 `LOCAL_VOLATILITY` "
+"需要這個建置不會建構的期限結構，而 `VARIANCE` 取樣的是和 `BLACK_VOLATILITY` "
+"同一個曲面，等於回報兩次。跨多個履約價取樣曲面則基於另一個理由被拒絕——那會是矩陣而不是序列。"
 
-#: ../../HANDLERS.md:502 4f100f03b35e4cf2af11f3408ca49a4f
+#: ../../HANDLERS.md:503 1b43f6f951174a6aa8cd66c87e68e5e6
 msgid "Pricing many at once"
 msgstr "一次為多筆計價"
 
-#: ../../HANDLERS.md:504 1051ae214e6245b38e372cc1b95a5fea
+#: ../../HANDLERS.md:505 e82c9acf5b0f46d0a2eefe3b1b579f95
 msgid "Batches"
 msgstr "批次"
 
-#: ../../HANDLERS.md:506 342ead5828d1479585ec83f9317790ec
+#: ../../HANDLERS.md:507 b37cb629d74242388a4aa06b86196c4d
 msgid ""
 "`PriceBatch` prices a book of trades against one graph in one frame, and "
 "`BatchResult` answers one entry per request **in order**, so a client "
 "matches by position and needs no ids of its own."
-msgstr "`PriceBatch` 在一個訊框內，以同一份物件圖為一整本交易簿計價，而 `BatchResult` **依序**為每個請求回覆一個項目，所以用戶端依位置對應即可，不需要自己的代號。"
+msgstr ""
+"`PriceBatch` 在一個訊框內，以同一份物件圖為一整本交易簿計價，而 `BatchResult` "
+"**依序**為每個請求回覆一個項目，所以用戶端依位置對應即可，不需要自己的代號。"
 
-#: ../../HANDLERS.md:510 13df497613ec4df598bd19255bd30279
+#: ../../HANDLERS.md:511 fb5f1bff11414f9eb25f578f538e40a4
 msgid ""
 "A failing entry does not fail the batch. Refusing the whole book because "
 "trade seventeen names a curve that is not there would throw away sixteen "
@@ -1259,85 +1423,91 @@ msgid ""
 "carries either a `PriceResult` or the `Error` it would have been sent on "
 "its own, with `field_path` prefixed by `batch.requests[n]` so a blotter "
 "can put the complaint on the row it belongs to."
-msgstr "失敗的項目不會讓整個批次失敗。只因為第十七筆交易指名了一條不存在的曲線就拒絕整本交易簿，會丟掉十六個已經正確算出的價格——這和讓無法提供的結果成為具名缺席、而不是拒絕，是同一個論點。每個項目帶的要嘛是 `PriceResult`，要嘛是它單獨送出時會得到的 `Error`，其 `field_path` 前面加上 `batch.requests[n]`，讓交易清單能把問題標在它所屬的那一列。"
+msgstr ""
+"失敗的項目不會讓整個批次失敗。只因為第十七筆交易指名了一條不存在的曲線就拒絕整本交易簿，會丟掉十六個已經正確算出的價格——這和讓無法提供的結果成為具名缺席、而不是拒絕，是同一個論點。每個項目帶的要嘛是"
+" `PriceResult`，要嘛是它單獨送出時會得到的 `Error`，其 `field_path` 前面加上 "
+"`batch.requests[n]`，讓交易清單能把問題標在它所屬的那一列。"
 
-#: ../../HANDLERS.md:517 8b882a9d744e4333a7c4f6052393969d
+#: ../../HANDLERS.md:518 08873d88ad6f40e4b60a8de2b388fcd6
 msgid "Three things are refused rather than absorbed:"
 msgstr "有三件事會被拒絕，而不是被吸收："
 
-#: ../../HANDLERS.md 0223891d910d4ffbaaa1aa4448faaa58
+#: ../../HANDLERS.md 506a514a119e4c4eb09d18ba793b1895
 msgid "Refusal"
 msgstr "拒絕"
 
-#: ../../HANDLERS.md 2f21e98b645248a0aeb92f4d17673279
+#: ../../HANDLERS.md 13cb32027f374710baf9f94f2847d5b5
 msgid "Where it lands"
 msgstr "落在哪裡"
 
-#: ../../HANDLERS.md 603a1f7bd7f846ceb91e0fc6081def3c
-#: 8f0aa3eb825140aa978c10d6e6dda68d
+#: ../../HANDLERS.md 20c7712e8748456dac7072760aba7f32
+#: c2c409c8525f4fc89c863653f5c5882b
 msgid "Why"
 msgstr "為什麼"
 
-#: ../../HANDLERS.md e9519b0167bc41cf857f322909b0f603
+#: ../../HANDLERS.md e30762bdbcf24a83b59291013a7ef638
 msgid "an empty `requests`"
 msgstr "空的 `requests`"
 
-#: ../../HANDLERS.md 0ff7b1c87c8747ef84aa18da2d2dc5fb
-#: 9626137157834b398b02c44d66448adc
+#: ../../HANDLERS.md 7b9ecbc4a5c04390b0711c9c6db131b1
+#: a4a2e755936b4fa0aa1fee8c68e6b736
 msgid "the whole frame, on `batch.requests`"
 msgstr "整個訊框，在 `batch.requests` 上"
 
-#: ../../HANDLERS.md 9828f1c1454a4a95b13f17052560403b
+#: ../../HANDLERS.md 95015e263f9c40c7aa48e5a200d704fe
 msgid "The request itself is wrong, not one of its rows"
 msgstr "錯的是請求本身，而不是其中某一列"
 
-#: ../../HANDLERS.md 6901558ae9d04148805c21fa5e9418aa
+#: ../../HANDLERS.md e6a6a78af6d647eca6869240ec6a08dc
 msgid "more entries than `Capabilities.max_batch_entries`"
 msgstr "項目數超過 `Capabilities.max_batch_entries`"
 
-#: ../../HANDLERS.md 9bfd4728262d429c9ee03b1f3001fc41
+#: ../../HANDLERS.md 582728b51d624b8eb26ae7e14bab6088
 msgid ""
 "Each row runs to completion on the seat it starts on, and a frame can "
 "carry tens of thousands of Monte Carlos. The ceiling is advertised so a "
 "blotter can refuse the book before sending it"
 msgstr "每一列都會在它開始的座位上跑到完，而一個訊框可以帶上數萬個蒙地卡羅。上限會事先公告，讓交易清單能在送出之前就拒絕這本交易簿"
 
-#: ../../HANDLERS.md 3cc8b4a468db431e9440a039ea2946bd
+#: ../../HANDLERS.md c2fab199adc3494f8ebe2251eea1fecb
 msgid "a `scenarios` sweep inside an entry"
 msgstr "項目內的 `scenarios` 掃描"
 
-#: ../../HANDLERS.md c420d452ff9c4256a8ecd3a1ed5edf8b
+#: ../../HANDLERS.md 5ee52388408346eca973a5effb598af6
 msgid "that entry, `UNSUPPORTED`"
 msgstr "該項目，`UNSUPPORTED`"
 
-#: ../../HANDLERS.md 67b1fa442c854bc08f97bade87130368
+#: ../../HANDLERS.md 7c6d1daf3cbd4cc28aeb6bb2a56c8484
 msgid ""
 "Both shapes mean \"price this many times\", and nesting them is a product"
 " one `completed`/`total` pair cannot describe"
 msgstr "兩種形狀都意味著「計價這麼多次」，而巢狀組合起來是一個乘積，單一組 `completed`/`total` 描述不了"
 
-#: ../../HANDLERS.md d04a0da89336400491d68bf60eac778f
+#: ../../HANDLERS.md f0f7fba1dbcc439f9ef25ff2ce82b06c
 msgid "a failure that dirties the graph"
 msgstr "弄髒物件圖的失敗"
 
-#: ../../HANDLERS.md 35de2ac3f3474c858b856f5941416235
+#: ../../HANDLERS.md f0cca683fb3440dc9080c9fbd1427b5c
 msgid "the rest of the book"
 msgstr "交易簿中剩下的部分"
 
-#: ../../HANDLERS.md 3cd4873d479a4180b9b1c339f6100046
+#: ../../HANDLERS.md d47b333ee07742cc8c246648bf68fdfd
 msgid "Every later price would be computed against a half-invalidated graph"
 msgstr "之後的每個價格都會以一份半失效的物件圖來計算"
 
-#: ../../HANDLERS.md:526 fa37af96352f414b93a9ad156e0c0930
+#: ../../HANDLERS.md:527 02d2cf440ed24939bb8020d600511558
 msgid ""
 "`BatchResult.abandoned_after` is how many entries were attempted before a"
 " dirty graph or a cancel stopped the book, and zero when the whole of it "
 "priced. A count rather than an index, so \"the first entry broke it\" is "
 "1 rather than indistinguishable from the ordinary case. The abandoned "
 "entries are still present, carrying the reason rather than a price."
-msgstr "`BatchResult.abandoned_after` 是在弄髒的物件圖或取消讓交易簿停下之前嘗試過的項目數，全部都計價完成時則為零。它是計數而不是索引，所以「第一個項目就壞了」是 1，而不會和一般情況無法區分。被放棄的項目依然存在，帶著原因而不是價格。"
+msgstr ""
+"`BatchResult.abandoned_after` "
+"是在弄髒的物件圖或取消讓交易簿停下之前嘗試過的項目數，全部都計價完成時則為零。它是計數而不是索引，所以「第一個項目就壞了」是 "
+"1，而不會和一般情況無法區分。被放棄的項目依然存在，帶著原因而不是價格。"
 
-#: ../../HANDLERS.md:532 989fdacc28194972b8c8129aed040a22
+#: ../../HANDLERS.md:533 ccedf85736c8478281bff45fca45f0bc
 msgid ""
 "A batch reports `Progress` per entry and checks the stop flag between "
 "them, so it is cancellable at trade boundaries in exactly the way a sweep"
@@ -1345,109 +1515,116 @@ msgid ""
 "It also takes the placement decision over the whole book: a Monte Carlo "
 "eleven trades in moves the session to a sacrificial worker before the "
 "batch starts, because the batch runs to completion wherever it begins."
-msgstr "批次每個項目回報一次 `Progress`，並在項目之間檢查停止旗標，所以它可以在交易的邊界上取消，就和掃描可以在點的邊界上取消完全一樣（見[取消](#cancellation)）。它也會就整本交易簿做安置決策：第十一筆交易是蒙地卡羅的話，批次開始之前工作階段就會被移到可犧牲的工作者上，因為批次在哪裡開始，就會在哪裡跑到完。"
+msgstr ""
+"批次每個項目回報一次 "
+"`Progress`，並在項目之間檢查停止旗標，所以它可以在交易的邊界上取消，就和掃描可以在點的邊界上取消完全一樣（見[取消](#cancellation)）。它也會就整本交易簿做安置決策：第十一筆交易是蒙地卡羅的話，批次開始之前工作階段就會被移到可犧牲的工作者上，因為批次在哪裡開始，就會在哪裡跑到完。"
 
-#: ../../HANDLERS.md:539 2e2e0d0b366f4f58bb06691ff66f2259
+#: ../../HANDLERS.md:540 1e27befe3304451282af9e8ffb281201
 msgid "Scenario sweeps"
 msgstr "情境掃描"
 
-#: ../../HANDLERS.md:541 7aadf01aae8f4dc7aed70218be04b6d0
+#: ../../HANDLERS.md:542 58b80b3e4fc740539439dfcc4e36c1ba
 msgid ""
 "`PriceRequest.scenarios` prices N times off one live graph and replies "
 "with a `ScenarioResult` instead of a `PriceResult`. Points come three "
 "ways — exactly one of:"
-msgstr "`PriceRequest.scenarios` 以同一份即時物件圖計價 N 次，並以 `ScenarioResult` 取代 `PriceResult` 回覆。點有三種給法——恰好擇一："
+msgstr ""
+"`PriceRequest.scenarios` 以同一份即時物件圖計價 N 次，並以 `ScenarioResult` 取代 "
+"`PriceResult` 回覆。點有三種給法——恰好擇一："
 
-#: ../../HANDLERS.md 8b369b5dfd0d40538d356f89cfecb408
+#: ../../HANDLERS.md e4e7245fa78441798d0e783fe1fb245b
 msgid "`points`"
 msgstr ""
 
-#: ../../HANDLERS.md 97f776089331494190de37d1f89716d1
+#: ../../HANDLERS.md 144bab9e754141648329dbac7b64af80
 msgid "Meaning"
 msgstr "意義"
 
-#: ../../HANDLERS.md 09c135c2630e4a40a6501ba4abc727c7
+#: ../../HANDLERS.md cc7fca12351e42a2a7fff5b91ce7c5a7
 msgid "`explicit`"
 msgstr ""
 
-#: ../../HANDLERS.md 84489632d5e64da8a0a8dc535c2be09c
+#: ../../HANDLERS.md 3819d9c4c9c84f7e884533d4631458e5
 msgid "the values themselves"
 msgstr "直接給值"
 
-#: ../../HANDLERS.md 4f1ffc3595ea4109a3bcafa64248aa26
+#: ../../HANDLERS.md f53d9e32a42441ba8886fef90abf5594
 msgid "`linear`"
 msgstr ""
 
-#: ../../HANDLERS.md 855f02b8ff444413bdd8c993a7d64b75
+#: ../../HANDLERS.md ddb4805f015a47d2a468b99c08d217cb
 msgid ""
 "`begin`, `end`, `steps` (named `begin`/`end` because `from` is a Python "
 "keyword)"
 msgstr "`begin`、`end`、`steps`（命名為 `begin`/`end` 是因為 `from` 是 Python 的關鍵字）"
 
-#: ../../HANDLERS.md 602d94a15a2d4858a43a62e3b89f9ee7
+#: ../../HANDLERS.md 99b52e7a327347b6867e8c7e151a8e95
 msgid "`relative`"
 msgstr ""
 
-#: ../../HANDLERS.md 76ecf0d5666d4d26be65b5e9caf018f5
+#: ../../HANDLERS.md 5b5d666387ea4453800bc75624bd319f
 msgid "multipliers of the quote's current value"
 msgstr "對該報價目前值的倍數"
 
-#: ../../HANDLERS.md:551 242d3c3da93c475d9a18c33eee5de72a
+#: ../../HANDLERS.md:552 1780ef621ff445c4a9704470bf22fe74
 msgid ""
 "**More than one axis.** `scenarios` is repeated, and several axes sweep "
 "**as a product**: spot at 21 points against vol at 5 is 105 prices, in "
 "row-major order with the last axis varying fastest. `ScenarioResult.axes`"
 " names them outermost first, so `prices[i * len(axes[1].values) + j]` is "
 "`axes[0].values[i]` against `axes[1].values[j]`."
-msgstr "**不只一個軸。**`scenarios` 是 repeated 欄位，多個軸會**以乘積方式**掃描：現貨 21 個點對上波動率 5 個點就是 105 個價格，以列為主排列，最後一個軸變化最快。`ScenarioResult.axes` 由最外層開始為它們命名，所以 `prices[i * len(axes[1].values) + j]` 就是 `axes[0].values[i]` 對上 `axes[1].values[j]`。"
+msgstr ""
+"**不只一個軸。**`scenarios` 是 repeated 欄位，多個軸會**以乘積方式**掃描：現貨 21 個點對上波動率 5 個點就是 "
+"105 個價格，以列為主排列，最後一個軸變化最快。`ScenarioResult.axes` 由最外層開始為它們命名，所以 `prices[i *"
+" len(axes[1].values) + j]` 就是 `axes[0].values[i]` 對上 `axes[1].values[j]`。"
 
-#: ../../HANDLERS.md:557 5ebc1e8809c74b2dbb8108e85a75323b
+#: ../../HANDLERS.md:558 312858858f6d4096a35e5f1925799043
 msgid "The rules a grid adds, each rejected by its own `scenarios[n]` path:"
 msgstr "網格額外加上的規則，每一條都以各自的 `scenarios[n]` 路徑拒絕："
 
-#: ../../HANDLERS.md e881cd87e9044ca9aa2f9099390ec8dc
+#: ../../HANDLERS.md e523382f0802465685b5121beaa1a4bf
 msgid "Rule"
 msgstr "規則"
 
-#: ../../HANDLERS.md fd28b4cbb534490bb40f49ef893dfd36
+#: ../../HANDLERS.md a9362fe0c9094a4fb47b1f8f06837da3
 msgid "A quote may appear on one axis only"
 msgstr "一個報價只能出現在一個軸上"
 
-#: ../../HANDLERS.md fce7c41d85f345ecabacb70762058428
+#: ../../HANDLERS.md af98f7147774497e99b9c5d87ab679ef
 msgid ""
 "The later write would win at every point and the earlier axis would move "
 "nothing, which reads as a flat dimension rather than as a mistake"
 msgstr "後寫入的會在每個點上勝出，較前面的軸什麼都動不了，看起來會像是一個平坦的維度，而不是一個錯誤"
 
-#: ../../HANDLERS.md 81bff704892e4f4ea5100d042c901a86
+#: ../../HANDLERS.md ae1c691b12ce45f2a2a2687bc95a9e57
 msgid "Only `scenarios[0]` may set `plot`"
 msgstr "只有 `scenarios[0]` 可以設定 `plot`"
 
-#: ../../HANDLERS.md ed2240cd663b4379a6ac1c9eee494d96
+#: ../../HANDLERS.md f4b9ef67c4c746afb9e75db4c0752a6d
 msgid ""
 "The plot is a property of the sweep. Taking it from whichever axis "
 "happened to set one would draw something the client did not ask for"
 msgstr "繪圖是整個掃描的屬性。從剛好設定了它的任一個軸拿，會畫出用戶端沒有要求的東西"
 
-#: ../../HANDLERS.md 9f6cd7bf1f94477bbb8910027d5a73cf
+#: ../../HANDLERS.md 12942ea0e9f9440a82d17c1e422985d1
 msgid "The product must fit `Capabilities.max_scenario_points`"
 msgstr "乘積必須在 `Capabilities.max_scenario_points` 之內"
 
-#: ../../HANDLERS.md db47e98b3bea4c07b7999cd0126862e0
+#: ../../HANDLERS.md 76e422ab0b7043d1a2ae690f61095720
 msgid ""
 "A grid multiplies, so a step count one digit too long is a session-length"
 " request rather than a slow one. The ceiling is advertised so a client "
 "can refuse it before spending the round trip"
 msgstr "網格是相乘的，所以步數多打一位數，就成了一個和整個工作階段一樣長的請求，而不只是慢一點的請求。上限會事先公告，讓用戶端在花掉一次往返之前就能拒絕它"
 
-#: ../../HANDLERS.md:565 d870bf05372d45399141ecaeb24d1923
+#: ../../HANDLERS.md:566 a80719e21cb74e6a89205a2a4728e673
 msgid ""
 "What this is *not* is a lockstep shift — move these three quotes "
 "together. That is a market edit with an undo, which `UpdateMarket` "
 "already does."
 msgstr "這*不是*同步平移——讓這三個報價一起動。那是一次可以復原的市場編輯，`UpdateMarket` 已經在做了。"
 
-#: ../../HANDLERS.md:568 ef80fee8ac054845a4214d1972a7afd7
+#: ../../HANDLERS.md:569 6e263861be7b4586b2e112cda703e62b
 msgid ""
 "`plot` names the single `ResultKind` to shape for drawing; leave it unset"
 " to get a full `PriceResult` per point and no plot. One axis fills "
@@ -1456,18 +1633,26 @@ msgid ""
 "values, so nothing else has to be sent to place a cell — and beyond two "
 "axes neither is filled and `prices` is the answer. A kind with no single "
 "value per point is `UNSUPPORTED` on `scenarios[0].plot`."
-msgstr "`plot` 指名要整理成繪圖用的那一個 `ResultKind`；不設定的話，每個點會拿到完整的 `PriceResult`，而沒有繪圖。一個軸填入 `ScenarioResult.series`，兩個軸填入 `ScenarioResult.surface`——一個 `DoubleMatrix`，其 `row_labels` 與 `column_labels` 就是各軸的值，所以不需要另外送任何東西就能定位每一格——超過兩個軸則兩者都不填，`prices` 就是答案。每個點上沒有單一值的種類，會在 `scenarios[0].plot` 上得到 `UNSUPPORTED`。"
+msgstr ""
+"`plot` 指名要整理成繪圖用的那一個 `ResultKind`；不設定的話，每個點會拿到完整的 "
+"`PriceResult`，而沒有繪圖。一個軸填入 `ScenarioResult.series`，兩個軸填入 "
+"`ScenarioResult.surface`——一個 `DoubleMatrix`，其 `row_labels` 與 "
+"`column_labels` 就是各軸的值，所以不需要另外送任何東西就能定位每一格——超過兩個軸則兩者都不填，`prices` "
+"就是答案。每個點上沒有單一值的種類，會在 `scenarios[0].plot` 上得到 `UNSUPPORTED`。"
 
-#: ../../HANDLERS.md:576 20284edb5a81435594bd4524b2585e73
+#: ../../HANDLERS.md:577 108f6eade7a74f93868cffaf279a1759
 msgid ""
 "`ScenarioResult.abandoned_after` is how many points were priced before a "
 "cancel stopped the sweep, and zero when the whole ladder ran. The axes "
 "are trimmed to what actually priced, so the series and the values still "
 "line up; a *grid* stopped mid-row has no rectangle to report, so its axes"
 " are cleared and `prices` is the whole of the answer."
-msgstr "`ScenarioResult.abandoned_after` 是取消讓掃描停下之前已計價的點數，整條階梯都跑完時則為零。各軸會被裁到實際計價過的範圍，所以序列與值仍然對得上；*網格*若在某一列中途停下，就沒有矩形可以回報，因此它的軸會被清空，`prices` 就是全部的答案。"
+msgstr ""
+"`ScenarioResult.abandoned_after` "
+"是取消讓掃描停下之前已計價的點數，整條階梯都跑完時則為零。各軸會被裁到實際計價過的範圍，所以序列與值仍然對得上；*網格*若在某一列中途停下，就沒有矩形可以回報，因此它的軸會被清空，`prices`"
+" 就是全部的答案。"
 
-#: ../../HANDLERS.md:582 0a0736e81f1643b8b5e9cb09ef8ba78d
+#: ../../HANDLERS.md:583 b008ac9c1dcd425ebcedbe42f9777da2
 msgid ""
 "Every swept quote is **restored by default**, on the way out of a failure"
 " as well as a success. `keep_final_value` leaves a quote at its last "
@@ -1476,94 +1661,100 @@ msgid ""
 "the flag to false and the safe reading has to be the one you get for "
 "free: a sweep is a question, not an edit. A kept sweep is folded into the"
 " session log as a synthetic `UpdateMarket`, so it survives a replay."
-msgstr "每個被掃描的報價**預設都會還原**，無論是失敗還是成功離開時都一樣。`keep_final_value` 則會讓報價停在最後一個掃描值上，而且是以軸為單位，所以網格可以讓現貨停在結束的位置，同時把波動率放回去。還原之所以是預設，是因為 proto3 把旗標預設為 false，而安全的解讀必須是不用付出任何代價就能得到的那一個：掃描是一個提問，不是一次編輯。保留下來的掃描會以合成的 `UpdateMarket` 併入工作階段日誌，所以重播之後依然存在。"
+msgstr ""
+"每個被掃描的報價**預設都會還原**，無論是失敗還是成功離開時都一樣。`keep_final_value` "
+"則會讓報價停在最後一個掃描值上，而且是以軸為單位，所以網格可以讓現貨停在結束的位置，同時把波動率放回去。還原之所以是預設，是因為 proto3 "
+"把旗標預設為 false，而安全的解讀必須是不用付出任何代價就能得到的那一個：掃描是一個提問，不是一次編輯。保留下來的掃描會以合成的 "
+"`UpdateMarket` 併入工作階段日誌，所以重播之後依然存在。"
 
-#: ../../HANDLERS.md:591 1a869f1c39044c6b8d6ae4e66bcee3f6
+#: ../../HANDLERS.md:592 10eb6209f36e46b8abf99e84234e1e35
 msgid "Cancelling and resuming"
 msgstr "取消與接回"
 
-#: ../../HANDLERS.md:593 9f4466c9604748a48e2d5b73c5f7cc88
+#: ../../HANDLERS.md:594 4c3dd3dc59834e5abf4aea593338f12e
 msgid "Cancellation"
 msgstr "取消"
 
-#: ../../HANDLERS.md:595 dd936d681c69447281fd4844e4f87612
+#: ../../HANDLERS.md:596 f02da5f5f48b4fe3af9f6d74738b3d07
 msgid ""
 "A `CancelRequest` names one `request_id`. The cancel itself gets its own "
 "`Ack` from the gateway, because nothing downstream answers it, and the "
 "target gets exactly one terminal frame like every other request."
-msgstr "一個 `CancelRequest` 指名一個 `request_id`。取消本身會從閘道拿到自己的 `Ack`，因為下游沒有任何東西會回覆它，而被取消的目標則和其他每個請求一樣，恰好得到一個終結訊框。"
+msgstr ""
+"一個 `CancelRequest` 指名一個 `request_id`。取消本身會從閘道拿到自己的 "
+"`Ack`，因為下游沒有任何東西會回覆它，而被取消的目標則和其他每個請求一樣，恰好得到一個終結訊框。"
 
-#: ../../HANDLERS.md:599 e02557777c424a0192cb647d5777cf3b
+#: ../../HANDLERS.md:600 d83355cd44ed4d20a7a6f9993c6efb6a
 msgid ""
 "**Every request can be cancelled.** What differs is what the cancel "
 "costs, and that is worth knowing before offering the button."
 msgstr "**每個請求都可以取消。**不同的是取消的代價，而這在提供那個按鈕之前值得先知道。"
 
-#: ../../HANDLERS.md 9b88e98849964dd8ab148e5013dcf3ef
+#: ../../HANDLERS.md 37137e63b1fb4435af2061023de0f234
 msgid "Where the request is"
 msgstr "請求正處於何處"
 
-#: ../../HANDLERS.md 231559e3c6534350830923c13f1777c4
+#: ../../HANDLERS.md 4391fe4351db40d1bfbcd1f4cf122ff5
 msgid "What a cancel does"
 msgstr "取消會做什麼"
 
-#: ../../HANDLERS.md ebde23d12a954e159d27a2bb5ccb54fa
+#: ../../HANDLERS.md f7a56c1f0da34f5abafa2489138a75a3
 msgid "What it costs"
 msgstr "代價是什麼"
 
-#: ../../HANDLERS.md 5c31a8e310cf468a94be3d5133432fc7
+#: ../../HANDLERS.md 41850df2448541b7b2417103ba37aedf
 msgid "between Monte Carlo batches (`progress_every_paths > 0`)"
 msgstr "蒙地卡羅的分批之間（`progress_every_paths > 0`）"
 
-#: ../../HANDLERS.md 9d6910dba7f84179a508f3f2998a2fc4
+#: ../../HANDLERS.md 07f37902bc0a46b18820d0fd3cf93d58
 msgid "the engine loop sees the stop flag and returns"
 msgstr "引擎迴圈看到停止旗標並返回"
 
-#: ../../HANDLERS.md d0b3702f6f1247978c808d40cbb78e4a
+#: ../../HANDLERS.md 0e071b341b2c4e518e226771c66bd678
 msgid "nothing: the worker is healthy, the graph is still warm"
 msgstr "沒有代價：工作者健康，物件圖仍是熱的"
 
-#: ../../HANDLERS.md bd66fe4a9adf4757b32f489b33c7162c
+#: ../../HANDLERS.md 5a29508341834403a35fafe453cd1b6e
 msgid "between scenario sweep points"
 msgstr "情境掃描的點之間"
 
-#: ../../HANDLERS.md f201f65663f9438d80c7221786cb732d
+#: ../../HANDLERS.md 127157226e1348bd8066da8ee352a874
 msgid "the sweep stops and returns the points it priced"
 msgstr "掃描停下，並回傳已經計價的點"
 
-#: ../../HANDLERS.md 2870a63531644cdaaf6b8ba46373752d
+#: ../../HANDLERS.md ad3b57210cad42669cf4ce9b713b4b45
 msgid "nothing, and the partial ladder is kept"
 msgstr "沒有代價，而且保留部分完成的階梯"
 
-#: ../../HANDLERS.md fd623fd36c8c4d699fce7d0bac24b989
+#: ../../HANDLERS.md 1b98c323ad8d442d802b6d8e9769e5b8
 msgid "between batch entries"
 msgstr "批次項目之間"
 
-#: ../../HANDLERS.md 019ddaa44c6c4645b05eaaf02ce6bf56
+#: ../../HANDLERS.md dcabd5dd2ad446ca9b004c7b009f545e
 msgid "the book stops and returns the prices it managed"
 msgstr "交易簿停下，並回傳已經算出的價格"
 
-#: ../../HANDLERS.md 40cc81f118414d7f8e08de24991cbb76
+#: ../../HANDLERS.md 1f2dc5ca87db4680b48273e9a4f5dbed
 msgid "nothing, and the partial book is kept"
 msgstr "沒有代價，而且保留部分完成的交易簿"
 
-#: ../../HANDLERS.md 584495cb6470419c97cc599d16332deb
+#: ../../HANDLERS.md a29d9bd9d94e41559f30ac98931168a4
 msgid "anywhere else — inside one engine call"
 msgstr "其他任何地方——在單一次引擎呼叫內部"
 
-#: ../../HANDLERS.md af729620a62343d09076f652417dcb8b
+#: ../../HANDLERS.md 61276f5d16024625a12b0472022e8d6b
 msgid ""
 "the request is terminated for the client after a 250 ms grace and the "
 "session is replayed into a fresh worker"
 msgstr "經過 250 ms 的寬限後，對用戶端而言請求即告終結，工作階段則被重播到一個全新的工作者上"
 
-#: ../../HANDLERS.md a6465118047847e2b7f58c9f6a87e341
+#: ../../HANDLERS.md 1a1622b2ba4b48a6918e9a512667c675
 msgid ""
 "one bootstrap, and the abandoned calculation runs to completion on a "
 "thread nobody is listening to"
 msgstr "一次建構，而被放棄的計算會在一條沒有人在聽的執行緒上跑到完"
 
-#: ../../HANDLERS.md:609 b07c44b7a64c4351badf897d7953eb8d
+#: ../../HANDLERS.md:610 2112dad1392c4039875aa2e7fcc5c9dd
 msgid ""
 "That last row is the one to be honest about. QuantLib cannot be "
 "interrupted inside an engine call, and this build hosts workers as "
@@ -1572,9 +1763,13 @@ msgid ""
 "marks its seat dead and detaches it. The client is freed in 250 ms and "
 "the session survives, but the CPU is not given back until that engine "
 "call ends on its own."
-msgstr "最後一列是需要老實交代的。QuantLib 在引擎呼叫內部無法被中斷，而這個建置是以執行緒來承載工作者，所以 `Supervisor::onStopGraceExpired` 裡的「kill」其實是棄養而不是 kill：`ThreadProcessHost::kill` 要求工作者停下、把它的座位標為死亡，然後將它分離。用戶端在 250 ms 內就被釋放，工作階段也存活下來，但 CPU 要等到那次引擎呼叫自己結束才會還回來。"
+msgstr ""
+"最後一列是需要老實交代的。QuantLib 在引擎呼叫內部無法被中斷，而這個建置是以執行緒來承載工作者，所以 "
+"`Supervisor::onStopGraceExpired` 裡的「kill」其實是棄養而不是 "
+"kill：`ThreadProcessHost::kill` 要求工作者停下、把它的座位標為死亡，然後將它分離。用戶端在 250 ms "
+"內就被釋放，工作階段也存活下來，但 CPU 要等到那次引擎呼叫自己結束才會還回來。"
 
-#: ../../HANDLERS.md:616 647b9bd6385b4e52a95142946cd81176
+#: ../../HANDLERS.md:617 c7547c26830f4c32b614dc132b214e93
 msgid ""
 "So a cancel is always worth offering, and a UI that says \"cancel\" on a "
 "finite-difference price is not lying — it is promising to give the user "
@@ -1582,7 +1777,7 @@ msgid ""
 "the ones where it also stops the work."
 msgstr "所以取消永遠值得提供，而一個在有限差分計價上寫著「取消」的介面並沒有說謊——它承諾的是把工作階段還給使用者，而不是讓機器停下來。只有那三個邊界列，取消才會連工作也一起停下。"
 
-#: ../../HANDLERS.md:621 567fa2aa19f44aab8efa3b5c02046c7c
+#: ../../HANDLERS.md:622 01fd9ef4b91743258bc3a04ca08f5780
 msgid ""
 "A stop taken at a boundary reports `CANCELLED` rather than "
 "`CALCULATION_FAILED`: the client asked for it, and telling a user their "
@@ -1590,60 +1785,66 @@ msgid ""
 "and a batch each terminate with their own result message carrying "
 "`abandoned_after`, not with an error, because the part they finished is "
 "worth having."
-msgstr "在邊界上停下時回報的是 `CANCELLED` 而不是 `CALCULATION_FAILED`：這是用戶端自己要求的，而告訴使用者他的交易計價失敗，會是另一個、而且錯誤的陳述。掃描與批次各自以帶著 `abandoned_after` 的自身結果訊息終結，而不是以錯誤終結，因為它們已完成的部分值得保留。"
+msgstr ""
+"在邊界上停下時回報的是 `CANCELLED` 而不是 "
+"`CALCULATION_FAILED`：這是用戶端自己要求的，而告訴使用者他的交易計價失敗，會是另一個、而且錯誤的陳述。掃描與批次各自以帶著 "
+"`abandoned_after` 的自身結果訊息終結，而不是以錯誤終結，因為它們已完成的部分值得保留。"
 
-#: ../../HANDLERS.md:627 b691a92e34b64905b09f1d075dc04633
+#: ../../HANDLERS.md:628 02b6f3d776c4407486f997d7773b0a0f
 msgid "Resuming a session"
 msgstr "接回工作階段"
 
-#: ../../HANDLERS.md:629 f8367ce553b94207a0c5d43751fbbc27
+#: ../../HANDLERS.md:630 00908ea326c04e4aaa2ebc37517eb27e
 msgid ""
 "A socket that dies takes nothing with it for `resume_grace_seconds` — 60 "
 "by default, `--session-grace 0` to turn it off. Inside that window the "
 "session keeps its graph, its worker seat **and its running requests**, "
 "which is the point of it: the bootstrap it saves costs 0.009 ms on this "
 "market, and the Monte Carlo it saves can cost a minute."
-msgstr "斷掉的連線在 `resume_grace_seconds` 之內不會帶走任何東西——預設 60，用 `--session-grace 0` 關閉。在這段寬限期內，工作階段保有它的物件圖、它的工作者座位**以及正在執行的請求**，這正是重點所在：它省下的建構在這個市場上只花 0.009 ms，而它省下的蒙地卡羅可能要花上一分鐘。"
+msgstr ""
+"斷掉的連線在 `resume_grace_seconds` 之內不會帶走任何東西——預設 60，用 `--session-grace 0` "
+"關閉。在這段寬限期內，工作階段保有它的物件圖、它的工作者座位**以及正在執行的請求**，這正是重點所在：它省下的建構在這個市場上只花 0.009 "
+"ms，而它省下的蒙地卡羅可能要花上一分鐘。"
 
-#: ../../HANDLERS.md:635 f81df56c0df8449aa98506422303432d
+#: ../../HANDLERS.md:636 ada33c920c574b3fb26b9cb1721dda9b
 msgid "`SessionOpened` carries what a resume needs:"
 msgstr "`SessionOpened` 帶著接回所需的一切："
 
-#: ../../HANDLERS.md 8791e143c37340338aade923ee5b2ccf
+#: ../../HANDLERS.md c1d9cd9e61764cdf8c56dc4fe7cca946
 msgid "Field"
 msgstr "欄位"
 
-#: ../../HANDLERS.md cb11086339ef4957bcd623d7e80f060f
+#: ../../HANDLERS.md cecbc368978843d0a098431bbbee95ed
 msgid "What it is"
 msgstr "是什麼"
 
-#: ../../HANDLERS.md 9176a10812ab4394a42d208b8821b061
+#: ../../HANDLERS.md ec94331b892f4a4eac149916b0443329
 msgid "`resume_token`"
 msgstr ""
 
-#: ../../HANDLERS.md f80f792a721142ada2e9ad23494cee1e
+#: ../../HANDLERS.md f685175d719540f4bbb5a9502eba8d0a
 msgid "128 bits, minted per session, empty when the window is off"
 msgstr "128 位元，每個工作階段各自產生，寬限期關閉時為空"
 
-#: ../../HANDLERS.md a4ee285d0ec741e2932aa77bd5317c40
+#: ../../HANDLERS.md 6e7553e096524136965f10bc967fbc5b
 msgid "`resume_grace_seconds`"
 msgstr ""
 
-#: ../../HANDLERS.md 1b845c97dfd54ca8adba6e201a30cb57
+#: ../../HANDLERS.md 056e5ba8ccec4c5193fbb24b2b1ee1b3
 msgid "How long the session outlives its socket"
 msgstr "工作階段比它的連線多活多久"
 
-#: ../../HANDLERS.md 61c3c52561db4c29b3c0de8a6cdb0f0f
+#: ../../HANDLERS.md 0321ff88565c4ef9b1718fe875e0d974
 msgid "`resumed`"
 msgstr ""
 
-#: ../../HANDLERS.md d27e8ae511a742d3a69c2ee3ae04e84a
+#: ../../HANDLERS.md 430630e7ba2f4126bd6687937fa3a81b
 msgid ""
 "True when this frame answers a `ResumeSession` rather than an "
 "`OpenSession`"
 msgstr "當這個訊框回覆的是 `ResumeSession` 而不是 `OpenSession` 時為 true"
 
-#: ../../HANDLERS.md:643 3913b7ca410945b0a8fe991685b54100
+#: ../../HANDLERS.md:644 68d74de33ced4c7993677972221a6f0c
 #, python-brace-format
 msgid ""
 "`ResumeSession{session_id, resume_token}` needs no session of its own — "
@@ -1652,50 +1853,63 @@ msgid ""
 "`market_ids`, and the `bootstrap_seconds` that bootstrap actually cost, "
 "then. A resume does not build anything, and reporting a second bootstrap "
 "that never happened would make the field a lie."
-msgstr "`ResumeSession{session_id, resume_token}` 不需要自己的工作階段——它抵達的那條連線上還沒有任何工作階段。回覆是*原本的* `SessionOpened`，設定 `resumed` 後重播：同一個代號、同一組 `market_ids`，以及當初那次建構實際花費的 `bootstrap_seconds`。接回不會建構任何東西，回報一次從未發生的第二次建構，會讓這個欄位變成謊言。"
+msgstr ""
+"`ResumeSession{session_id, resume_token}` "
+"不需要自己的工作階段——它抵達的那條連線上還沒有任何工作階段。回覆是*原本的* `SessionOpened`，設定 `resumed` "
+"後重播：同一個代號、同一組 `market_ids`，以及當初那次建構實際花費的 "
+"`bootstrap_seconds`。接回不會建構任何東西，回報一次從未發生的第二次建構，會讓這個欄位變成謊言。"
 
-#: ../../HANDLERS.md:650 0513a99872e142e4a392fbed62ef3c45
+#: ../../HANDLERS.md:651 110c223662684e1cbc2d420858af1f42
 msgid ""
 "Then whatever finished while nobody was attached arrives, in the order it"
 " finished. `Progress` frames from that period are gone — shed for the "
 "reason §9.3 sheds them under backpressure — so a client that resumes into"
 " a running calculation sees progress resume mid-stream, and one that "
 "resumes after it finished gets the terminal frame straight away."
-msgstr "接著，在沒有人連著的期間完成的東西會依完成順序送達。那段期間的 `Progress` 訊框已經沒了——基於 §9.3 在背壓下捨棄它們的同一個理由而被捨棄——所以接回到一個仍在執行的計算時，用戶端會看到進度從中途繼續，而在計算完成後才接回的用戶端則會直接拿到終結訊框。"
+msgstr ""
+"接著，在沒有人連著的期間完成的東西會依完成順序送達。那段期間的 `Progress` 訊框已經沒了——基於 §9.3 "
+"在背壓下捨棄它們的同一個理由而被捨棄——所以接回到一個仍在執行的計算時，用戶端會看到進度從中途繼續，而在計算完成後才接回的用戶端則會直接拿到終結訊框。"
 
-#: ../../HANDLERS.md:656 2c9baf04aa1447efad11850a4783730b
+#: ../../HANDLERS.md:657 c8bdb5b6427149e4891846eb616eadd8
 msgid ""
 "Three refusals, one answer. A wrong token, an expired window and a "
 "session closed with `CloseSession` all come back `SESSION_NOT_FOUND`, "
 "because telling them apart would let a guess be a probe. The client's "
 "move is the same in every case: `OpenSession` and replay the market."
-msgstr "三種拒絕，同一個答案。錯誤的權杖、過期的寬限期，以及以 `CloseSession` 關閉的工作階段，全都回傳 `SESSION_NOT_FOUND`，因為把它們區分開來，就等於讓猜測變成探測。用戶端在每種情況下的應對都一樣：`OpenSession` 並重播市場。"
+msgstr ""
+"三種拒絕，同一個答案。錯誤的權杖、過期的寬限期，以及以 `CloseSession` 關閉的工作階段，全都回傳 "
+"`SESSION_NOT_FOUND`，因為把它們區分開來，就等於讓猜測變成探測。用戶端在每種情況下的應對都一樣：`OpenSession` "
+"並重播市場。"
 
-#: ../../HANDLERS.md:661 359904a46dbd4d72839c7d091ec05683
+#: ../../HANDLERS.md:662 02aa606470674e82b4f3345e1b8bb08b
 msgid ""
 "The token is a bearer secret. A WebSocket upgrade is not subject to the "
 "same-origin policy (DESIGN §9.6), so any page on the machine can reach "
 "this socket; the token is the only thing that stops one adopting "
 "another's session. Hold it in memory, keep it out of logs and out of "
 "URLs."
-msgstr "權杖是持有者密鑰。WebSocket 升級不受同源政策約束（DESIGN §9.6），所以這台機器上的任何頁面都能連到這個 socket；權杖是唯一能阻止某個頁面接收另一個頁面工作階段的東西。把它放在記憶體裡，別讓它進入日誌，也別放進 URL。"
+msgstr ""
+"權杖是持有者密鑰。WebSocket 升級不受同源政策約束（DESIGN §9.6），所以這台機器上的任何頁面都能連到這個 "
+"socket；權杖是唯一能阻止某個頁面接收另一個頁面工作階段的東西。把它放在記憶體裡，別讓它進入日誌，也別放進 URL。"
 
-#: ../../HANDLERS.md:666 7b77eae9749b439594ceef79d2696ca4
+#: ../../HANDLERS.md:667 4a1446c0faf34238997f007c1ec1fe20
 msgid ""
 "Held sessions are seats nobody is sitting in, so there is a cap on them —"
 " 16 by default. Past it the longest-waiting session is closed rather than"
 " the newest refused. `GET /healthz` reports the count as `detached`."
-msgstr "被保留的工作階段是沒有人坐的座位，所以數量有上限——預設 16。超過上限時，關閉的是等最久的那個工作階段，而不是拒絕最新的。`GET /healthz` 以 `detached` 回報這個數量。"
+msgstr ""
+"被保留的工作階段是沒有人坐的座位，所以數量有上限——預設 16。超過上限時，關閉的是等最久的那個工作階段，而不是拒絕最新的。`GET "
+"/healthz` 以 `detached` 回報這個數量。"
 
-#: ../../HANDLERS.md:670 a6dd81a6a4fc4b98950e276340b85239
+#: ../../HANDLERS.md:671 9e5ebd9d16b94df99a66cb958b080622
 msgid "Running the service"
 msgstr "執行服務"
 
-#: ../../HANDLERS.md:672 8118028610314f06a624add342b986ee
+#: ../../HANDLERS.md:673 99bcb88ba9304eb7814fe0545c8b496d
 msgid "Liveness"
 msgstr "存活檢查"
 
-#: ../../HANDLERS.md:680 a1c2600f67fd48b2b2a266fa885928b9
+#: ../../HANDLERS.md:681 371f4daa816f4325b357810bb7a9d9af
 msgid ""
 "What this answer proves is that **the loop is turning**. The gateway is "
 "single-threaded and everything below it runs on worker threads, so a "
@@ -1706,7 +1920,7 @@ msgid ""
 "trade."
 msgstr "這個回覆證明的是**事件迴圈在轉**。閘道是單執行緒的，它底下的一切都在工作者執行緒上執行，所以這裡有回覆代表訊框正在被處理，但完全不代表任何特定的物件圖是否健康。這是存活檢查誠實的範圍，也正是編排器要的：依據它來重新啟動是對的，而且它不會因為某個用戶端送了一筆有問題的交易就重啟行程。"
 
-#: ../../HANDLERS.md:687 bf80f50321c74d16a9e34fff93ecfcca
+#: ../../HANDLERS.md:688 6062211a435e40e0827b8e9cecf21bcc
 msgid ""
 "The counts are live rather than a fixed string: `connections` and "
 "`sessions` are what the gateway is actually holding, and `maxConnections`"
@@ -1714,29 +1928,34 @@ msgid ""
 "`Access-Control-Allow-Origin`. A browser may send this request from any "
 "page; without the header it cannot read the reply, and these numbers are "
 "not something a random tab should be able to poll."
-msgstr "這些數字是即時的，而不是固定字串：`connections` 與 `sessions` 是閘道實際持有的數量，`maxConnections` 則是它開始拒絕之前能持有的上限。這裡刻意**不**帶 `Access-Control-Allow-Origin`。瀏覽器可以從任何頁面送出這個請求；沒有這個標頭，它就讀不到回覆，而這些數字也不是隨便一個分頁就該能輪詢的東西。"
+msgstr ""
+"這些數字是即時的，而不是固定字串：`connections` 與 `sessions` 是閘道實際持有的數量，`maxConnections` "
+"則是它開始拒絕之前能持有的上限。這裡刻意**不**帶 `Access-Control-Allow-"
+"Origin`。瀏覽器可以從任何頁面送出這個請求；沒有這個標頭，它就讀不到回覆，而這些數字也不是隨便一個分頁就該能輪詢的東西。"
 
-#: ../../HANDLERS.md:694 ac0f270632e347f4aec478ed8459f052
+#: ../../HANDLERS.md:695 bff36b92d3db45f985ebe73cd8dbd95a
 msgid ""
 "Started with `--token-file`, the reply carries `status`, `build`, "
 "`quantlib` and `uptimeSeconds` and stops there. This endpoint cannot ask "
 "a caller for the token — a container runtime holds no secret and still "
 "has to decide whether to restart the process — so what an unauthenticated"
 " caller may read is trimmed to liveness rather than left open."
-msgstr "以 `--token-file` 啟動時，回覆只帶 `status`、`build`、`quantlib` 與 `uptimeSeconds`，到此為止。這個端點無法向呼叫者索取權杖——容器執行環境手上沒有任何密鑰，卻仍然得決定要不要重啟行程——所以未經驗證的呼叫者能讀到的內容被縮減到只剩存活資訊，而不是完全開放。"
+msgstr ""
+"以 `--token-file` 啟動時，回覆只帶 `status`、`build`、`quantlib` 與 "
+"`uptimeSeconds`，到此為止。這個端點無法向呼叫者索取權杖——容器執行環境手上沒有任何密鑰，卻仍然得決定要不要重啟行程——所以未經驗證的呼叫者能讀到的內容被縮減到只剩存活資訊，而不是完全開放。"
 
-#: ../../HANDLERS.md:700 8175eda9cf504e428d9d8e70824f650b
+#: ../../HANDLERS.md:701 3d716049f008441aa375137ffac1fa23
 msgid "Origin, limits and the token"
 msgstr "Origin、限制與權杖"
 
-#: ../../HANDLERS.md:702 de197e643a6541af8fbe4c255ea228fb
+#: ../../HANDLERS.md:703 92f6785fea004b14955c7d50532bd3ea
 msgid ""
 "There is no notion of *who* a client is. This section is what stands in "
 "for that: a door that closes the browser, and a lock that can close "
 "everything else on the machine."
 msgstr "這裡沒有用戶端是*誰*的概念。這一節就是它的替代品：一扇把瀏覽器關在外面的門，以及一把可以把機器上其他一切都關在外面的鎖。"
 
-#: ../../HANDLERS.md:706 28ea65335ce14a4d841f16dac49687db
+#: ../../HANDLERS.md:707 94b56afd49714f3886e567603c1e46aa
 msgid ""
 "**Origin.** A WebSocket upgrade is not subject to the same-origin policy,"
 " so binding to loopback is not a boundary against a *browser*: any page "
@@ -1747,157 +1966,171 @@ msgid ""
 "let through: only browsers send it, which means the check closes the "
 "browser path and leaves `test/smoke_v2.py`, any CLI and any proxy that "
 "has already checked exactly as they were."
-msgstr "**Origin。**WebSocket 升級不受同源政策約束，所以綁定在 loopback 上並不是抵擋*瀏覽器*的邊界：任何分頁中的任何頁面都能開啟 `ws://127.0.0.1:9111` 並驅動這個服務。這裡沒有什麼可偷，卻有大量可以花掉的資源——一個訊框就能投入十萬次引擎呼叫。所以**有帶**的 `Origin` 標頭必須在允許清單上，而**沒帶**的則放行：只有瀏覽器會送它，這表示這項檢查封住了瀏覽器這條路，而 `test/smoke_v2.py`、任何命令列工具，以及任何已經檢查過的代理伺服器，都維持原樣不受影響。"
+msgstr ""
+"**Origin。**WebSocket 升級不受同源政策約束，所以綁定在 loopback "
+"上並不是抵擋*瀏覽器*的邊界：任何分頁中的任何頁面都能開啟 `ws://127.0.0.1:9111` "
+"並驅動這個服務。這裡沒有什麼可偷，卻有大量可以花掉的資源——一個訊框就能投入十萬次引擎呼叫。所以**有帶**的 `Origin` "
+"標頭必須在允許清單上，而**沒帶**的則放行：只有瀏覽器會送它，這表示這項檢查封住了瀏覽器這條路，而 "
+"`test/smoke_v2.py`、任何命令列工具，以及任何已經檢查過的代理伺服器，都維持原樣不受影響。"
 
-#: ../../HANDLERS.md:720 2c37acfbb6324e40a03ac0be0ab3a675
+#: ../../HANDLERS.md:721 c15510cf732541d4bd4bdbbb6dd24542
 msgid ""
 "The defaults are the development server's origins (`5173`, `4173` on both"
 " `localhost` and `127.0.0.1`). A refused upgrade is `403 Forbidden` with "
 "a reason, not a dropped connection."
-msgstr "預設值是開發伺服器的來源（`localhost` 與 `127.0.0.1` 上的 `5173`、`4173`）。被拒絕的升級會得到附帶原因的 `403 Forbidden`，而不是直接斷線。"
+msgstr ""
+"預設值是開發伺服器的來源（`localhost` 與 `127.0.0.1` 上的 `5173`、`4173`）。被拒絕的升級會得到附帶原因的 "
+"`403 Forbidden`，而不是直接斷線。"
 
-#: ../../HANDLERS.md:724 fd257a0a126344b7bb67120d875604b1
+#: ../../HANDLERS.md:725 bd47786debdd48379dc74f2adfeec942
 msgid ""
 "**Limits.** The other half of having no identity is that nothing stops "
 "one client taking everything:"
 msgstr "**限制。**沒有身分的另一半問題是：沒有任何東西能阻止單一用戶端把一切都佔走："
 
-#: ../../HANDLERS.md 2e18144ca8c54a36a20100a952404619
+#: ../../HANDLERS.md fc5c8a2e1f894111bee953ed27453050
 msgid "Limit"
 msgstr "限制"
 
-#: ../../HANDLERS.md 8e0768290e834891aa88c81cb4ab403e
+#: ../../HANDLERS.md 88b7e5c6aac4484e9f256720ce9d0e73
 msgid "Default"
 msgstr "預設值"
 
-#: ../../HANDLERS.md 51fa94e3a02d459c82f921338bc93f74
+#: ../../HANDLERS.md eaeb04c6d9764669a7857c10f0d4914d
 msgid "Refused with"
 msgstr "拒絕方式"
 
-#: ../../HANDLERS.md 82710682f7d64686a9fb67c0d1a31dea
+#: ../../HANDLERS.md 5065ad8ed2954cd19f8ca02130f5b218
 msgid "Why this is the unit"
 msgstr "為什麼以此為單位"
 
-#: ../../HANDLERS.md 2e83f3499cbd4892862bf8b022da442c
+#: ../../HANDLERS.md 25b6868183df47908abbdad6fe0615e7
 msgid "sockets served at once"
 msgstr "同時服務的連線數"
 
-#: ../../HANDLERS.md 38a3a6bb3e0a49a196c779dd242811d2
+#: ../../HANDLERS.md 1614bc782dd74bdf9a00382ad023d77d
 msgid "32"
 msgstr ""
 
-#: ../../HANDLERS.md e2bf45611df6470b8e534b1b11a43d54
+#: ../../HANDLERS.md 86f554f770554c98b506eae32dd821a5
 msgid "`503` at the upgrade"
 msgstr "升級時回 `503`"
 
-#: ../../HANDLERS.md b548018ef38140488d43737d82864390
+#: ../../HANDLERS.md ea279bcd9cc54e3bbae5071985e56262
 msgid ""
 "A refused connection is a better failure than a gateway that cannot "
 "accept the one that matters"
 msgstr "被拒絕的連線，比一個接不下真正重要連線的閘道是更好的失敗方式"
 
-#: ../../HANDLERS.md 039a62f8f7d6484aa2466d406107009b
+#: ../../HANDLERS.md 829ce6554f9949f4b328c5f1c9512fcb
 msgid "sessions per socket"
 msgstr "每條連線的工作階段數"
 
-#: ../../HANDLERS.md ac06eb80efcf4ab78f44e31cae26cb76
+#: ../../HANDLERS.md e1b0279f2c654c78823d65eda78315e9
 msgid "16"
 msgstr ""
 
-#: ../../HANDLERS.md ef2d4084f89948529a74b3d793b49c06
+#: ../../HANDLERS.md 58dfb27cd3284f5189ed9ca91f5baaf0
 msgid "`OVERLOADED`"
 msgstr ""
 
-#: ../../HANDLERS.md 34306fdcb0264b12af047b07d6218c49
+#: ../../HANDLERS.md 72aeb221eae2408f99bb037ac10dd74b
 msgid ""
 "A session is a live QuantLib graph on a worker seat, so this is what "
 "protects the pool rather than the socket"
 msgstr "一個工作階段就是工作者座位上的一份即時 QuantLib 物件圖，所以這項限制保護的是工作者池，而不是連線"
 
-#: ../../HANDLERS.md 65eb2ee531e94500b37d949af5a07982
+#: ../../HANDLERS.md 93785de75b6c4f40b7c1d4f7fc80f6bd
 msgid "frame size"
 msgstr "訊框大小"
 
-#: ../../HANDLERS.md 29fbcf1853bd4f05b4f485ded886bc6b
+#: ../../HANDLERS.md 6d191d9483ef411393b7e1adc6a4ff42
 msgid "4 MB"
 msgstr ""
 
-#: ../../HANDLERS.md 9d17c0c7ee9d49678d035727ee4bd97e
+#: ../../HANDLERS.md 773fc4176c2b44c182024a086f679a3a
 msgid "closed by the transport"
 msgstr "由傳輸層關閉"
 
-#: ../../HANDLERS.md df984290178d47899ce4c99afd7c86e7
+#: ../../HANDLERS.md 3b66f1b838cb472db3b97b512149356f
 msgid ""
 "An `OpenSession` with a few hundred pillars exceeds uWebSockets' 16 KB "
 "default"
 msgstr "帶著幾百個支點的 `OpenSession` 會超過 uWebSockets 預設的 16 KB"
 
-#: ../../HANDLERS.md 59c5e06e8ca64d0092d219b290ce246b
+#: ../../HANDLERS.md c8d83da735ec4a1a874be0bf77688f72
 msgid "points per sweep"
 msgstr "每次掃描的點數"
 
-#: ../../HANDLERS.md 9605567bea45408ca174c88b9026dbe8
+#: ../../HANDLERS.md 5c19be9218ff492e927cdcd116a35d52
 msgid "100,000"
 msgstr ""
 
-#: ../../HANDLERS.md 11cd898786f74171a408a1bad00de60a
-#: 43ed337985f24d4b9c3fa0bfe55fbeb5
+#: ../../HANDLERS.md 577d2fbbca6640b5b68baffbc3fb36d2
+#: bcd5f4b6c9e8453fabfec9f449e3db70
 msgid "`INVALID_ARGUMENT`"
 msgstr ""
 
-#: ../../HANDLERS.md a5614e972d5f4837b406b11f68d584fc
+#: ../../HANDLERS.md 55ae4ab01b3641ad93c9fe2e98794f40
 msgid "A grid multiplies; see [Scenario sweeps](#scenario-sweeps)"
 msgstr "網格是相乘的；見[情境掃描](#scenario-sweeps)"
 
-#: ../../HANDLERS.md:734 2d3fb6f3ebea47afabfca44287ff2257
+#: ../../HANDLERS.md:735 21d503c116034500be43e967bddff79e
 msgid ""
 "`--max-connections` and `--max-sessions` move the first two. Both are "
 "refusals rather than breakages: close a session and the next one opens."
-msgstr "`--max-connections` 與 `--max-sessions` 可以調整前兩項。兩者都是拒絕而不是故障：關掉一個工作階段，下一個就開得起來。"
+msgstr ""
+"`--max-connections` 與 `--max-sessions` "
+"可以調整前兩項。兩者都是拒絕而不是故障：關掉一個工作階段，下一個就開得起來。"
 
-#: ../../HANDLERS.md:737 8b80cb297d77424f8d2594328bd9a652
+#: ../../HANDLERS.md:738 8f5f5385468d4f7bbcd1467c89d73628
 msgid ""
 "**The token.** `Origin` bets that whoever might abuse the service is a "
 "page rather than a process, which is the right bet on a machine with one "
 "user on it and the wrong one otherwise. No proxy closes that gap, because"
 " a proxy stands beside this service rather than in front of its loopback "
 "socket, so the secret has to live here:"
-msgstr "**權杖。**`Origin` 押的是：可能濫用服務的是頁面而不是行程。在只有一位使用者的機器上這個賭注押對了，其他情況下就押錯了。沒有任何代理伺服器能補上這個缺口，因為代理伺服器是站在這個服務旁邊，而不是站在它的 loopback socket 前面，所以密鑰必須放在這裡："
+msgstr ""
+"**權杖。**`Origin` "
+"押的是：可能濫用服務的是頁面而不是行程。在只有一位使用者的機器上這個賭注押對了，其他情況下就押錯了。沒有任何代理伺服器能補上這個缺口，因為代理伺服器是站在這個服務旁邊，而不是站在它的"
+" loopback socket 前面，所以密鑰必須放在這裡："
 
-#: ../../HANDLERS.md:747 a3ce6a5bb13c4ce69250479522a634d4
+#: ../../HANDLERS.md:748 45b4e1354df344908cc9711d2dc55891
 msgid ""
 "Every client then presents it at the upgrade or is answered `401`, before"
 " a socket, a session or a worker seat exists. A file rather than a flag, "
 "because arguments are world-readable through `ps` and a token there would"
 " be published to exactly the local processes it excludes; refused "
 "outright when anyone but its owner can read it."
-msgstr "之後每個用戶端都必須在升級時出示它，否則在連線、工作階段或工作者座位存在之前就會得到 `401`。用檔案而不是命令列旗標，是因為參數透過 `ps` 誰都讀得到，權杖放在那裡，等於公開給它原本要擋在外面的那些本機行程；若除了擁有者之外還有人能讀這個檔案，就會被直接拒絕。"
+msgstr ""
+"之後每個用戶端都必須在升級時出示它，否則在連線、工作階段或工作者座位存在之前就會得到 `401`。用檔案而不是命令列旗標，是因為參數透過 `ps`"
+" 誰都讀得到，權杖放在那裡，等於公開給它原本要擋在外面的那些本機行程；若除了擁有者之外還有人能讀這個檔案，就會被直接拒絕。"
 
-#: ../../HANDLERS.md ddbb7585e957405b85d1199bd86fae27
+#: ../../HANDLERS.md bf2a2ea44a3b4cbfb73c3171e9672a38
 msgid "Client"
 msgstr "用戶端"
 
-#: ../../HANDLERS.md 5753e84a3a344fcdad5d673de43b59ed
+#: ../../HANDLERS.md 3d6be7f397d64b9ea192dfaa8d1dee74
 msgid "Where the token goes"
 msgstr "權杖放在哪裡"
 
-#: ../../HANDLERS.md 0d08f0da608b4a4e80b4cd4fbadee16c
+#: ../../HANDLERS.md 640eb09488254916b49f8adabc20db7e
 msgid "anything that can set headers"
 msgstr "任何能設定標頭的東西"
 
-#: ../../HANDLERS.md c65ab98393fc4337b1f4b2d64e95a056
+#: ../../HANDLERS.md 849addd7baca4332aceef5facb0734fe
 msgid "`Authorization: Bearer <token>`"
 msgstr ""
 
-#: ../../HANDLERS.md c8aff25ed9bb43ca92148ced52b29ed5
+#: ../../HANDLERS.md e57782729ce847569f9097cbc9ad59ee
 msgid "a browser"
 msgstr "瀏覽器"
 
-#: ../../HANDLERS.md 44ebf90626d84855a4e7e36a8a6ca6ac
+#: ../../HANDLERS.md c345634259244a4590707710a7b07729
 msgid "`token.<token>` in the subprotocol list, beside `qlservice.v2`"
 msgstr "子協定清單中的 `token.<token>`，放在 `qlservice.v2` 旁邊"
 
-#: ../../HANDLERS.md:758 8f5b3a88541b4c009867904cfb226d44
+#: ../../HANDLERS.md:759 3ebb7674e1f4443f8ae22b47c3011eb0
 msgid ""
 "A browser gets the second row because it cannot set headers: `new "
 "WebSocket` takes a URL and a list of subprotocols and nothing else. The "
@@ -1905,24 +2138,29 @@ msgid ""
 "browser fails a handshake in which it named protocols and the server "
 "selected none. A URL query string would be the third option and is the "
 "worst of the three: a URL reaches logs, history and referrers."
-msgstr "瀏覽器用第二列，是因為它無法設定標頭：`new WebSocket` 只接受一個 URL 與一份子協定清單，其他什麼都不收。服務只回應恰好一個協定，絕不回應權杖，因為如果瀏覽器指名了協定而伺服器一個都沒選，瀏覽器會讓握手失敗。URL 查詢字串會是第三種做法，也是三者中最糟的：URL 會流進日誌、瀏覽紀錄與 referrer。"
+msgstr ""
+"瀏覽器用第二列，是因為它無法設定標頭：`new WebSocket` 只接受一個 URL "
+"與一份子協定清單，其他什麼都不收。服務只回應恰好一個協定，絕不回應權杖，因為如果瀏覽器指名了協定而伺服器一個都沒選，瀏覽器會讓握手失敗。URL "
+"查詢字串會是第三種做法，也是三者中最糟的：URL 會流進日誌、瀏覽紀錄與 referrer。"
 
-#: ../../HANDLERS.md:765 99ef2017ac2b4bd7ab4a685c52643fdb
+#: ../../HANDLERS.md:766 aea33333e7ad444b85e150fb70b72a93
 msgid ""
 "A wrong token and a missing one are the same `401`, for the reason a "
 "refused resume is one answer. The log says which."
 msgstr "錯誤的權杖和沒帶權杖都是同樣的 `401`，理由和被拒絕的接回只有一種答案相同。日誌會記下是哪一種。"
 
-#: ../../HANDLERS.md:768 9fe5437074e64a258a95d151b95aefdc
+#: ../../HANDLERS.md:769 30d555c580a0410388c2412c08ff339e
 msgid ""
 "**Fail closed on the address.** `--host` anywhere but loopback, with no "
 "token, is refused at startup with exit code 2 rather than served. "
 "Everything above is a door against a page and none of it is a boundary "
 "against the network, so an unauthenticated pricing engine answering a "
 "routable address is an accident far more often than a decision."
-msgstr "**位址上預設拒絕。**`--host` 設為 loopback 以外的位址卻沒有權杖時，會在啟動時以結束碼 2 拒絕，而不是照常服務。以上一切都是擋頁面的門，沒有一樣是抵擋網路的邊界，所以一個未經驗證、在可路由位址上回應的計價引擎，是意外的機會遠遠大於刻意的決定。"
+msgstr ""
+"**位址上預設拒絕。**`--host` 設為 loopback 以外的位址卻沒有權杖時，會在啟動時以結束碼 2 "
+"拒絕，而不是照常服務。以上一切都是擋頁面的門，沒有一樣是抵擋網路的邊界，所以一個未經驗證、在可路由位址上回應的計價引擎，是意外的機會遠遠大於刻意的決定。"
 
-#: ../../HANDLERS.md:774 b27e34c7ebb14216b0e62986fec97d30
+#: ../../HANDLERS.md:775 254af9588c0e4999a834efae63199915
 msgid ""
 "**What is deliberately not here.** TLS, and users. The token is one "
 "shared secret rather than an identity, and anything that can read the "
@@ -1932,109 +2170,120 @@ msgid ""
 " `ql-backend` goes on binding to loopback behind it. A pricing engine "
 "that grew its own TLS stack would be a worse pricing engine and a worse "
 "edge server."
-msgstr "**刻意不放在這裡的東西。**TLS，以及使用者。權杖是一個共用密鑰而不是身分，任何讀得到權杖檔的東西都能出示它，所以它擋得住其他使用者的行程，擋不住以同一位使用者身分執行的行程。如果哪天要在它所執行的機器之外提供服務，就由反向代理終結 TLS、進行驗證並檢查來源，而 `ql-backend` 繼續在它後面綁定 loopback。一個自己長出 TLS 堆疊的計價引擎，會是更差的計價引擎，也是更差的邊緣伺服器。"
+msgstr ""
+"**刻意不放在這裡的東西。**TLS，以及使用者。權杖是一個共用密鑰而不是身分，任何讀得到權杖檔的東西都能出示它，所以它擋得住其他使用者的行程，擋不住以同一位使用者身分執行的行程。如果哪天要在它所執行的機器之外提供服務，就由反向代理終結"
+" TLS、進行驗證並檢查來源，而 `ql-backend` 繼續在它後面綁定 loopback。一個自己長出 TLS "
+"堆疊的計價引擎，會是更差的計價引擎，也是更差的邊緣伺服器。"
 
-#: ../../HANDLERS.md:782 6bc08c6913f14122ba214e4134e7eeb8
+#: ../../HANDLERS.md:783 7b1c1c78bf884cb1937fe0eab5fe7974
 msgid "Errors"
 msgstr "錯誤"
 
-#: ../../HANDLERS.md:784 0f432243e00842558d7d7bc5cceb36e2
+#: ../../HANDLERS.md:785 9ba17207c43b4ff4b063811d47b71c96
 msgid ""
 "Every rejection carries a `Code` and, where it is attributable to a wire "
 "field, a dotted proto path — "
 "`\"instrument.vanilla_swap.fixed_leg.frequency\"`."
-msgstr "每一次拒絕都帶著一個 `Code`，而在能歸咎於某個線路欄位時，還會帶著以點分隔的 proto 路徑——`\"instrument.vanilla_swap.fixed_leg.frequency\"`。"
+msgstr ""
+"每一次拒絕都帶著一個 `Code`，而在能歸咎於某個線路欄位時，還會帶著以點分隔的 proto "
+"路徑——`\"instrument.vanilla_swap.fixed_leg.frequency\"`。"
 
-#: ../../HANDLERS.md d7d07abeebf94a4fab0b82fe49a9467e
+#: ../../HANDLERS.md dc9ee7359f8a42e2a46ff0533de829e2
 msgid "Code"
 msgstr "錯誤碼"
 
-#: ../../HANDLERS.md 6869cbae16bb4f2496cda8f5e662545e
+#: ../../HANDLERS.md c42a393102ef48e39b64bf2f4050f699
 msgid "What it means for the client"
 msgstr "對用戶端的意義"
 
-#: ../../HANDLERS.md 62ee5d5144ab4d1f92bcba8e797d7177
+#: ../../HANDLERS.md 0da712a5d18647eb82d7ce1642968867
 msgid "the field is set to something that cannot work — fix the value"
 msgstr "欄位被設成行不通的值——修正這個值"
 
-#: ../../HANDLERS.md 0d957fa71a8a4f9c85e62e85b96605a2
+#: ../../HANDLERS.md 2fa5dc35600f4842a23055902ec96fa3
 msgid "`UNSPECIFIED_ENUM`"
 msgstr ""
 
-#: ../../HANDLERS.md 71bb60f4323c48c19312b7ff9905b8b2
+#: ../../HANDLERS.md 6859d52bfb3543eb9ec164686aec2c4e
 msgid "a `*_UNSPECIFIED` enum reached the registry — fill the field in"
 msgstr "某個 `*_UNSPECIFIED` 列舉值進到了登錄表——把欄位填上"
 
-#: ../../HANDLERS.md f93f33ca68a3415e95f37909ce48c222
+#: ../../HANDLERS.md 754a4b13266342ff8f1512651ee688e2
 msgid "`UNKNOWN_ID`"
 msgstr ""
 
-#: ../../HANDLERS.md 6377b8410e234a06a1330ebb7fb12033
+#: ../../HANDLERS.md 60d689949b7c4502b2b9977de6fada72
 msgid "a quote, curve or index id that is not in the session"
 msgstr "工作階段中不存在的報價、曲線或利率指標代號"
 
-#: ../../HANDLERS.md 8817b51fabf14a15bcba437d30eb79b8
+#: ../../HANDLERS.md 9989d998fa68450a92a736a60510e68a
 msgid "the schema expresses it; this build does not price it"
 msgstr "結構描述表達得出來；這個建置不為它計價"
 
-#: ../../HANDLERS.md dc6a2a28feb14f6c94e2015166101b95
+#: ../../HANDLERS.md 31057c1c8661478090f5c42e59918d7e
 msgid "`SESSION_NOT_FOUND`"
 msgstr ""
 
-#: ../../HANDLERS.md 295e838df8af43f48b0dc96b175af31c
+#: ../../HANDLERS.md 2ba1c475516143c8b77eaeb3e3437a9a
 msgid "the session is gone — open a new one and replay"
 msgstr "工作階段已經不在了——開一個新的並重播"
 
-#: ../../HANDLERS.md 59982c5107f24f0ebc710ef33b7fddec
+#: ../../HANDLERS.md 4392ce9a965948899e110fe74b305b71
 msgid "`BOOTSTRAP_FAILED`"
 msgstr ""
 
-#: ../../HANDLERS.md 2031b8cda353425ba9ba4c6fd0d9d00d
+#: ../../HANDLERS.md 7df7cbacd54544c3921550a2560c9384
 msgid "the curve did not bootstrap"
 msgstr "曲線拔靴失敗"
 
-#: ../../HANDLERS.md 316a6864991d4af5b85487d0816468e7
+#: ../../HANDLERS.md aed1cb86ed1541f8b93c4b6e01d99205
 msgid "`CALCULATION_FAILED`"
 msgstr ""
 
-#: ../../HANDLERS.md ed228577447a4f689da07acf85e562d6
+#: ../../HANDLERS.md 1cdc1d7a64e4498f85d3a5d566c504e5
 msgid "the maths failed; no field, because it is not a field's fault"
 msgstr "數學計算失敗；不指名欄位，因為這不是哪個欄位的錯"
 
-#: ../../HANDLERS.md 7c9e7f626e944a0dbf4cd9998c25f311
+#: ../../HANDLERS.md 561cb5f98f15410fad4008329961ec9b
 msgid "`CANCELLED`"
 msgstr ""
 
-#: ../../HANDLERS.md 43c0f366dd994757bc0c8fe85afb6c41
+#: ../../HANDLERS.md 703ce618d2ef40f4b8df1e307d06369b
 msgid "terminal frame for a request you cancelled"
 msgstr "你所取消的請求的終結訊框"
 
-#: ../../HANDLERS.md c4e2b7490200464caf443a837e37c8cd
+#: ../../HANDLERS.md 389aa71521094aa88d69c455141719d7
 msgid "`WORKER_DIED`, `OVERLOADED`, `INTERNAL`"
 msgstr ""
 
-#: ../../HANDLERS.md bee6a291edf34602b7275794bb8cc4b2
+#: ../../HANDLERS.md 3c3598254f944c72a55f9030fd5492cb
 msgid "infrastructure; retry or back off"
 msgstr "基礎設施問題；重試或退避"
 
-#: ../../HANDLERS.md:799 0c03a6cf60684156b83cdf5db9f8f4b0
+#: ../../HANDLERS.md:800 5be3ec896c314ba28737401a5d5b484e
 msgid ""
 "The three that a frontend must tell apart are `UNSPECIFIED_ENUM` (you "
 "left a field out), `INVALID_ARGUMENT` (you filled it in wrongly) and "
 "`UNSUPPORTED` (the request is well-formed and this build refuses to price"
 " it on a substitute)."
-msgstr "前端必須區分清楚的三種是 `UNSPECIFIED_ENUM`（你漏填了某個欄位）、`INVALID_ARGUMENT`（你填錯了）與 `UNSUPPORTED`（請求格式正確，而這個建置拒絕拿替代品為它計價）。"
+msgstr ""
+"前端必須區分清楚的三種是 `UNSPECIFIED_ENUM`（你漏填了某個欄位）、`INVALID_ARGUMENT`（你填錯了）與 "
+"`UNSUPPORTED`（請求格式正確，而這個建置拒絕拿替代品為它計價）。"
 
-#: ../../HANDLERS.md:804 00e25f9fbddc40c9b07ee4803ab063d3
+#: ../../HANDLERS.md:805 04a43c47003349eea38f89f7b2d2a6d4
 msgid "Verification"
 msgstr "驗證"
 
-#: ../../HANDLERS.md:806 ae46616bd3c24211853fe29849688558
+#: ../../HANDLERS.md:807 c2877b4df9af43e89786fa4cdfb6cab0
 msgid ""
 "Every handler above is exercised by `test/smoke_v2.py`, which drives a "
 "running `ql-backend` over a real WebSocket: 369 rows of QuantLib's own "
 "reference values plus the rejection cases, 145 checks in all. [Smoke "
 "tests](TESTING.md) explains how to run it, and [the quanto barrier "
 "benchmark](BENCHMARK.md) is the analytic-vs-PDE cross-check."
-msgstr "以上每個處理常式都由 `test/smoke_v2.py` 實際演練過，它透過真正的 WebSocket 驅動執行中的 `ql-backend`：369 列 QuantLib 自己的參考值，加上各種拒絕情況，共 145 項檢查。[冒煙測試](TESTING.md)說明如何執行它，而 [quanto 障礙選擇權基準測試](BENCHMARK.md)則是解析解對 PDE 的交叉驗證。"
+msgstr ""
+"以上每個處理常式都由 `test/smoke_v2.py` 實際演練過，它透過真正的 WebSocket 驅動執行中的 `ql-"
+"backend`：369 列 QuantLib 自己的參考值，加上各種拒絕情況，共 145 "
+"項檢查。[冒煙測試](TESTING.md)說明如何執行它，而 [quanto 障礙選擇權基準測試](BENCHMARK.md)則是解析解對 "
+"PDE 的交叉驗證。"
 

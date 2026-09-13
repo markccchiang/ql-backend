@@ -264,7 +264,7 @@ Style-specific rules worth knowing before you send one:
   every other style takes it and put only `daughter_payoff` and
   `daughter_exercise` in the style block. Both legs are `plain` and European,
   and the compound has to expire **on or before** the option it is written on.
-  - **Chooser.** The strike and the expiry are the option's own `payoff` and
+- **Chooser.** The strike and the expiry are the option's own `payoff` and
   `exercise`, for the same reason the compound's mother is — both chooser
   instruments hand a `PlainVanillaPayoff` and the (call) exercise to
   `OneAssetOption` — so `Chooser.call_strike` and `Chooser.call_expiry` are
@@ -281,7 +281,8 @@ Style-specific rules worth knowing before you send one:
   reads the type and an American one would price as European; and each complex
   leg must expire more than **twice** the choice time out, because
   `AnalyticComplexChooserEngine` solves for the critical spot at `maturity - 2
-  × choice time`. - **Cliquet.** A series of forward starts, so it takes a
+  × choice time`.
+- **Cliquet.** A series of forward starts, so it takes a
   `percentage_strike` payoff for the same reason one does, plus `reset_dates`
   — in order, distinct, each on or after the evaluation date and before the
   expiry. `performance` is a `Flag` and selects the engine, exactly as it does
