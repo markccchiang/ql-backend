@@ -1,4 +1,4 @@
-# Interactive QuantLib Service
+# ql-backend
 
 A stateful C++ pricing backend driving a TypeScript frontend over WebSocket,
 with Protobuf as the wire format. A session keeps a live QuantLib object graph

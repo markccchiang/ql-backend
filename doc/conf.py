@@ -39,7 +39,7 @@ myst_heading_anchors = 4
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "requirements.txt"]
 
 html_theme = "sphinx_rtd_theme"
-html_title = "Interactive QuantLib Service"
+html_title = "ql-backend"
 
 # A page links to source files as ../src/..., which is outside the doc tree:
 # correct on GitHub, and not something Sphinx can resolve into the build.
