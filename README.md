@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/logo-dark.svg">
+    <img src="assets/logo/logo.svg" alt="Interactive QuantLib Service" width="560">
+  </picture>
+</p>
+
 # Interactive QuantLib Service (Backend)
 
 A stateful C++ pricing backend for interactive derivatives pricing, built on

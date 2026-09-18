@@ -4,7 +4,7 @@
 .lang-switch {
     padding: 6px 20px 12px;
     font-size: 13px;
-    background: #2980b9;
+    background: #1a1b1e;   /* the sidebar header, set in conf.py */
 }
 .lang-switch .lang-current {
     display: inline-block;
@@ -16,7 +16,7 @@
 .lang-switch .lang-other {
     display: inline-block;
     padding: 2px 8px;
-    color: #d6ecff;
+    color: #96f2d7;         /* Mantine teal 2, legible on the header */
     text-decoration: underline;
 }
 .lang-switch .lang-other:hover {

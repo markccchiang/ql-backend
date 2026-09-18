@@ -52,6 +52,14 @@ language = "en"
 html_theme = "sphinx_rtd_theme"
 html_title = "ql-backend"
 
+# The logo set lives in assets/logo/ at the repository root, shared with the
+# README and with the protobuf and frontend repositories. The sidebar header
+# takes the frontend's dark ground so the teal mark reads as it does in the
+# app, rather than sitting on the theme's default blue.
+html_logo = "../assets/logo/mark-dark.svg"
+html_favicon = "../assets/logo/mark.svg"
+html_theme_options = {"style_nav_header_background": "#1a1b1e"}
+
 # The language switch under the search box, and the styles it needs.
 templates_path = ["_templates"]
 html_static_path = ["_static"]
