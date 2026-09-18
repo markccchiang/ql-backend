@@ -1,4 +1,4 @@
-# ql-backend
+# Interactive QuantLib Service (Backend)
 
 A stateful C++ pricing backend for interactive derivatives pricing, built on
 [QuantLib](https://www.quantlib.org/). A client opens a session over a
