@@ -159,6 +159,12 @@ namespace qlbackend {
         struct SessionMeta {
             std::string token;
             qlpb::SessionOpened opened;
+            //! The OpenSession's own request id, and whether it has answered
+            //! SessionOpened yet. A terminal error on that id before then is
+            //! an open that failed, and a session that never opened is closed
+            //! rather than left holding a seat, a slot and a token.
+            std::uint64_t openRequestId = 0;
+            bool isOpen = false;
         };
         std::map<std::string, SessionMeta> sessions;
 
@@ -182,9 +188,11 @@ namespace qlbackend {
         std::map<std::string, Detached> detached;
 
         //! session_id -> the connection its frames go out on.
-        /*! Outlives the session itself: a CloseSession still has an Ack to
-            deliver, so the route is dropped when the socket goes, not when the
-            session does.
+        /*! Outlives the session itself, but only just: a CloseSession still
+            has an Ack to deliver, and whatever was answered before it, so the
+            route of a closed session is dropped once nothing is outstanding on
+            it (dropRouteIfDone), and every route on a socket when the socket
+            goes.
         */
         std::map<std::string, std::uint64_t> sessionConn;
 
@@ -249,6 +257,68 @@ namespace qlbackend {
                 out.mutable_error()->set_code(code);
                 out.mutable_error()->set_message(message);
             });
+        }
+
+        //! Answers a frame on the socket it came in on, and touches nothing else.
+        /*! For every refusal of a frame that is not this connection's business
+            to send: one that did not parse, an open or resume over the limit,
+            a resume that was refused, and a frame naming a session this
+            connection does not own. fail() would route by the session named
+            and untrack the request id under it -- which, for a session that
+            belongs to another connection, delivers the refusal to that
+            connection and drops one of its own outstanding requests, and for
+            a resume after a half-open drop, delivers it to the socket that
+            has died and leaves the one asking waiting forever.
+        */
+        void reject(WS* to,
+                    const std::string& sessionId,
+                    std::uint64_t requestId,
+                    qlpb::Error::Code code,
+                    const std::string& message) {
+            qlpb::ServerFrame out;
+            out.set_request_id(requestId);
+            out.set_session_id(sessionId);
+            out.set_terminal(true);
+            out.mutable_error()->set_code(code);
+            out.mutable_error()->set_message(message);
+            std::string payload;
+            if (!out.SerializeToString(&payload)) {
+                logf("serialization failed", sessionId);
+                return;
+            }
+            to->send(payload, uWS::OpCode::BINARY);
+        }
+
+        //! Forgets everything the gateway holds for a session.
+        /*! Its route, its token, its place in its connection's count, and the
+            requests still outstanding on it, which the caller has already
+            answered or has decided need no answer. What the supervisor and
+            the worker hold is not released here.
+        */
+        void release(const std::string& sessionId) {
+            outstanding.erase(sessionId);
+            detached.erase(sessionId);
+            sessions.erase(sessionId);
+            auto owner = sessionConn.find(sessionId);
+            if (owner != sessionConn.end()) {
+                auto conn = conns.find(owner->second);
+                if (conn != conns.end())
+                    conn->second.openSessions.erase(sessionId);
+                sessionConn.erase(owner);
+            }
+        }
+
+        //! Drops a closed session's route once nothing is owed on it.
+        /*! The route outlives the session only so the close's own Ack, and
+            anything answered before it, can find the socket. Kept longer, it
+            counted a closed session as open in /healthz and grew without
+            bound on a socket that opens and closes sessions all day.
+        */
+        void dropRouteIfDone(const std::string& sessionId) {
+            if (sessionId.empty() || sessions.count(sessionId) > 0 ||
+                outstanding.count(sessionId) > 0)
+                return;
+            sessionConn.erase(sessionId);
         }
 
         // -------------------------------------------------------------------
@@ -320,6 +390,8 @@ namespace qlbackend {
                 logf("terminal frame dropped by backpressure",
                      frame.session_id() + " request " + std::to_string(frame.request_id()));
             }
+            if (frame.terminal())
+                dropRouteIfDone(frame.session_id());
         }
 
         //! Runs a loop callback with the process's life not riding on it.
@@ -364,16 +436,29 @@ namespace qlbackend {
                     fail(sessionId, requestId, qlpb::Error::WORKER_DIED,
                          "the session could not be replayed and has been dropped");
             }
-            outstanding.erase(sessionId);
-            detached.erase(sessionId);
-            sessions.erase(sessionId);
-            auto owner = sessionConn.find(sessionId);
-            if (owner != sessionConn.end()) {
-                auto conn = conns.find(owner->second);
-                if (conn != conns.end())
-                    conn->second.openSessions.erase(sessionId);
-                sessionConn.erase(owner);
+            release(sessionId);
+        }
+
+        //! An OpenSession the worker refused: nothing was built, so nothing is
+        //! kept. Called after the refusal has been delivered.
+        /*! Left open, it held its seat's thread, the supervisor's state, a
+            slot in its connection's count -- sixteen refused opens and the
+            connection could open nothing more -- and a resume token for a
+            session that never existed.
+        */
+        void closeFailedOpen(const std::string& sessionId) {
+            logf("open refused", sessionId);
+            qlpb::ClientFrame close;
+            close.set_session_id(sessionId);
+            close.mutable_close_session();
+            // Request id 0, like a replay: the client asked for no close and
+            // is owed no Ack for one.
+            try {
+                supervisor->dispatch(sessionId, close);
+            } catch (const std::exception& e) {
+                logf("close after a refused open failed", e.what());
             }
+            release(sessionId);
         }
 
         //! A frame produced by a worker, marshalled onto the loop.
@@ -410,12 +495,24 @@ namespace qlbackend {
                     opened->set_resume_grace_seconds(
                         static_cast<std::uint32_t>(options.resumeGrace.count()));
                     meta->second.opened = *opened;
+                    meta->second.isOpen = true;
                     deliver(out);
                     return;
                 }
             }
 
+            // The answer to an OpenSession that never got as far as
+            // SessionOpened: the worker could not build the market. Delivered
+            // first, while the route still exists, then the session goes.
+            const auto meta = sessions.find(frame.session_id());
+            const bool openRefused = frame.terminal() && frame.has_error() &&
+                                     meta != sessions.end() && !meta->second.isOpen &&
+                                     meta->second.openRequestId == frame.request_id();
+
             deliver(frame);
+
+            if (openRefused)
+                closeFailedOpen(frame.session_id());
         }
 
         // -------------------------------------------------------------------
@@ -430,14 +527,14 @@ namespace qlbackend {
             } clear{&inbound};
 
             if (opCode != uWS::OpCode::BINARY) {
-                fail({}, 0, qlpb::Error::INVALID_ARGUMENT, "frames must be binary");
+                reject(ws, {}, 0, qlpb::Error::INVALID_ARGUMENT, "frames must be binary");
                 return;
             }
 
             qlpb::ClientFrame frame;
             if (!frame.ParseFromArray(message.data(), static_cast<int>(message.size()))) {
                 // No request id to attribute it to: the frame did not parse.
-                fail({}, 0, qlpb::Error::INVALID_ARGUMENT, "malformed ClientFrame");
+                reject(ws, {}, 0, qlpb::Error::INVALID_ARGUMENT, "malformed ClientFrame");
                 return;
             }
             handle(ws, frame);
@@ -453,10 +550,10 @@ namespace qlbackend {
                     // protects the pool rather than the socket. OVERLOADED
                     // rather than INVALID_ARGUMENT: the request is well formed
                     // and would be served with fewer already open.
-                    fail({}, frame.request_id(), qlpb::Error::OVERLOADED,
-                         "this connection already holds " +
-                             std::to_string(conn.openSessions.size()) +
-                             " sessions, which is the limit; close one before opening another");
+                    reject(ws, {}, frame.request_id(), qlpb::Error::OVERLOADED,
+                           "this connection already holds " +
+                               std::to_string(conn.openSessions.size()) +
+                               " sessions, which is the limit; close one before opening another");
                     return;
                 }
 
@@ -466,14 +563,19 @@ namespace qlbackend {
                 frame.set_session_id(sessionId);
                 sessionConn[sessionId] = connId;
                 conn.openSessions.insert(sessionId);
-                sessions[sessionId].token =
-                    options.resumeGrace.count() > 0 ? mintToken() : std::string();
+                auto& meta = sessions[sessionId];
+                meta.token = options.resumeGrace.count() > 0 ? mintToken() : std::string();
+                meta.openRequestId = frame.request_id();
                 track(sessionId, frame.request_id());
 
                 try {
                     supervisor->openSession(sessionId, frame);
                 } catch (const std::exception& e) {
+                    // Refused before it reached a worker, and the supervisor
+                    // keeps nothing for an open it threw on, so only this
+                    // side has anything to let go of.
                     fail(sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT, e.what());
+                    release(sessionId);
                 }
                 return;
             }
@@ -487,19 +589,21 @@ namespace qlbackend {
                     // One answer for a wrong token, an expired window and a
                     // session that was closed rather than dropped: telling
                     // them apart would turn a guess into a probe, and the
-                    // client's move is the same for all three.
-                    fail(ask.session_id(), frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
-                         "no session '" + ask.session_id() +
-                             "' to resume: it was closed, its window has expired, or the token "
-                             "does not match. Open a session and replay the market");
+                    // client's move is the same for all three. On this socket:
+                    // after a half-open drop the session's route still names
+                    // the dead one.
+                    reject(ws, ask.session_id(), frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
+                           "no session '" + ask.session_id() +
+                               "' to resume: it was closed, its window has expired, or the token "
+                               "does not match. Open a session and replay the market");
                     return;
                 }
 
                 if (conn.openSessions.size() >= options.maxSessionsPerConnection) {
-                    fail(ask.session_id(), frame.request_id(), qlpb::Error::OVERLOADED,
-                         "this connection already holds " +
-                             std::to_string(conn.openSessions.size()) +
-                             " sessions, which is the limit; close one before taking another back");
+                    reject(ws, ask.session_id(), frame.request_id(), qlpb::Error::OVERLOADED,
+                           "this connection already holds " +
+                               std::to_string(conn.openSessions.size()) +
+                               " sessions, which is the limit; close one before taking another back");
                     return;
                 }
 
@@ -551,9 +655,12 @@ namespace qlbackend {
             auto owner = sessionConn.find(sessionId);
             if (sessionId.empty() || owner == sessionConn.end() || owner->second != connId) {
                 // Includes a session belonging to someone else's connection,
-                // which is the same answer as one that never existed.
-                fail(sessionId, frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
-                     "no session '" + sessionId + "' on this connection");
+                // which is the same answer as one that never existed -- and
+                // goes to this socket alone. Routed by the session it names,
+                // it reached the owner instead, and untracked the owner's own
+                // request of the same id.
+                reject(ws, sessionId, frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
+                       "no session '" + sessionId + "' on this connection");
                 return;
             }
 

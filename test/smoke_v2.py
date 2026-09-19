@@ -592,6 +592,12 @@ async def main():
         the transcription this benchmark exists to avoid.
         """
         worst, worst_row = 0.0, None
+        if not rows:
+            # A table the extractor emptied -- upstream commented its rows out,
+            # or a filter here matched nothing -- would otherwise pass with a
+            # worst error of zero, as a check of nothing.
+            check(label, False, "no rows to check")
+            return
         for n, row in enumerate(rows):
             await send(ws, set_market(sid, **row_market(row)))
             reply = await send(ws, build(sid, row))
@@ -2025,6 +2031,28 @@ async def main():
         check("and the cancel of a queued request is acknowledged",
               got[c.request_id].HasField("ack"), outcome(got[c.request_id]))
 
+        # A frame naming another connection's session is refused to the socket
+        # that sent it, and nowhere else. Routed by the session it named, the
+        # refusal used to go to the owner instead, under the owner's own
+        # request id, and the sender waited for an answer that never came.
+        slow = long_sweep()
+        await ws.send(slow.SerializeToString())
+        async with connect(URL, max_size=None) as other:
+            intruder = vanilla_frame(sid, row)
+            intruder.request_id = slow.request_id   # an id the owner is waiting on
+            try:
+                reply = await asyncio.wait_for(send(other, intruder), timeout=10.0)
+                heard = (E.Error.Code.Name(reply.error.code) if reply.HasField("error")
+                         else reply.WhichOneof("payload"))
+            except asyncio.TimeoutError:
+                reply, heard = None, "no answer in 10 s"
+        got, _ = await terminals_for(slow.request_id)
+        check("a frame naming another connection's session is refused to its sender",
+              reply is not None and reply.HasField("error")
+              and reply.error.code == E.Error.SESSION_NOT_FOUND, heard)
+        check("and the owner hears nothing of it: its request ends in its own result",
+              whole(got[slow.request_id]), swept(got[slow.request_id]))
+
         # -- the quanto barrier benchmark -------------------------------------
         #
         # testBarrierValues in quantooption.cpp carries a "TODO: bench against
@@ -2396,7 +2424,10 @@ async def main():
               f"{health.get('build')} on QuantLib {health.get('quantlib')}")
 
         # The numbers have to be the real ones, or the endpoint is a constant
-        # dressed as a measurement. This connection is open and holds sessions.
+        # dressed as a measurement. This connection is open, and every session
+        # it held is closed by now -- which the count used to miss, reporting
+        # them as open until the socket went -- so sessions are checked below
+        # by opening one and closing it again.
         #
         # Unless a token is required, in which case there are no numbers at
         # all: a probe cannot present a secret and still has to be able to ask
@@ -2408,9 +2439,28 @@ async def main():
                   "connections" not in health and "sessions" not in health,
                   f"{health}")
         else:
-            check("and counts the sockets and sessions it is actually serving",
-                  health.get("connections", 0) >= 1 and health.get("sessions", 0) >= 1,
+            check("and counts the sockets it is actually serving",
+                  health.get("connections", 0) >= 1 and "sessions" in health,
                   f"connections={health.get('connections')} sessions={health.get('sessions')}")
+
+            # And counts them exactly: one more while a session is open, and
+            # none once it is closed. A closed session's route used to stay
+            # until its socket went, so it went on being counted as open.
+            def sessions_now():
+                with urllib.request.urlopen(HEALTH, timeout=5) as response:
+                    return json.loads(response.read())["sessions"]
+
+            before = sessions_now()
+            async with connect(URL, max_size=None) as probe:
+                opened = await send(probe, open_session())
+                during = sessions_now()
+                await send(probe, E.ClientFrame(request_id=next_id(),
+                                                session_id=opened.session_opened.session_id,
+                                                close_session=E.CloseSession()))
+                after = sessions_now()
+            check("and counts a session while it is open and not once it is closed",
+                  during == before + 1 and after == before,
+                  f"before={before} open={during} closed={after}")
 
         # A browser may send this request from any page it likes; without the
         # header it cannot read the reply, and these counts are not something a
@@ -2463,29 +2513,47 @@ async def main():
 
         # A session is a live graph on a worker seat, so the cap on them is what
         # protects the pool. Sixteen is the default; the seventeenth is refused
-        # by name rather than by running out of seats.
-        held = []
-        while len(held) < 16:
-            reply = await send(ws, open_session())
-            if not reply.HasField("session_opened"):
-                break
-            held.append(reply.session_opened.session_id)
-        reply = await send(ws, open_session())
-        check("a connection past its session limit is refused as OVERLOADED",
-              reply.HasField("error") and reply.error.code == E.Error.OVERLOADED,
-              f"held={len(held)} "
-              + (E.Error.Code.Name(reply.error.code) if reply.HasField("error")
-                 else "opened anyway"))
+        # by name rather than by running out of seats. On a connection of its
+        # own, so the count is known exactly -- and after four opens the worker
+        # refused, which used to keep their slots: this connection then held
+        # twelve sessions, not sixteen, and the check could not tell.
+        async with connect(URL, max_size=None) as limited:
+            refused = 0
+            for _ in range(4):
+                f = E.ClientFrame(request_id=next_id())
+                f.open_session.evaluation_date.iso = TODAY.isoformat()
+                m = f.open_session.market.add()
+                m.id = "BAD"
+                m.correlation.labels.extend(["A", "B", "C"])
+                for a, b, c in [(1.0, 0.9, 0.9), (0.9, 1.0, -0.9), (0.9, -0.9, 1.0)]:
+                    for v in (a, b, c):
+                        m.correlation.values.add().fixed = v
+                refused += (await send(limited, f)).HasField("error")
 
-        # Refused, not broken: closing one makes room, so a client that hit the
-        # limit recovers by tidying up rather than by reconnecting.
-        await send(ws, E.ClientFrame(request_id=next_id(), session_id=held[0],
-                                     close_session=E.CloseSession()))
-        reply = await send(ws, open_session())
-        check("and closing one makes room again",
-              reply.HasField("session_opened"),
-              "" if reply.HasField("session_opened")
-              else E.Error.Code.Name(reply.error.code))
+            held = []
+            while len(held) < 17:
+                reply = await send(limited, open_session())
+                if not reply.HasField("session_opened"):
+                    break
+                held.append(reply.session_opened.session_id)
+            check("a connection past its session limit is refused as OVERLOADED",
+                  reply.HasField("error") and reply.error.code == E.Error.OVERLOADED,
+                  E.Error.Code.Name(reply.error.code) if reply.HasField("error")
+                  else "opened a seventeenth")
+            check("and a refused open gives its slot back: sixteen are held, not fewer",
+                  refused == 4 and len(held) == 16,
+                  f"{refused} opens refused, then {len(held)} held")
+
+            # Refused, not broken: closing one makes room, so a client that hit
+            # the limit recovers by tidying up rather than by reconnecting.
+            if held:
+                await send(limited, E.ClientFrame(request_id=next_id(), session_id=held[0],
+                                                  close_session=E.CloseSession()))
+            reply = await send(limited, open_session())
+            check("and closing one makes room again",
+                  reply.HasField("session_opened"),
+                  "" if reply.HasField("session_opened")
+                  else E.Error.Code.Name(reply.error.code))
 
     print(f"\n{checks} checks, {len(failures)} failed")
     if failures:

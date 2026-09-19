@@ -267,7 +267,15 @@ namespace qlbackend {
 
         SessionState state(acquireSeat(Placement::Shared), Placement::Shared,
                            SessionLog(sessionId, frame.open_session()));
-        host_.send(state.workerId, frame);
+        try {
+            host_.send(state.workerId, frame);
+        } catch (...) {
+            // Nothing is kept for an open that threw, so the seat counted for
+            // it is given back here or never: the gateway only releases its
+            // own side.
+            releaseSeat(state.workerId);
+            throw;
+        }
         sessions_.emplace(sessionId, std::move(state));
     }
 

@@ -246,6 +246,11 @@ def main():
 
         text = strip_comments((root / filename).read_text())
         rows = parse_rows(find_table(text, declaration, occurrence), fields)
+        if not rows:
+            # Comments are stripped first, so a table upstream has commented
+            # out parses as an empty one -- and an empty table is a benchmark
+            # that checks nothing and passes.
+            raise SystemExit(f"{name}: {declaration} in {filename} has no rows")
 
         print(f"# {filename}: {declaration}"
               + (f" [{occurrence}]" if occurrence else ""))
@@ -259,6 +264,8 @@ def main():
     for name, filename, case, fields in SCALARS:
         text = strip_comments((root / filename).read_text())
         rows = parse_scalars(find_case(text, case), fields)
+        if not rows:
+            raise SystemExit(f"{name}: {case}() in {filename} has no rows")
 
         print(f"# {filename}: {case}()")
         print(f"{name} = [")
