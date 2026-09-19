@@ -3254,8 +3254,12 @@ namespace qlbackend {
                 auto leg = IborLeg(sched, index)
                                .withNotionals(notionals)
                                .withPaymentDayCounter(dc)
-                               .withFixingDays(msg.fixing_days())
                                .inArrears(flag(msg.in_arrears(), fieldPath + ".in_arrears"));
+                // Unset is the index's own fixing days, which is IborLeg's
+                // default. A plain uint32 read unset as 0, which overrode it
+                // and fixed every such leg on its accrual start.
+                if (msg.has_fixing_days())
+                    leg = leg.withFixingDays(msg.fixing_days());
                 if (msg.spreads_size() > 0)
                     leg = leg.withSpreads(
                         std::vector<Real>(msg.spreads().begin(), msg.spreads().end()));

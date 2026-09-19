@@ -2389,6 +2389,26 @@ async def main():
                       f"{len(floating)} rows, first fixing {floating[0].fixing_date.iso if floating else '-'}"
                       f", evaluation date {TODAY.isoformat()}")
 
+                # A leg that does not name its fixing days fixes on the
+                # index's -- two, for EUR6M -- as IborLeg does by default. The
+                # field had no presence, so unset read as 0 and every such leg
+                # fixed on its accrual start; 0 is still there, when named.
+                async def first_fixing(fixing_days=None):
+                    f = swap_frame(sid3)
+                    f.price.include_cashflows = True
+                    if fixing_days is not None:
+                        f.price.instrument.swap.legs[1].fixing_days = fixing_days
+                    reply = await send(ws, f)
+                    row = next((r for r in reply.price_result.cashflows if r.leg == 1), None)
+                    return (row.fixing_date.iso, row.accrual_start.iso) if row else None
+
+                unset, two, zero = [await first_fixing(n) for n in (None, 2, 0)]
+                check("a leg with no fixing days fixes on the index's",
+                      unset is not None and unset == two and unset[0] < unset[1],
+                      f"unset={unset} two={two}")
+                check("...and fixing days of 0, named, fix on the accrual start",
+                      zero is not None and zero[0] == zero[1], f"zero={zero}")
+
             # The fair-rate formula assumes fixed first, floating second; any
             # other order would return a wrong number silently.
             f = swap_frame(sid3, [R.RESULT_KIND_FAIR_RATE])

@@ -367,6 +367,8 @@ A general n-leg `Swap`. Two of the leg kinds build — `KIND_FIXED` and
   fair rate computed off the wrong leg.
 - Per-leg `caps`, `floors`, `discount_curve_id` and `currency` are
   `UNSUPPORTED`.
+- An Ibor leg's `fixing_days`, left unset, are its index's; `0`, set, fixes on
+  the accrual start.
 - **A fixed leg freezes its rate.** `FixedRateLeg` takes a value rather than a
   handle, so `rate_quote_id` is read once at construction; bumping that quote
   needs a new `PriceRequest`, not an `UpdateMarket`. It is the one place the
