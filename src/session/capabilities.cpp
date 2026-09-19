@@ -42,9 +42,13 @@ namespace qlbackend {
                                     qlpb::Exercise_Type_TYPE_BERMUDAN})
             out.add_exercises(exercise);
 
+        // Garman-Kohlhagen is built as Black-Scholes-Merton with the foreign
+        // curve in the dividend slot (Session::equityGraph), and was left off
+        // this list, which hid it from any client gating on the handshake.
         for (const auto process : {qlpb::Underlying_Process_PROCESS_BLACK_SCHOLES_MERTON,
                                    qlpb::Underlying_Process_PROCESS_BLACK_SCHOLES,
-                                   qlpb::Underlying_Process_PROCESS_BLACK})
+                                   qlpb::Underlying_Process_PROCESS_BLACK,
+                                   qlpb::Underlying_Process_PROCESS_GARMAN_KOHLHAGEN})
             out.add_processes(process);
 
         for (const auto method :

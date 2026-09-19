@@ -342,8 +342,9 @@ date for Bermudan. `payoff_at_expiry` is a `Flag` read on American and Bermudan
 only, where it must be set explicitly.
 
 **Underlying.** `PROCESS_BLACK_SCHOLES_MERTON` (the default),
-`PROCESS_BLACK_SCHOLES` and `PROCESS_BLACK` build; `GARMAN_KOHLHAGEN`,
-`HESTON`, `BATES` and `LOCAL_VOL` are `UNSUPPORTED`. `PROCESS_BLACK_SCHOLES`
+`PROCESS_BLACK_SCHOLES`, `PROCESS_BLACK` and `PROCESS_GARMAN_KOHLHAGEN` build
+— the last as Black-Scholes-Merton with the foreign curve as
+`dividend_curve_id`; `HESTON`, `BATES` and `LOCAL_VOL` are `UNSUPPORTED`. `PROCESS_BLACK_SCHOLES`
 rejects a `dividend_curve_id` rather than ignoring it. **Omitting
 `dividend_curve_id` means a flat zero dividend yield**, not the risk-free curve.
 Exactly one underlying — a second is `INVALID_ARGUMENT` on

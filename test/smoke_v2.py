@@ -635,6 +635,12 @@ async def main():
               bool(caps.option_styles) and bool(caps.engine_methods) and bool(caps.result_kinds),
               f"{len(caps.option_styles)} styles, {len(caps.engine_methods)} methods, "
               f"{len(caps.result_kinds)} result kinds")
+        # Built all along -- the same process as Black-Scholes-Merton, the
+        # foreign curve in the dividend slot -- and left off the list, so a
+        # client gating on the handshake hid it.
+        check("it advertises the processes it builds, Garman-Kohlhagen among them",
+              I.Underlying.PROCESS_GARMAN_KOHLHAGEN in caps.processes,
+              f"processes={[I.Underlying.Process.Name(p) for p in caps.processes]}")
         check("it names the frames it serves, batch among them",
               "batch" in caps.frames and "price" in caps.frames,
               f"frames={list(caps.frames)}")
@@ -864,6 +870,17 @@ async def main():
         reply = await send(ws, f)
         check("a greek the MC engine lacks is absent, not an error",
               reply.HasField("price_result") and "vega" not in reply.price_result.results)
+
+        # Garman-Kohlhagen is Black-Scholes-Merton with the foreign rate where
+        # the dividend yield goes, so on the same curves it is the same price.
+        f = vanilla_frame(sid, row)
+        f.price.instrument.option.underlyings[0].process = I.Underlying.PROCESS_GARMAN_KOHLHAGEN
+        gk = await send(ws, f)
+        bsm = await send(ws, vanilla_frame(sid, row))
+        check("Garman-Kohlhagen prices as Black-Scholes-Merton on the same curves",
+              gk.HasField("price_result") and gk.price_result.npv == bsm.price_result.npv,
+              f"gk={gk.price_result.npv if gk.HasField('price_result') else gk.error.message!r} "
+              f"bsm={bsm.price_result.npv}")
 
         # time_steps_per_year is per year on the vanilla path too. It was read
         # as a total there (and per year on the barrier and the basket), so
