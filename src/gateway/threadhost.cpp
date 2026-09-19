@@ -101,16 +101,28 @@ namespace qlbackend {
     }
 
 
-    void ThreadProcessHost::requestStop(const std::string& workerId) {
+    ThreadProcessHost::StopOutcome ThreadProcessHost::requestStop(const std::string& workerId,
+                                                                  const std::string& sessionId,
+                                                                  std::uint64_t requestId) {
+        // One session's seat, and within it one request. The seats around it
+        // belong to other sessions, often other clients, and a stop meant for
+        // this one is not theirs to take.
         auto process = processes_.find(workerId);
         if (process == processes_.end())
-            return;
+            return StopOutcome::NotFound;
+        auto seat = process->second.seats.find(sessionId);
+        if (seat == process->second.seats.end())
+            return StopOutcome::NotFound;
 
-        // Every session on the process, because the supervisor addresses a
-        // worker rather than a session. Under configuration C anything worth
-        // stopping is alone in its process anyway (DESIGN §2.1).
-        for (auto& [sessionId, seat] : process->second.seats)
-            seat.worker->requestStop();
+        switch (seat->second.worker->requestStop(requestId)) {
+            case Worker::StopOutcome::Running:
+                return StopOutcome::Running;
+            case Worker::StopOutcome::Dequeued:
+                return StopOutcome::Dequeued;
+            case Worker::StopOutcome::NotFound:
+                break;
+        }
+        return StopOutcome::NotFound;
     }
 
 
@@ -122,8 +134,9 @@ namespace qlbackend {
         for (auto& [sessionId, seat] : process->second.seats) {
             // The honest part of a kill we cannot perform: ask, disown, and
             // let it finish into a void. The supervisor has already decided
-            // this session's requests are over and will replay it elsewhere.
-            seat.worker->requestStop();
+            // this session's requests are over and will replay it elsewhere,
+            // so nothing still queued on the seat is worth starting.
+            seat.worker->abandon();
             seat.alive->store(false);
             reap(std::move(seat));
         }

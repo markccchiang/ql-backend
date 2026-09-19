@@ -114,8 +114,23 @@ namespace qlbackend {
             */
             virtual void send(const std::string& workerId,
                               const quantlib::v2::ClientFrame& frame) = 0;
-            //! Best-effort stop between Monte Carlo batches.
-            virtual void requestStop(const std::string& workerId) = 0;
+
+            //! What a stop found when it looked for its request.
+            enum class StopOutcome {
+                Running,  //!< running now: asked to stop at its next boundary
+                Dequeued, //!< still queued: removed, and it will never answer
+                NotFound  //!< neither: answered already, or not on this worker
+            };
+
+            //! Stops one request of one session, and nothing else on the worker.
+            /*! Best-effort for a running request: it stops at the next Monte
+                Carlo batch, sweep point or batch entry, and never inside a
+                single engine call. A queued one is removed outright, and its
+                terminal frame is then the caller's to send.
+            */
+            virtual StopOutcome requestStop(const std::string& workerId,
+                                            const std::string& sessionId,
+                                            std::uint64_t requestId) = 0;
             //! Unconditional, and takes every session on the process with it.
             /*! The only guaranteed way to stop a calculation.
              */
@@ -204,7 +219,16 @@ namespace qlbackend {
 
         void dispatch(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
 
-        //! Serves a CancelRequest: stop politely, then kill after the grace.
+        //! What a cancel did to its target.
+        enum class CancelOutcome {
+            NoSession,  //!< the session is not here; nothing was touched
+            Stopping,   //!< running: stopped politely, killed if the grace runs out
+            Dequeued,   //!< still queued: removed and answered CANCELLED here
+            NotRunning  //!< nowhere to stop: it is answering, or ran elsewhere
+        };
+
+        //! Serves a CancelRequest for one target: stop politely, then kill
+        //! after the grace -- but only a target that is actually running.
         /*! Returns as soon as the polite stop has been asked for; it does not
             block for `stopGrace`. A Monte Carlo running with progress enabled
             checks between batches and ends its own request, keeping its worker
@@ -212,17 +236,29 @@ namespace qlbackend {
             expires with the request still running the worker is killed and the
             session replayed (DESIGN §3).
 
+            The kill takes every session on the worker with it, which is why
+            it is armed only for a target the worker reports running. A target
+            still queued behind another request is removed and answered here,
+            and costs nobody anything. One the worker does not have -- it has
+            finished and its answer is on the way, or it is running on a seat
+            the session has since moved off -- is left to finish: stopping or
+            killing whatever the worker is doing instead would stop the wrong
+            work, and on a shared worker, other clients' work.
+
             The terminal CANCELLED frame is emitted exactly once, by whichever
             half served the cancel: the worker on the polite path, this class
-            on the kill path. That only holds if the gateway reports terminal
-            frames back through onRequestTerminated(), so it can tell the two
-            apart.
+            on the kill path and for a dequeued target. That only holds if the
+            gateway reports terminal frames back through onRequestTerminated(),
+            so it can tell the two apart.
+
+            The cancel's own terminal frame is the caller's: this answers the
+            target, never the cancel.
 
             A cancel is a request, not a guarantee that no result arrives: a
             calculation that finishes on its own inside the grace terminates
             normally and the kill is dropped.
         */
-        void cancel(const std::string& sessionId, const quantlib::v2::ClientFrame& frame);
+        CancelOutcome cancel(const std::string& sessionId, std::uint64_t targetRequestId);
 
         //! Tells the supervisor that a request has terminated.
         /*! Called by the gateway for every terminal frame it forwards, cancel

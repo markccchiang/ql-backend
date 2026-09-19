@@ -1,6 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 #include "worker.hpp"
+#include <algorithm>
 #include <limits>
 #include <vector>
 #include "capabilities.hpp"
@@ -119,6 +120,44 @@ namespace qlbackend {
     }
 
 
+    Worker::StopOutcome Worker::requestStop(std::uint64_t requestId) {
+        // 0 is a replay's frame, which no client can name.
+        if (requestId == 0)
+            return StopOutcome::NotFound;
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        // Queued first. The lock is what makes the answer true: run() takes
+        // the next frame under it, so a request is either still here or
+        // already current_, never between the two.
+        auto queued = std::find_if(queue_.begin(), queue_.end(), [&](const auto& frame) {
+            return frame.request_id() == requestId;
+        });
+        if (queued != queue_.end()) {
+            if (queued->has_open_session())
+                return StopOutcome::NotFound;
+            queue_.erase(queued);
+            return StopOutcome::Dequeued;
+        }
+
+        if (current_ == requestId) {
+            stopRequested_.store(true, std::memory_order_relaxed);
+            return StopOutcome::Running;
+        }
+        return StopOutcome::NotFound;
+    }
+
+
+    void Worker::abandon() {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            abandoned_ = true;
+            queue_.clear();
+        }
+        stopRequested_.store(true, std::memory_order_relaxed);
+    }
+
+
     void Worker::shutdown() {
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -142,10 +181,21 @@ namespace qlbackend {
                     break;
                 frame = std::move(queue_.front());
                 queue_.pop_front();
+
+                // Under the lock, with the pop: a stop aimed at this request
+                // from here on finds it running rather than queued. A stop
+                // aimed at the one before it is spent, and does not carry
+                // over to this one.
+                current_ = frame.has_open_session() ? 0 : frame.request_id();
+                stopRequested_.store(abandoned_, std::memory_order_relaxed);
             }
 
-            stopRequested_.store(false, std::memory_order_relaxed);
             serve(frame);
+
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                current_ = 0;
+            }
         }
 
         // Destroyed on the owning thread, so the thread_local singletons it
@@ -616,7 +666,7 @@ namespace qlbackend {
                     // A cancel that reached the queue is already too late for the
                     // request it targets: this worker is busy with that request,
                     // so nothing here runs until it finishes. Real cancellation is
-                    // Worker::requestStop() from the supervisor's thread, or the
+                    // Worker::requestStop() from the gateway's loop, or the
                     // process kill behind it (DESIGN §2.1, §3).
                     emit(frame.request_id(), true,
                          [](qlpb::ServerFrame& out) { out.mutable_ack(); });

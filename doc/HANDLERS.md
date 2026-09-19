@@ -597,11 +597,17 @@ A `CancelRequest` names one `request_id`. The cancel itself gets its own `Ack`
 from the gateway, because nothing downstream answers it, and the target gets
 exactly one terminal frame like every other request.
 
+A cancel acts on the request it names and on nothing else. One whose target has
+already answered — a Stop pressed just as the result arrived is the usual case
+— or that names no request on its session is acknowledged, and nothing is
+stopped: the result that arrived is the answer.
+
 **Every request can be cancelled.** What differs is what the cancel costs, and
 that is worth knowing before offering the button.
 
 | Where the request is | What a cancel does | What it costs |
 | --- | --- | --- |
+| still queued behind another request on its session | it is taken out of the queue before it starts, and answered `CANCELLED` at once | nothing: no worker is stopped, and the request ahead of it runs on |
 | between Monte Carlo batches (`progress_every_paths > 0`) | the engine loop sees the stop flag and returns | nothing: the worker is healthy, the graph is still warm |
 | between scenario sweep points | the sweep stops and returns the points it priced | nothing, and the partial ladder is kept |
 | between batch entries | the book stops and returns the prices it managed | nothing, and the partial book is kept |

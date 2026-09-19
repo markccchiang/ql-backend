@@ -67,7 +67,9 @@ namespace qlbackend {
 
         std::string spawn(Supervisor::Placement placement) override;
         void send(const std::string& workerId, const quantlib::v2::ClientFrame& frame) override;
-        void requestStop(const std::string& workerId) override;
+        StopOutcome requestStop(const std::string& workerId,
+                                const std::string& sessionId,
+                                std::uint64_t requestId) override;
         void kill(const std::string& workerId) override;
 
       private:

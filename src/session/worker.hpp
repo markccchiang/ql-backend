@@ -11,6 +11,7 @@
 #include "quantlib/v2/envelope.pb.h"
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -63,12 +64,40 @@ namespace qlbackend {
         //! Queues a frame. Returns false once the worker is shutting down.
         bool submit(const quantlib::v2::ClientFrame& frame);
 
-        //! Asks the running request to stop between Monte Carlo batches.
-        /*! Best-effort and slow: it takes effect only at a batch boundary, and
-            never at all inside a single engine call. A guaranteed stop is the
-            supervisor killing the process (DESIGN §3).
+        //! What a stop found when it looked for its request.
+        enum class StopOutcome {
+            Running,  //!< running now: asked to stop at its next boundary
+            Dequeued, //!< still queued: removed, and it will never run
+            NotFound  //!< neither: it has answered already, or was never here
+        };
+
+        //! Stops one request, and only that one.
+        /*! A request still waiting in the queue is taken out of it, and the
+            caller owes the client its terminal frame, since this worker will
+            never produce one. A request that is running is asked to stop at
+            its next boundary -- between Monte Carlo batches, sweep points or
+            batch entries -- which is best-effort and never happens inside a
+            single engine call. A guaranteed stop is the supervisor killing
+            the process (DESIGN §3).
+
+            Aimed at a request rather than at the worker, because anything
+            broader stops the wrong work: a sweep that happens to be running
+            while the client cancels the request queued behind it would be
+            cut short for a stop it was never the target of.
+
+            An OpenSession is never stopped or removed. Every later frame on
+            this worker needs the graph it builds, and a session the client
+            believes open with nothing behind it is worse than a slow one.
         */
-        void requestStop() { stopRequested_.store(true, std::memory_order_relaxed); }
+        StopOutcome requestStop(std::uint64_t requestId);
+
+        //! Gives up on everything: the queue is dropped and every stop check
+        //! from here on says stop.
+        /*! For a worker being disowned by a kill. What it would still compute
+            nobody will read, so the running request is asked to end at its
+            next boundary and nothing queued behind it is started at all.
+        */
+        void abandon();
 
         void shutdown();
 
@@ -141,7 +170,18 @@ namespace qlbackend {
         std::condition_variable cv_;
         std::deque<quantlib::v2::ClientFrame> queue_;
         bool shuttingDown_ = false;
+        //! The request being served, 0 between requests. Guarded by mutex_.
+        /*! Also 0 while an OpenSession runs, which is how requestStop()
+            leaves one alone.
+        */
+        std::uint64_t current_ = 0;
+        //! Set by abandon(). Guarded by mutex_.
+        bool abandoned_ = false;
 
+        //! Read at every stop boundary, so an atomic rather than the mutex.
+        /*! Only ever true for the request being served: it is set only when
+            the target is current_, and reset each time a request starts.
+        */
         std::atomic<bool> stopRequested_{false};
     };
 

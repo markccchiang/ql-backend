@@ -558,15 +558,37 @@ namespace qlbackend {
             }
 
             if (frame.has_cancel()) {
-                try {
-                    supervisor->cancel(sessionId, frame);
-                } catch (const std::exception& e) {
-                    fail(sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT, e.what());
-                    return;
+                // Only a request this session is still owed an answer for is
+                // anything to stop. One that has answered, or was never sent,
+                // is acknowledged and nothing is touched: a Stop pressed just
+                // as the result arrived is the ordinary case, and a cancel
+                // that reached the supervisor for it used to end in a kill of
+                // the whole worker, other clients' sessions included.
+                const auto target = frame.cancel().target_request_id();
+                const auto owed = outstanding.find(sessionId);
+                const bool inFlight =
+                    target != 0 && owed != outstanding.end() && owed->second.count(target) > 0;
+
+                if (inFlight) {
+                    auto outcome = Supervisor::CancelOutcome::NotRunning;
+                    try {
+                        outcome = supervisor->cancel(sessionId, target);
+                    } catch (const std::exception& e) {
+                        fail(sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT,
+                             e.what());
+                        return;
+                    }
+                    if (outcome == Supervisor::CancelOutcome::NoSession) {
+                        fail(sessionId, frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
+                             "no session '" + sessionId + "'");
+                        return;
+                    }
                 }
+
                 // The cancel is itself a request and nothing downstream
                 // answers it: the supervisor acts on the target and never
-                // forwards this frame to a worker. Its id terminates here.
+                // forwards this frame to a worker. Its id terminates here,
+                // and only here, so it gets exactly one terminal frame.
                 emit(sessionId, frame.request_id(),
                      [](qlpb::ServerFrame& out) { out.mutable_ack(); });
                 return;

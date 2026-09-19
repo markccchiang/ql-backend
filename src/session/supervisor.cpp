@@ -378,40 +378,58 @@ namespace qlbackend {
     }
 
 
-    void Supervisor::cancel(const std::string& sessionId, const qlpb::ClientFrame& frame) {
-        const auto targetRequestId = frame.cancel().target_request_id();
-
+    Supervisor::CancelOutcome Supervisor::cancel(const std::string& sessionId,
+                                                 std::uint64_t targetRequestId) {
         auto it = sessions_.find(sessionId);
-        if (it == sessions_.end()) {
-            emitError(sessionId, frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
-                      "no session '" + sessionId + "'");
-            return;
-        }
+        if (it == sessions_.end())
+            return CancelOutcome::NoSession;
         auto& state = it->second;
         auto& pending = state.cancel;
 
         const auto known =
             std::find(pending.targets.begin(), pending.targets.end(), targetRequestId);
         if (known != pending.targets.end())
-            return; // idempotent: a second click must not shorten the grace or kill twice
+            return CancelOutcome::Stopping; // idempotent: a second click must not
+                                            // shorten the grace or kill twice
+
+        // Polite first, and aimed: only the named request on this session's
+        // seat is asked to stop. A Monte Carlo running with progress enabled
+        // checks between batches and stops there, terminating its own request
+        // and keeping its session alive. This does nothing at all for an
+        // engine called once, which is the common case, so the deferred kill
+        // below is what has to work; the grace only buys the cheap outcome
+        // when the engine happens to be able to offer it.
+        switch (host_.requestStop(state.workerId, sessionId, targetRequestId)) {
+            case ProcessHost::StopOutcome::NotFound:
+                // Nothing on the seat to stop. Arming the kill anyway is what
+                // used to disown every session on the worker 250 ms later for
+                // a request that was never going to terminate there.
+                return CancelOutcome::NotRunning;
+
+            case ProcessHost::StopOutcome::Dequeued:
+                // It will never run, so it will never answer, and nothing is
+                // left to kill. A write that was parked for the log never
+                // reached the graph and must not enter it either.
+                state.pendingUpdates.erase(targetRequestId);
+                emitError(sessionId, targetRequestId, qlpb::Error::CANCELLED,
+                          "cancelled by client before it started");
+                return CancelOutcome::Dequeued;
+
+            case ProcessHost::StopOutcome::Running:
+                break;
+        }
 
         pending.targets.push_back(targetRequestId);
 
-        // Polite first: a Monte Carlo running with progress enabled checks
-        // between batches and stops there, terminating its own request and
-        // keeping its session alive. This does nothing at all for an engine
-        // called once, which is the common case, so the deferred kill below is
-        // what has to work; the grace only buys the cheap outcome when the
-        // engine happens to be able to offer it.
-        host_.requestStop(state.workerId);
-
         if (pending.timerArmed)
-            return; // one deadline per round; the kill serves every target on it
+            return CancelOutcome::Stopping; // one deadline per round; the kill
+                                            // serves every target on it
 
         pending.timerArmed = true;
         const auto generation = state.cancelGeneration;
         armTimer_(options_.stopGrace,
                   [this, sessionId, generation] { onStopGraceExpired(sessionId, generation); });
+        return CancelOutcome::Stopping;
     }
 
 

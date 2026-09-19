@@ -57,6 +57,12 @@ HEALTH = "http://127.0.0.1:9111/healthz"
 # calendar, so a fixed evaluation date is as good as today's and reproduces.
 TODAY = date(2026, 9, 1)
 
+# A CRR lattice long enough to outlast the 250 ms stop grace many times over:
+# one engine call, which nothing can interrupt from outside, of about 4 s on
+# the laptop this was measured on and still over a second on one three times
+# faster. The cancel checks use it as the request that must not be stopped.
+LONG_LATTICE_STEPS = 150000
+
 
 def days(t):
     """timeToDays(t, 360) — Integer(std::lround(t * 360))."""
@@ -1811,6 +1817,12 @@ async def main():
         # the worker is disowned and the session replayed into a fresh one.
         f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, 20000000))
         await ws.send(f.SerializeToString())
+        # Under way first: a cancel that reaches the request while it is still
+        # queued removes it without running it, which is the cheap path tested
+        # below rather than this one. A single engine call reports no progress
+        # to wait for, so this waits out the relocation to a sacrificial worker
+        # instead.
+        await asyncio.sleep(0.5)
         c = E.ClientFrame(request_id=next_id(), session_id=sid)
         c.cancel.target_request_id = f.request_id
         await ws.send(c.SerializeToString())
@@ -1834,6 +1846,64 @@ async def main():
               and abs(reply.price_result.npv - analytic) < 1.0e-12,
               f"{reply.price_result.npv:.10f}" if reply.HasField("price_result")
               else E.Error.Code.Name(reply.error.code))
+
+        # A cancel stops the request it names and nothing else. The two ways
+        # to get that wrong both used to end in a kill, which takes whatever
+        # else is running on the worker with it: a target that is not running
+        # at all, and one still queued behind another request. A long lattice
+        # is the other request here, because nothing can stop it from outside:
+        # if the cancel reaches it, it dies rather than prices.
+        async def terminals_for(*ids, timeout=60.0):
+            """Every terminal frame for these ids, in the order they arrived."""
+            order, frames = [], {}
+            deadline = time.time() + timeout
+            while len(frames) < len(ids):
+                raw = await asyncio.wait_for(ws.recv(), timeout=max(0.1, deadline - time.time()))
+                g = E.ServerFrame()
+                g.ParseFromString(raw)
+                if g.terminal and g.request_id in ids:
+                    frames[g.request_id] = g
+                    order.append(g.request_id)
+            return frames, order
+
+        def outcome(frame):
+            if frame.HasField("error"):
+                return E.Error.Code.Name(frame.error.code)
+            return frame.WhichOneof("payload")
+
+        slow = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=LONG_LATTICE_STEPS)
+        started = time.time()
+        await ws.send(slow.SerializeToString())
+        c = E.ClientFrame(request_id=next_id(), session_id=sid)
+        c.cancel.target_request_id = slow.request_id + 1000000   # nothing by that id
+        await ws.send(c.SerializeToString())
+        got, _ = await terminals_for(slow.request_id, c.request_id)
+        took = time.time() - started
+        check("a cancel naming no running request is acknowledged",
+              got[c.request_id].HasField("ack"), outcome(got[c.request_id]))
+        check("and stops nothing: the request that was running still prices",
+              got[slow.request_id].HasField("price_result"),
+              f"{outcome(got[slow.request_id])} after {took:.2f}s")
+
+        slow = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=LONG_LATTICE_STEPS)
+        queued = vanilla_frame(sid, row)
+        await ws.send(slow.SerializeToString())
+        await ws.send(queued.SerializeToString())
+        c = E.ClientFrame(request_id=next_id(), session_id=sid)
+        c.cancel.target_request_id = queued.request_id
+        await ws.send(c.SerializeToString())
+        got, order = await terminals_for(slow.request_id, queued.request_id, c.request_id)
+        check("a cancel of a queued request removes it without running it",
+              got[queued.request_id].HasField("error")
+              and got[queued.request_id].error.code == E.Error.CANCELLED
+              and order.index(queued.request_id) < order.index(slow.request_id),
+              f"{outcome(got[queued.request_id])}, answered "
+              f"{'before' if order.index(queued.request_id) < order.index(slow.request_id) else 'after'}"
+              " the request ahead of it")
+        check("and leaves the request ahead of it running",
+              got[slow.request_id].HasField("price_result"), outcome(got[slow.request_id]))
+        check("and the cancel of a queued request is acknowledged",
+              got[c.request_id].HasField("ack"), outcome(got[c.request_id]))
 
         # -- the quanto barrier benchmark -------------------------------------
         #
