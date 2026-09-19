@@ -406,15 +406,11 @@ namespace qlbackend {
                                       "a finite-difference grid needs both dimensions");
                     // Damping steps are Rannacher's fix for the oscillation a
                     // Crank-Nicolson-family scheme shows against a kinked
-                    // payoff or a barrier: the first few steps are taken
-                    // fully implicit. They are counted in addition to
-                    // time_steps rather than out of them.
-                    QLS_FIELD_REQUIRE(c.damping_steps() < c.time_steps(),
-                                      qlpb::Error::INVALID_ARGUMENT,
-                                      fieldPath + ".custom.damping_steps",
-                                      "damping steps are the first few of the time steps taken "
-                                      "fully implicit, so there have to be more time steps than "
-                                      "damping steps");
+                    // payoff or a barrier: fully implicit steps taken first.
+                    // They are counted in addition to time_steps, not out of
+                    // them -- FdmBackwardSolver::rollback runs steps +
+                    // dampingSteps -- so any number is a grid, and
+                    // checkEngineLimits bounds them as it bounds time steps.
                     return ext::make_shared<FdBase>(g.process, c.time_steps(), c.asset_steps(),
                                                     c.damping_steps(),
                                                     fdSchemeFor(c.scheme(),
@@ -1537,6 +1533,13 @@ namespace qlbackend {
                                   "a finite-difference grid takes at most "
                                       << kMaxFdAssetSteps << " asset steps, got "
                                       << grid.asset_steps());
+                // Run in addition to the time steps, so held to the same bound.
+                QLS_FIELD_REQUIRE(grid.damping_steps() <= kMaxFdTimeSteps,
+                                  qlpb::Error::INVALID_ARGUMENT,
+                                  "engine.fd.custom.damping_steps",
+                                  "a finite-difference grid takes at most "
+                                      << kMaxFdTimeSteps << " damping steps, got "
+                                      << grid.damping_steps());
             }
 
             if (engine.has_mc()) {

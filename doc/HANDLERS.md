@@ -429,9 +429,9 @@ on the frame. An unstable run does not fail: at 100×200 this build answered
 condition.
 
 `damping_steps` are Rannacher's fix for the oscillation a Crank-Nicolson-family
-scheme shows against a kinked payoff or a barrier — the first few steps taken
-fully implicit. They are counted out of `time_steps`, so a request with at
-least as many damping steps as time steps is `INVALID_ARGUMENT`.
+scheme shows against a kinked payoff or a barrier — fully implicit steps taken
+first. They run in addition to `time_steps`, not out of them, and are held to
+the same limit.
 
 **Monte Carlo.** `seed` must be non-zero, because QuantLib otherwise seeds from
 the clock and the same inputs would price differently on every request. Give
@@ -767,7 +767,7 @@ client taking everything:
 | sessions per socket | 16 | `OVERLOADED` | A session is a live QuantLib graph on a worker seat, so this is what protects the pool rather than the socket |
 | frame size | 4 MB | closed by the transport | An `OpenSession` with a few hundred pillars exceeds uWebSockets' 16 KB default |
 | points per sweep | 100,000 | `INVALID_ARGUMENT` | A grid multiplies; see [Scenario sweeps](#scenario-sweeps) |
-| engine sizes | lattice 10,000 steps; FD grid 10,000 × 10,000; Monte Carlo 100,000,000 paths, 10,000 steps a year, 10,000 batches; implied volatility 1,000 evaluations | `INVALID_ARGUMENT`, naming the field | One engine call cannot be interrupted, so its size is the only place to stop a request that would run for days or take the process's memory |
+| engine sizes | lattice 10,000 steps; FD grid 10,000 × 10,000; FD damping 10,000 steps; Monte Carlo 100,000,000 paths, 10,000 steps a year, 10,000 batches; implied volatility 1,000 evaluations | `INVALID_ARGUMENT`, naming the field | One engine call cannot be interrupted, so its size is the only place to stop a request that would run for days or take the process's memory |
 | market sizes | variance surface 1,000 expiries by 1,000 strikes; correlation matrix 100 labels | `INVALID_ARGUMENT`, naming the field | Each size check multiplies, and an unbounded product overflowed into a count a client could send |
 
 `--max-connections` and `--max-sessions` move the first two. Both are refusals

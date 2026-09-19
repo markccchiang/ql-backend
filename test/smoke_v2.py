@@ -1142,12 +1142,22 @@ async def main():
         f.price.engine.fd.custom.scheme = EN.FdParameters.Explicit.SCHEME_EXPLICIT_EULER
         await rejected("explicit Euler", f, "engine.fd.custom.scheme", E.Error.UNSUPPORTED)
 
+        # Damping steps run in addition to the time steps: FdmBackwardSolver
+        # takes steps + dampingSteps in all. They were refused unless fewer
+        # than the time steps, on the reading that they were counted out of
+        # them; as many as the time steps prices, and they are bounded by
+        # the time-step limit instead.
         f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
         f.price.engine.fd.custom.time_steps = 20
         f.price.engine.fd.custom.asset_steps = 200
         f.price.engine.fd.custom.damping_steps = 20
         f.price.engine.fd.custom.scheme = EN.FdParameters.Explicit.SCHEME_DOUGLAS
-        await rejected("more damping steps than time steps", f,
+        reply = await send(ws, f)
+        check("as many damping steps as time steps prices, since they are extra",
+              reply.HasField("price_result"),
+              f"{reply.error.field_path!r} {reply.error.message[:80]!r}" if reply.HasField("error") else "")
+        f.price.engine.fd.custom.damping_steps = MAX_FD_TIME_STEPS + 1
+        await rejected("more damping steps than a grid may have time steps", f,
                        "engine.fd.custom.damping_steps", E.Error.INVALID_ARGUMENT)
 
         # The quanto FD path can only take one of the compiled presets, and
