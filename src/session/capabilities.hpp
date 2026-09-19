@@ -45,6 +45,26 @@ namespace qlbackend {
     */
     constexpr int kMaxCurveSamplePoints = 10000;
 
+    //! The most expiries, and separately the most strikes, one variance
+    //! surface may have.
+    /*! A traded surface is tens of expiries by tens of strikes. The cap is
+        not about pricing cost but about the check it guards: expiries times
+        strikes has to equal the number of volatilities sent, and two axes of
+        65,536 multiply to 2^32, which an int reads as zero. A surface with no
+        volatilities then passed, and the loop after it read past the end of
+        the list into a 34 GB matrix. Checked before a single expiry is parsed.
+    */
+    constexpr int kMaxSurfaceAxisPoints = 1000;
+
+    //! The most labels one correlation matrix may have.
+    /*! Every basket engine here takes a handful of assets, and the positive
+        semi-definite check each matrix goes through is an eigendecomposition,
+        cubic in the label count. Like the surface cap, it also bounds the
+        n x n the value count is checked against, which for 65,537 labels
+        overflowed an int into a count a client could meet.
+    */
+    constexpr int kMaxCorrelationLabels = 100;
+
     //! Fills the reply to a Hello.
     /*! The lists here and the dispatch in session.cpp are the same fact told
         twice, and the second telling is the one that goes over the wire. They

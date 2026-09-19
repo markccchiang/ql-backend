@@ -1096,14 +1096,30 @@ namespace qlbackend {
             case qlpb::VolatilitySurface::kVarianceSurface: {
                 const std::string path = fieldPath + ".variance_surface";
                 const auto& vs = def.variance_surface();
+                // Both axes bounded before either is read: the size check
+                // below multiplies them, and an unbounded product is what let
+                // a surface with no volatilities through (kMaxSurfaceAxisPoints).
+                QLS_FIELD_REQUIRE(vs.expiries_size() <= kMaxSurfaceAxisPoints,
+                                  qlpb::Error::INVALID_ARGUMENT, path + ".expiries",
+                                  "a variance surface takes at most "
+                                      << kMaxSurfaceAxisPoints << " expiries, got "
+                                      << vs.expiries_size());
+                QLS_FIELD_REQUIRE(vs.strikes_size() <= kMaxSurfaceAxisPoints,
+                                  qlpb::Error::INVALID_ARGUMENT, path + ".strikes",
+                                  "a variance surface takes at most "
+                                      << kMaxSurfaceAxisPoints << " strikes, got "
+                                      << vs.strikes_size());
+
                 std::vector<Date> expiries;
                 for (int i = 0; i < vs.expiries_size(); ++i)
                     expiries.push_back(registry_.date(
                         vs.expiries(i), path + ".expiries[" + std::to_string(i) + "]"));
                 std::vector<Real> strikes(vs.strikes().begin(), vs.strikes().end());
 
+                // In 64 bits, so the product cannot wrap whatever the caps are.
                 QLS_FIELD_REQUIRE(
-                    vs.volatilities_size() == static_cast<int>(expiries.size() * strikes.size()),
+                    static_cast<std::uint64_t>(vs.volatilities_size()) ==
+                        static_cast<std::uint64_t>(expiries.size()) * strikes.size(),
                     qlpb::Error::INVALID_ARGUMENT, path + ".volatilities",
                     "a variance surface needs expiries x strikes volatilities, got "
                         << vs.volatilities_size() << " for " << expiries.size() << " x "
@@ -1199,7 +1215,15 @@ namespace qlbackend {
         const int n = msg.labels_size();
         QLS_FIELD_REQUIRE(n > 1, qlpb::Error::INVALID_ARGUMENT, fieldPath + ".labels",
                           "a correlation matrix needs at least two labels, got " << n);
-        QLS_FIELD_REQUIRE(msg.values_size() == n * n, qlpb::Error::INVALID_ARGUMENT,
+        QLS_FIELD_REQUIRE(n <= kMaxCorrelationLabels, qlpb::Error::INVALID_ARGUMENT,
+                          fieldPath + ".labels",
+                          "a correlation matrix takes at most " << kMaxCorrelationLabels
+                                                                << " labels, got " << n);
+        // In 64 bits: n * n in an int is undefined past 46,340 labels, and
+        // wrapped into a count a client could send.
+        QLS_FIELD_REQUIRE(static_cast<std::int64_t>(msg.values_size()) ==
+                              static_cast<std::int64_t>(n) * n,
+                          qlpb::Error::INVALID_ARGUMENT,
                           fieldPath + ".values",
                           "a " << n << "-label correlation matrix needs " << n * n
                                << " row-major entries, got " << msg.values_size());

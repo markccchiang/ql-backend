@@ -1525,6 +1525,46 @@ async def main():
         await rejected("a correlation matrix no set of assets could have", f,
                        "market[0].correlation.values", E.Error.INVALID_ARGUMENT)
 
+        # Two shapes whose size check used to overflow an int. 65,536 x 65,536
+        # is 2^32, which a 32-bit count reads as zero, so a surface with no
+        # volatilities passed and the loop after it read past the end of the
+        # list into a 34 GB matrix; 65,537 labels squared wrapped the same way.
+        # Each now stops at a cap on the axis, by name, before anything is
+        # allocated. A connection of their own, because a refused open still
+        # holds a session slot on the socket it came from.
+        async with connect(URL, max_size=None) as side:
+            f = E.ClientFrame(request_id=next_id())
+            f.open_session.evaluation_date.iso = TODAY.isoformat()
+            m = f.open_session.market.add()
+            m.id = "HUGE"
+            act360(m.volatility.day_counter)
+            vs = m.volatility.variance_surface
+            for _ in range(65536):
+                vs.expiries.add().iso = "2027-09-01"
+            vs.strikes.extend([100.0] * 65536)
+            reply = await send(side, f)
+            check("a variance surface too large to count is refused by its size",
+                  reply.HasField("error")
+                  and reply.error.field_path == "market[0].volatility.variance_surface.expiries"
+                  and reply.error.code == E.Error.INVALID_ARGUMENT,
+                  f"{reply.error.field_path!r} {E.Error.Code.Name(reply.error.code)}"
+                  if reply.HasField("error") else "opened")
+
+            f = E.ClientFrame(request_id=next_id())
+            f.open_session.evaluation_date.iso = TODAY.isoformat()
+            m = f.open_session.market.add()
+            m.id = "HUGE"
+            m.correlation.labels.extend(f"L{i}" for i in range(65537))
+            for _ in range(131073):   # 65,537^2 as it wrapped in 32 bits
+                m.correlation.values.add().fixed = 0.0
+            reply = await send(side, f)
+            check("a correlation matrix too large to count is refused by its size",
+                  reply.HasField("error")
+                  and reply.error.field_path == "market[0].correlation.labels"
+                  and reply.error.code == E.Error.INVALID_ARGUMENT,
+                  f"{reply.error.field_path!r} {E.Error.Code.Name(reply.error.code)}"
+                  if reply.HasField("error") else "opened")
+
         # And the style arm that is no longer a product of its own.
         f, opt = base_frame(sid)
         opt.payoff.type = OPTION_TYPE[brow2["type"]]
