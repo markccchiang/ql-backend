@@ -125,6 +125,36 @@ namespace qlbackend {
             return std::chrono::duration<double>(elapsed).count();
         }
 
+        //! The literal a Number holds where only a literal can be read.
+        /*! Refuses a quote id, which would never be observed (`why` says
+            what copies it), and an unset source, which `.fixed()` would
+            otherwise read as 0.
+        */
+        Real fixedNumber(const qlpb::Number& n, const std::string& path, const char* why) {
+            QLS_FIELD_REQUIRE(n.source_case() != qlpb::Number::kQuoteId, qlpb::Error::UNSUPPORTED,
+                              path + ".quote_id", why);
+            QLS_FIELD_REQUIRE(n.source_case() == qlpb::Number::kFixed,
+                              qlpb::Error::INVALID_ARGUMENT, path, "a value is required");
+            return n.fixed();
+        }
+
+        //! Refuses the variance-reduction switches an MC engine does not take.
+        /*! Each MakeMC* builder takes a different subset; the rest were
+            accepted, echoed back in the result, and never applied.
+        */
+        void refuseUnreadVariates(const qlpb::McParameters& mc, bool takesAntithetic,
+                                  bool takesBrownianBridge, bool takesControlVariate) {
+            QLS_FIELD_REQUIRE(takesAntithetic || !mc.antithetic_variate(),
+                              qlpb::Error::UNSUPPORTED, "engine.mc.antithetic_variate",
+                              "this Monte Carlo engine does not take antithetic variates");
+            QLS_FIELD_REQUIRE(takesBrownianBridge || !mc.brownian_bridge(),
+                              qlpb::Error::UNSUPPORTED, "engine.mc.brownian_bridge",
+                              "this Monte Carlo engine does not take a Brownian bridge");
+            QLS_FIELD_REQUIRE(takesControlVariate || !mc.control_variate(),
+                              qlpb::Error::UNSUPPORTED, "engine.mc.control_variate",
+                              "this Monte Carlo engine does not take a control variate");
+        }
+
         //! Reads a Flag, which has no safe default by construction.
         /*! A `bool` would price on `false` for a field the client forgot,
             silently. That is the hole `*_UNSPECIFIED` closes for enums and
@@ -809,12 +839,24 @@ namespace qlbackend {
         // which is exactly the failure DESIGN §5 exists to prevent, so those
         // nodes must be `fixed` and a quote id is refused by name.
         auto nodeValue = [](const qlpb::Number& n, const std::string& path) {
-            QLS_FIELD_REQUIRE(n.source_case() != qlpb::Number::kQuoteId, qlpb::Error::UNSUPPORTED,
-                              path + ".quote_id",
-                              "an interpolated curve copies its nodes at construction and never "
-                              "observes them, so a quote id here would never move the curve; use "
-                              "'fixed', or a bootstrapped or flat curve for live pillars");
-            return n.fixed();
+            return fixedNumber(n, path,
+                               "an interpolated curve copies its nodes at construction and never "
+                               "observes them, so a quote id here would never move the curve; use "
+                               "'fixed', or a bootstrapped or flat curve for live pillars");
+        };
+        // Each shape is one compiled interpolation. Named otherwise, the
+        // interpolator was read by nothing and the curve interpolated its own
+        // way anyway.
+        auto requireInterpolator = [](const qlpb::InterpolatedCurve& ic, qlpb::Interpolator built,
+                                      const std::string& path) {
+            QLS_FIELD_REQUIRE(ic.interpolator() == qlpb::INTERPOLATOR_UNSPECIFIED ||
+                                  ic.interpolator() == built,
+                              qlpb::Error::UNSUPPORTED, path + ".interpolator",
+                              "this curve shape interpolates " << qlpb::Interpolator_Name(built)
+                                                               << " and nothing else; "
+                                                               << qlpb::Interpolator_Name(
+                                                                      ic.interpolator())
+                                                               << " would be read by nothing");
         };
 
         auto nodeDates = [&](const qlpb::InterpolatedCurve& ic, const std::string& path) {
@@ -867,6 +909,7 @@ namespace qlbackend {
             case qlpb::YieldCurve::kZero: {
                 const std::string path = fieldPath + ".zero";
                 const auto& ic = def.zero();
+                requireInterpolator(ic, qlpb::INTERPOLATOR_LINEAR, path);
                 auto dates = nodeDates(ic, path);
                 std::vector<Rate> rates;
                 for (int i = 0; i < ic.nodes_size(); ++i)
@@ -886,6 +929,7 @@ namespace qlbackend {
             case qlpb::YieldCurve::kDiscount: {
                 const std::string path = fieldPath + ".discount";
                 const auto& ic = def.discount();
+                requireInterpolator(ic, qlpb::INTERPOLATOR_LOG_LINEAR, path);
                 auto dates = nodeDates(ic, path);
                 std::vector<DiscountFactor> dfs;
                 for (int i = 0; i < ic.nodes_size(); ++i)
@@ -931,6 +975,13 @@ namespace qlbackend {
         // That propagation is the whole reason the session is stateful.
         const Handle<Quote> rate = quoteHandle(pillar.quote_id(), fieldPath + ".quote_id");
         const auto index = indexById(pillar.index_id(), fieldPath + ".index_id");
+        // Dual-curve bootstrapping: none of the helpers below is given a
+        // discounting curve, so each discounts on the curve being built, and a
+        // dual-curve request came back single-curve with nothing to say so.
+        QLS_FIELD_REQUIRE(pillar.discount_curve_id().empty(), qlpb::Error::UNSUPPORTED,
+                          fieldPath + ".discount_curve_id",
+                          "dual-curve bootstrapping is in the schema and not built: each pillar "
+                          "discounts on the curve it is building");
 
         switch (pillar.kind()) {
 
@@ -1077,12 +1128,10 @@ namespace qlbackend {
                 for (int i = 0; i < vc.nodes_size(); ++i) {
                     const std::string p = path + ".nodes[" + std::to_string(i) + "]";
                     dates.push_back(registry_.date(vc.nodes(i).expiry(), p + ".expiry"));
-                    QLS_FIELD_REQUIRE(
-                        vc.nodes(i).volatility().source_case() != qlpb::Number::kQuoteId,
-                        qlpb::Error::UNSUPPORTED, p + ".volatility.quote_id",
-                        "BlackVarianceCurve copies its volatilities at construction and never "
-                        "observes them; use 'fixed'");
-                    vols.push_back(vc.nodes(i).volatility().fixed());
+                    vols.push_back(fixedNumber(vc.nodes(i).volatility(), p + ".volatility",
+                                               "BlackVarianceCurve copies its volatilities at "
+                                               "construction and never observes them; use "
+                                               "'fixed'"));
                 }
                 QLS_FIELD_REQUIRE(!dates.empty(), qlpb::Error::INVALID_ARGUMENT, path + ".nodes",
                                   "a variance curve needs at least one node");
@@ -1110,6 +1159,25 @@ namespace qlbackend {
                                       << kMaxSurfaceAxisPoints << " strikes, got "
                                       << vs.strikes_size());
 
+                // BlackVarianceSurface interpolates bilinearly, extends across
+                // strikes by its interpolator and not at all past the last
+                // expiry. Anything else asked for here was read by nothing.
+                QLS_FIELD_REQUIRE(vs.interpolator() == qlpb::INTERPOLATOR_UNSPECIFIED ||
+                                      vs.interpolator() == qlpb::INTERPOLATOR_LINEAR,
+                                  qlpb::Error::UNSUPPORTED, path + ".interpolator",
+                                  "a variance surface interpolates bilinearly and nothing else");
+                QLS_FIELD_REQUIRE(
+                    vs.strike_extrapolation() == qlpb::VarianceSurface::EXTRAPOLATION_UNSPECIFIED ||
+                        vs.strike_extrapolation() ==
+                            qlpb::VarianceSurface::EXTRAPOLATION_INTERPOLATOR,
+                    qlpb::Error::UNSUPPORTED, path + ".strike_extrapolation",
+                    "a variance surface extends across strikes by its interpolator and no "
+                    "other way");
+                QLS_FIELD_REQUIRE(
+                    vs.time_extrapolation() == qlpb::VarianceSurface::EXTRAPOLATION_UNSPECIFIED,
+                    qlpb::Error::UNSUPPORTED, path + ".time_extrapolation",
+                    "a variance surface does not extend past its last expiry");
+
                 std::vector<Date> expiries;
                 for (int i = 0; i < vs.expiries_size(); ++i)
                     expiries.push_back(registry_.date(
@@ -1129,10 +1197,17 @@ namespace qlbackend {
                 // Matrix here is strikes x expiries, so this transposes rather
                 // than reshapes. Getting it the wrong way round produces a
                 // surface that prices without complaint.
+                // Read as literals, like the variance curve's: a quote id here
+                // used to read as a volatility of 0, and price at intrinsic.
                 Matrix v(strikes.size(), expiries.size());
                 for (Size i = 0; i < expiries.size(); ++i)
-                    for (Size j = 0; j < strikes.size(); ++j)
-                        v[j][i] = vs.volatilities(static_cast<int>(i * strikes.size() + j)).fixed();
+                    for (Size j = 0; j < strikes.size(); ++j) {
+                        const auto at = static_cast<int>(i * strikes.size() + j);
+                        v[j][i] = fixedNumber(vs.volatilities(at),
+                                              path + ".volatilities[" + std::to_string(at) + "]",
+                                              "BlackVarianceSurface copies its volatilities at "
+                                              "construction and never observes them; use 'fixed'");
+                    }
 
                 vols_[id] = Handle<BlackVolTermStructure>(ext::make_shared<BlackVarianceSurface>(
                     evaluationDate_, cal, expiries, strikes, v, dc));
@@ -1321,15 +1396,26 @@ namespace qlbackend {
         QLS_FIELD_REQUIRE(msg.quotes_size() > 0 || msg.fixings_size() > 0,
                           qlpb::Error::INVALID_ARGUMENT, "quotes", "empty market update");
 
+        // Every name checked before anything is written. A typo'd quote id
+        // used to be found mid-batch, inside the guard whose failure marks the
+        // session dirty -- so one wrong id failed the next Price as well, and
+        // cost a full replay, for a write that never touched the graph.
+        for (int i = 0; i < msg.quotes_size(); ++i)
+            QLS_FIELD_REQUIRE(quotes_.count(msg.quotes(i).quote_id()) != 0,
+                              qlpb::Error::UNKNOWN_ID,
+                              "quotes[" + std::to_string(i) + "].quote_id",
+                              "unknown quote '" << msg.quotes(i).quote_id() << "'");
+        for (int i = 0; i < msg.fixings_size(); ++i)
+            QLS_FIELD_REQUIRE(indices_.count(msg.fixings(i).index_id()) != 0,
+                              qlpb::Error::UNKNOWN_ID,
+                              "fixings[" + std::to_string(i) + "].index_id",
+                              "unknown index '" << msg.fixings(i).index_id() << "'");
+
         // One guard around the whole batch: N quote writes, one recalculation.
         UpdateGuard guard;
         try {
-            for (const auto& u : msg.quotes()) {
-                auto it = quotes_.find(u.quote_id());
-                QLS_FIELD_REQUIRE(it != quotes_.end(), qlpb::Error::UNKNOWN_ID, "quotes",
-                                  "unknown quote '" << u.quote_id() << "'");
-                it->second->setValue(u.value());
-            }
+            for (const auto& u : msg.quotes())
+                quotes_.find(u.quote_id())->second->setValue(u.value());
             for (int i = 0; i < msg.fixings_size(); ++i)
                 applyFixings(msg.fixings(i), "fixings[" + std::to_string(i) + "]");
         } catch (...) {
@@ -1355,9 +1441,20 @@ namespace qlbackend {
             // invalidated it and the next NPV() re-runs the bootstrap. This
             // exists only for inputs that are not observable — a fixing added
             // to IndexManager, say — where nothing notified the curve.
-            for (auto& entry : curves_) {
-                if (auto lazy = ext::dynamic_pointer_cast<LazyObject>(entry.second.currentLink()))
-                    lazy->recalculate();
+            //
+            // After the commit, so a bootstrap that fails here does so with
+            // the writes already in the graph. The client is told the update
+            // failed and the log drops it, so the graph and the log would
+            // disagree: the session is marked dirty and rebuilt from the log.
+            try {
+                for (auto& entry : curves_) {
+                    if (auto lazy =
+                            ext::dynamic_pointer_cast<LazyObject>(entry.second.currentLink()))
+                        lazy->recalculate();
+                }
+            } catch (...) {
+                dirty_ = true;
+                throw;
             }
         }
     }
@@ -1468,12 +1565,44 @@ namespace qlbackend {
     }
 
 
+    namespace {
+
+        //! Refuses engine fields this build takes over the wire and never reads.
+        /*! Each was accepted and priced without: a model other than
+            Black-Scholes came back Black-Scholes, and a Sobol request came
+            back pseudo-random -- while the result's engine echo, copied from
+            the request, said Sobol. A parameter a client can see us take and
+            cannot see us ignore is the defect this schema exists to avoid.
+            Unset and the one value that is built stay accepted.
+        */
+        void checkEngineRead(const qlpb::PriceRequest& msg) {
+            const auto& engine = msg.engine();
+            const auto model = engine.model();
+            QLS_FIELD_REQUIRE(model == qlpb::Engine::MODEL_UNSPECIFIED ||
+                                  model == qlpb::Engine::MODEL_BLACK_SCHOLES,
+                              qlpb::Error::UNSUPPORTED, "engine.model",
+                              qlpb::Engine::Model_Name(model)
+                                  << " is in the schema and not built: every price here is "
+                                     "Black-Scholes, with the process the underlying names");
+            if (engine.has_mc())
+                QLS_FIELD_REQUIRE(engine.mc().rng() != qlpb::McParameters::RNG_LOW_DISCREPANCY,
+                                  qlpb::Error::UNSUPPORTED, "engine.mc.rng",
+                                  "every Monte Carlo here draws pseudo-random numbers (Mersenne "
+                                  "twister); low-discrepancy sequences are in the schema and "
+                                  "not built");
+        }
+
+    }
+
+
     Session::PriceOutcome Session::price(const qlpb::PriceRequest& msg,
                                          const ProgressSink& progress) {
         QL_REQUIRE(!dirty_, "session is dirty and must be replayed before pricing");
 
-        // Before anything is built: every other path below trusts these sizes.
+        // Before anything is built: every other path below trusts these sizes,
+        // and none of them reads the fields refused here.
         checkEngineLimits(msg);
+        checkEngineRead(msg);
 
         // Request options the schema offers and this build does not serve.
         // Rejected, not dropped: a client that asked for a cash-flow table
@@ -1806,6 +1935,7 @@ namespace qlbackend {
                                           base + ".exercise.type",
                                           "MCEuropeanEngine is European only");
                         const auto& mc = eng.mc();
+                        refuseUnreadVariates(mc, false, false, false);
                         if (mc.progress_every_paths() > 0)
                             return priceInBatches(msg, option, graph, progress);
                         QLS_FIELD_REQUIRE(
@@ -1977,6 +2107,7 @@ namespace qlbackend {
                         QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
                                           "engine.mc.samples",
                                           "a Monte Carlo request needs samples");
+                        refuseUnreadVariates(mc, false, false, false);
                         return run(option,
                                    MakeMCBarrierEngine<PseudoRandom>(graph.process)
                                        .withStepsPerYear(mc.time_steps_per_year() > 0
@@ -2153,6 +2284,7 @@ namespace qlbackend {
                         QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
                                           "engine.mc.samples",
                                           "a Monte Carlo request needs samples");
+                        refuseUnreadVariates(mc, false, false, true);
                         return run(option,
                                    MakeMCDiscreteArithmeticAPEngine<PseudoRandom>(graph.process)
                                        .withSamples(mc.samples())
@@ -2442,6 +2574,7 @@ namespace qlbackend {
                         QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
                                           "engine.mc.samples",
                                           "a Monte Carlo request needs samples");
+                        refuseUnreadVariates(mc, true, true, false);
                         return run(option,
                                    MakeMCEuropeanBasketEngine<PseudoRandom>(
                                        ext::make_shared<StochasticProcessArray>(processes,
@@ -2610,6 +2743,7 @@ namespace qlbackend {
                         QLS_FIELD_REQUIRE(mc.samples() > 0, qlpb::Error::INVALID_ARGUMENT,
                                           "engine.mc.samples",
                                           "a Monte Carlo request needs samples");
+                        refuseUnreadVariates(mc, true, true, false);
                         return run(option,
                                    MakeMCPerformanceEngine<PseudoRandom>(graph.process)
                                        .withSamples(mc.samples())

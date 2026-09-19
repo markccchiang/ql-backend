@@ -1175,6 +1175,39 @@ async def main():
         await rejected("unknown quote id", f,
                        "instrument.option.underlyings[0].spot_quote_id", E.Error.UNKNOWN_ID)
 
+        # Engine fields taken over the wire and read by nothing. Each used to
+        # price -- Black-Scholes, pseudo-random, no variance reduction -- under
+        # a request, and a result echo, that said otherwise.
+        f = vanilla_frame(sid, row)
+        f.price.engine.model = EN.Engine.MODEL_HESTON
+        await rejected("a model this build does not have", f, "engine.model",
+                       E.Error.UNSUPPORTED)
+        f = vanilla_frame(sid, row, method=EN.Engine.METHOD_MONTE_CARLO, mc=(42, 1000))
+        f.price.engine.mc.rng = EN.McParameters.RNG_LOW_DISCREPANCY
+        await rejected("a Sobol Monte Carlo, which is built pseudo-random", f,
+                       "engine.mc.rng", E.Error.UNSUPPORTED)
+        for field in ["antithetic_variate", "control_variate", "brownian_bridge"]:
+            f = vanilla_frame(sid, row, method=EN.Engine.METHOD_MONTE_CARLO, mc=(42, 1000))
+            setattr(f.price.engine.mc, field, True)
+            await rejected(f"a vanilla Monte Carlo asked for {field.replace('_', ' ')}", f,
+                           f"engine.mc.{field}", E.Error.UNSUPPORTED)
+
+        # A market update naming a quote the session does not have. It used to
+        # be found mid-batch, after the writes before it had landed, and dirty
+        # the session; it is now refused by position before anything is written.
+        before = (await send(ws, vanilla_frame(sid, row))).price_result.npv
+        reply = await send(ws, set_market(sid, S=row["s"] * 1.5, NOPE=1.0))
+        check("an update naming an unknown quote is refused at its position",
+              reply.HasField("error") and reply.error.field_path == "quotes[1].quote_id"
+              and reply.error.code == E.Error.UNKNOWN_ID,
+              f"{reply.error.field_path!r} {E.Error.Code.Name(reply.error.code)}"
+              if reply.HasField("error") else "applied")
+        after = await send(ws, vanilla_frame(sid, row))
+        check("...and writes nothing: the session prices as before",
+              after.HasField("price_result") and abs(after.price_result.npv - before) < 1e-12,
+              f"{before:.6f} -> {after.price_result.npv:.6f}"
+              if after.HasField("price_result") else after.WhichOneof("payload"))
+
         f = vanilla_frame(sid, row)
         f.price.instrument.option.underlyings.add().spot_quote_id = "S"
         await rejected("two underlyings on a one-asset option", f,
@@ -1495,6 +1528,10 @@ async def main():
         await rejected("a cliquet whose resets are out of order",
                        cliquet_frame(sid, krow, resets=[180, 90]),
                        "instrument.option.cliquet.reset_dates[1]", E.Error.INVALID_ARGUMENT)
+        f = cliquet_frame(sid, krow, performance=True, method=EN.Engine.METHOD_MONTE_CARLO)
+        f.price.engine.mc.control_variate = True
+        await rejected("a performance Monte Carlo asked for a control variate", f,
+                       "engine.mc.control_variate", E.Error.UNSUPPORTED)
         await rejected("a ratchet on the Monte Carlo engine, which only does performance",
                        cliquet_frame(sid, krow, method=EN.Engine.METHOD_MONTE_CARLO),
                        "instrument.option.cliquet.performance", E.Error.UNSUPPORTED)
@@ -1531,6 +1568,10 @@ async def main():
         await rejected("a two-asset finite-difference grid the schema cannot describe",
                        basket_frame(sid, brow2, method=EN.Engine.METHOD_FINITE_DIFFERENCE),
                        "engine.fd", E.Error.UNSUPPORTED)
+        f = basket_frame(sid, brow2, kind="average", method=EN.Engine.METHOD_MONTE_CARLO)
+        f.price.engine.mc.control_variate = True
+        await rejected("a basket Monte Carlo asked for a control variate", f,
+                       "engine.mc.control_variate", E.Error.UNSUPPORTED)
         await rejected("an underlying with no label for the correlation to index on",
                        basket_frame(sid, brow2, labels=("", "B")),
                        "instrument.option.underlyings[0].label", E.Error.INVALID_ARGUMENT)
@@ -1703,6 +1744,74 @@ async def main():
             n.value.fixed = v
         await rejected("an interpolated curve not anchored on the evaluation date", f,
                        "market[0].yield_curve.zero.nodes[0]", E.Error.INVALID_ARGUMENT)
+
+        # Interpolation schemes the curve and surface builders never read. A
+        # zero curve is linear in rates and a discount curve log-linear in
+        # discount factors whatever was named; now anything else is refused.
+        def interpolated(shape, interpolator):
+            f = E.ClientFrame(request_id=next_id())
+            f.open_session.evaluation_date.iso = TODAY.isoformat()
+            m = f.open_session.market.add()
+            m.id = "Z"
+            act360(m.yield_curve.day_counter)
+            m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
+            curve = getattr(m.yield_curve, shape)
+            curve.interpolator = interpolator
+            for tenor, v in [("0D", 1.0 if shape == "discount" else 0.03),
+                             ("5Y", 0.8 if shape == "discount" else 0.04)]:
+                n = curve.nodes.add()
+                n.tenor = tenor
+                n.value.fixed = v
+            if shape == "zero":
+                curve.compounding = C.CONTINUOUS
+                curve.frequency = C.ANNUAL
+            return f
+
+        await rejected("a cubic zero curve, which interpolates linearly",
+                       interpolated("zero", M.INTERPOLATOR_CUBIC),
+                       "market[0].yield_curve.zero.interpolator", E.Error.UNSUPPORTED)
+        await rejected("a linear discount curve, which interpolates log-linearly",
+                       interpolated("discount", M.INTERPOLATOR_LINEAR),
+                       "market[0].yield_curve.discount.interpolator", E.Error.UNSUPPORTED)
+
+        def surface(**fields):
+            f = E.ClientFrame(request_id=next_id())
+            f.open_session.evaluation_date.iso = TODAY.isoformat()
+            m = f.open_session.market.add()
+            m.id = "VS"
+            act360(m.volatility.day_counter)
+            vs = m.volatility.variance_surface
+            for t in (1.0, 2.0):
+                vs.expiries.add().iso = expiry(t)
+            vs.strikes.extend([90.0, 110.0])
+            for _ in range(4):
+                vs.volatilities.add().fixed = 0.2
+            for name, value in fields.items():
+                setattr(vs, name, value)
+            return f, vs
+
+        f, _ = surface(interpolator=M.INTERPOLATOR_CUBIC)
+        await rejected("a bicubic variance surface, which interpolates bilinearly", f,
+                       "market[0].volatility.variance_surface.interpolator", E.Error.UNSUPPORTED)
+        f, _ = surface(strike_extrapolation=M.VarianceSurface.EXTRAPOLATION_CONSTANT)
+        await rejected("a variance surface held flat across strikes", f,
+                       "market[0].volatility.variance_surface.strike_extrapolation",
+                       E.Error.UNSUPPORTED)
+        f, _ = surface(time_extrapolation=M.VarianceSurface.EXTRAPOLATION_CONSTANT)
+        await rejected("a variance surface extended past its last expiry", f,
+                       "market[0].volatility.variance_surface.time_extrapolation",
+                       E.Error.UNSUPPORTED)
+        # A quote id here used to read as a volatility of zero.
+        f, vs = surface()
+        vs.volatilities[2].quote_id = "V"
+        await rejected("a quote id on a variance surface cell", f,
+                       "market[0].volatility.variance_surface.volatilities[2].quote_id",
+                       E.Error.UNSUPPORTED)
+        f, vs = surface()
+        vs.volatilities[3].ClearField("fixed")
+        await rejected("a variance surface cell with no value", f,
+                       "market[0].volatility.variance_surface.volatilities[3]",
+                       E.Error.INVALID_ARGUMENT)
 
         # -- an interpolated curve that is spelled correctly ------------------
         print("\n  -- a second session, built a different way --")
@@ -2232,6 +2341,24 @@ async def main():
                       abs(bumped - at_par) > 1.0,
                       f"{at_par:.4f} -> {bumped:.4f}")
 
+                # A forced re-bootstrap that fails. It runs after the writes
+                # are committed, so the graph holds a pillar the log does not:
+                # the update is refused and dropped from the log, and the
+                # session used to go on pricing off the graph that kept it.
+                # Now it is dirty, replayed from the log, and prices as before.
+                f = set_market(sid3, D1M=-50.0)
+                f.update_market.force_rebootstrap = True
+                reply = await send(ws, f)
+                check("a forced re-bootstrap that cannot bootstrap is refused",
+                      reply.HasField("error"), reply.WhichOneof("payload"))
+                again = await send(ws, swap_frame(sid3))
+                check("...and the session prices from its log, without the refused pillar",
+                      again.HasField("price_result")
+                      and abs(again.price_result.npv - bumped) < 1e-6,
+                      f"{bumped:.4f} -> {again.price_result.npv:.4f}"
+                      if again.HasField("price_result")
+                      else f"{again.error.message[:120]!r}")
+
                 # The cash-flow table is the panel showing its working, and the
                 # property that makes it worth showing is that its present
                 # values add up to the NPV. Leg 0 pays and leg 1 receives, so
@@ -2291,6 +2418,14 @@ async def main():
         await rejected("an index forwarding off a curve that never appears",
                        swap_session(forwarding_curve="NOPE"),
                        "market[8].index.forwarding_curve_id", E.Error.UNKNOWN_ID)
+
+        # Dual-curve bootstrapping: no helper is given a discounting curve, so
+        # a pillar naming one was bootstrapped single-curve without a word.
+        f = swap_session()
+        f.open_session.market[9].yield_curve.bootstrap.pillars[4].discount_curve_id = "OIS"
+        await rejected("a dual-curve pillar, which bootstraps single-curve",
+                       f, "market[9].yield_curve.bootstrap.pillars[4].discount_curve_id",
+                       E.Error.UNSUPPORTED)
 
         # -- close -----------------------------------------------------------
         print("\n  -- close --")

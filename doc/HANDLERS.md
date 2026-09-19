@@ -115,6 +115,12 @@ The session holds the live QuantLib graph. `update_market` writes quotes and
 reprices off the same objects; anything that changes graph *structure* — a new
 curve shape, a new index — is a new session.
 
+An update is checked before it writes anything: an unknown quote or index is
+`UNKNOWN_ID` on `quotes[i].quote_id` or `fixings[i].index_id`, and the
+session is untouched. A `force_rebootstrap` that fails does so after the
+writes, so the update is refused and the session is rebuilt from its log
+without it.
+
 ## Market objects
 
 `OpenSession.market` is an ordered, id-addressed namespace. Ids are unique
@@ -150,7 +156,9 @@ index and the index names the curve. The index is built on a
 A `quote_id` on an interpolated node is rejected rather than accepted and never
 observed: QuantLib's interpolated curves copy their nodes at construction. The
 first node must also equal the session's evaluation date, because
-`InterpolatedZeroCurve` takes `dates[0]` as its reference.
+`InterpolatedZeroCurve` takes `dates[0]` as its reference. A `zero` curve
+interpolates `LINEAR` and a `discount` curve `LOG_LINEAR`; naming another
+`interpolator` is `UNSUPPORTED`.
 
 `bootstrap` is an explicit instantiation table — three traits × three
 interpolators, nine compiled types:
@@ -161,7 +169,9 @@ interpolators, nine compiled types:
 
 Adding a pair is a line of source and a recompile (DESIGN §6.1). Deposit
 helpers take their tenor from the pillar and their conventions from the named
-index — one index can therefore back pillars of several tenors.
+index — one index can therefore back pillars of several tenors. Every helper
+discounts on the curve it is building: dual-curve bootstrapping is not built,
+so a pillar's `discount_curve_id` is `UNSUPPORTED`.
 
 ### Volatility
 
@@ -171,6 +181,12 @@ index — one index can therefore back pillars of several tenors.
 | `variance_curve` | built, frozen |
 | `variance_surface` | built, frozen (wire is row-major expiries × strikes; transposed on the way in) |
 | `local` | not built — `UNSUPPORTED` |
+
+Frozen means the values must be `Number.fixed`, as on an interpolated curve. A
+`variance_surface` interpolates bilinearly, extends across strikes by its
+interpolator and does not extend past its last expiry; any other
+`interpolator`, `strike_extrapolation` or `time_extrapolation` is
+`UNSUPPORTED`.
 
 ### Indices and fixings
 
@@ -371,8 +387,9 @@ set, rather than being set and dropped.
 | `METHOD_DISCOUNTING` | — | swaps |
 | `METHOD_FOURIER` | `fourier` | not built — the models it exists for are not built |
 
-`Engine.model` is carried but only `MODEL_BLACK_SCHOLES` is reachable, since
-Heston, Bates and local vol are not built.
+`Engine.model` is carried but only `MODEL_BLACK_SCHOLES` is built, since
+Heston, Bates and local vol are not. Any other model is `UNSUPPORTED` rather
+than priced Black-Scholes under its name.
 
 **American approximations.** QuantLib has three and they disagree in the third
 decimal, so the client names one rather than inheriting a default:
@@ -423,6 +440,17 @@ answer**, because batches draw
 from the RNG stream differently from one run of the same total. Reproducibility
 keys on `(seed, samples, progress_every_paths)`, which is why `PriceResult`
 echoes the whole `Engine` message back.
+
+Every path draws pseudo-random numbers, so `RNG_LOW_DISCREPANCY` is
+`UNSUPPORTED`. The three variance-reduction switches are read where the
+engine takes them and `UNSUPPORTED` elsewhere, since the echo would otherwise
+report a technique that was never applied:
+
+| Style | `antithetic_variate` | `brownian_bridge` | `control_variate` |
+| --- | --- | --- | --- |
+| `vanilla`, `barrier` | — | — | — |
+| `asian` | — | — | read |
+| `basket`, performance `cliquet` | read | read | — |
 
 ## Results
 
