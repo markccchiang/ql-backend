@@ -1621,6 +1621,12 @@ async def main():
                            cliquet_frame(sid, krow, caps=field),
                            f"instrument.option.cliquet.{field}", E.Error.UNSUPPORTED)
 
+        # And at zero, which is the floor most often meant: it read as unset,
+        # and priced without being refused, until the field had presence.
+        f = cliquet_frame(sid, krow)
+        f.price.instrument.option.cliquet.local_floor = 0.0
+        await rejected("a cliquet with a floor at zero", f,
+                       "instrument.option.cliquet.local_floor", E.Error.UNSUPPORTED)
         await rejected("a cliquet resetting after it expires",
                        cliquet_frame(sid, krow, resets=[krow["maturity_days"] + 30]),
                        "instrument.option.cliquet.reset_dates[0]", E.Error.INVALID_ARGUMENT)

@@ -2657,12 +2657,13 @@ namespace qlbackend {
                 // here reaches no engine at all. Every engine then finds the
                 // argument still Null and prices the uncapped ratchet
                 // (analyticcliquetengine.cpp:38-42). Refused by name, because
-                // the alternative is a price for a trade nobody described.
+                // the alternative is a price for a trade nobody described --
+                // on presence, not value, so a floor at zero is refused too.
                 for (const auto& [set, field] :
-                     {std::pair{cl.local_cap() != 0.0, "local_cap"},
-                      std::pair{cl.local_floor() != 0.0, "local_floor"},
-                      std::pair{cl.global_cap() != 0.0, "global_cap"},
-                      std::pair{cl.global_floor() != 0.0, "global_floor"}}) {
+                     {std::pair{cl.has_local_cap(), "local_cap"},
+                      std::pair{cl.has_local_floor(), "local_floor"},
+                      std::pair{cl.has_global_cap(), "global_cap"},
+                      std::pair{cl.has_global_floor(), "global_floor"}}) {
                     QLS_FIELD_REQUIRE(!set, qlpb::Error::UNSUPPORTED, path + "." + field,
                                       "QuantLib carries no cap or floor on a cliquet: "
                                       "CliquetOption::setupArguments never copies this field, so "
