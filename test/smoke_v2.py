@@ -1810,6 +1810,27 @@ async def main():
         await rejected("an interpolated curve not anchored on the evaluation date", f,
                        "market[0].yield_curve.zero.nodes[0]", E.Error.INVALID_ARGUMENT)
 
+        # A malformed date or tenor names its field. QuantLib's parsers throw
+        # "stoi" or "invalid format" with nothing to say where, and that was
+        # what came back.
+        f = E.ClientFrame(request_id=next_id())
+        f.open_session.evaluation_date.iso = "2026-09-xx"
+        await rejected("a malformed ISO date", f, "evaluation_date", E.Error.INVALID_ARGUMENT)
+        f = E.ClientFrame(request_id=next_id())
+        f.open_session.evaluation_date.iso = TODAY.isoformat()
+        m = f.open_session.market.add()
+        m.id = "Z"
+        act360(m.yield_curve.day_counter)
+        m.yield_curve.calendar.name = C.Calendar.NULL_CALENDAR
+        m.yield_curve.zero.compounding = C.CONTINUOUS
+        m.yield_curve.zero.frequency = C.ANNUAL
+        for tenor in ("0D", "5Q"):
+            n = m.yield_curve.zero.nodes.add()
+            n.tenor = tenor
+            n.value.fixed = 0.03
+        await rejected("a malformed tenor", f, "market[0].yield_curve.zero.nodes[1].tenor",
+                       E.Error.INVALID_ARGUMENT)
+
         # Interpolation schemes the curve and surface builders never read. A
         # zero curve is linear in rates and a discount curve log-linear in
         # discount factors whatever was named; now anything else is refused.

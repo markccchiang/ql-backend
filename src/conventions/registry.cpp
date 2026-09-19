@@ -64,9 +64,17 @@ namespace qlbackend {
                                                    << "' is outside QuantLib's date range");
                 return Date(static_cast<Date::serial_type>(msg.serial_number()));
             case qlpb::Date::kIso:
-                // Throws a QuantLib Error on a malformed string, which the worker
-                // turns into Error{CALCULATION_FAILED} with the message intact.
-                return DateParser::parseISO(msg.iso());
+                // QuantLib's parser throws "stoi" on a malformed field and its
+                // own error on an impossible date, neither naming where; the
+                // request is what is wrong, so it says so, and says where.
+                try {
+                    return DateParser::parseISO(msg.iso());
+                } catch (const std::exception& e) {
+                    QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
+                                   "'" << msg.iso() << "' at '" << fieldPath
+                                       << "' is not a date in YYYY-MM-DD form (" << e.what()
+                                       << ")");
+                }
             case qlpb::Date::FORM_NOT_SET:
                 QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                                "no date form set at '" << fieldPath << "'");
@@ -80,8 +88,15 @@ namespace qlbackend {
         QLS_FIELD_REQUIRE(!text.empty(), quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
                           "empty period at '" << fieldPath << "'");
         // PeriodParser covers the whole tenor space, so this is the one
-        // convention that does not need a registry entry per value.
-        return PeriodParser::parse(text);
+        // convention that does not need a registry entry per value. Its
+        // "invalid format" says neither what nor where.
+        try {
+            return PeriodParser::parse(text);
+        } catch (const std::exception& e) {
+            QLS_FIELD_FAIL(quantlib::v2::Error::INVALID_ARGUMENT, fieldPath,
+                           "'" << text << "' at '" << fieldPath
+                               << "' is not a tenor such as 3M, 1Y or 2W (" << e.what() << ")");
+        }
     }
 
 
