@@ -865,6 +865,22 @@ async def main():
         check("a greek the MC engine lacks is absent, not an error",
               reply.HasField("price_result") and "vega" not in reply.price_result.results)
 
+        # time_steps_per_year is per year on the vanilla path too. It was read
+        # as a total there (and per year on the barrier and the basket), so
+        # asking a half-year option for 2 a year gave it two steps rather than
+        # one. One step is what an unset field gives, so the two agree exactly.
+        half = dict(row, t=0.5)
+        await send(ws, set_market(sid, **row_market(half)))
+        unset = await send(ws, vanilla_frame(sid, half, EN.Engine.METHOD_MONTE_CARLO, mc=(7, 2000)))
+        f = vanilla_frame(sid, half, EN.Engine.METHOD_MONTE_CARLO, mc=(7, 2000))
+        f.price.engine.mc.time_steps_per_year = 2
+        per_year = await send(ws, f)
+        check("steps a year on a vanilla Monte Carlo are per year, as on the others",
+              unset.HasField("price_result") and per_year.HasField("price_result")
+              and unset.price_result.npv == per_year.price_result.npv,
+              f"unset={unset.price_result.npv:.10f} two-a-year={per_year.price_result.npv:.10f}")
+        await send(ws, set_market(sid, **row_market(row)))
+
         # -- a book in one frame ----------------------------------------------
         print("\n  -- batch --")
         # Three trades that price and one that cannot: the point of the shape is

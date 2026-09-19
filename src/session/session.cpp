@@ -138,6 +138,23 @@ namespace qlbackend {
             return n.fixed();
         }
 
+        //! A vanilla Monte Carlo, stepped as the request asks.
+        /*! Per year, as the field is named and as the barrier and the basket
+            read it; it was read here as a total, so a half-year option asked
+            for 2 a year took two steps. Unset is one step to expiry, which is
+            exact for a European payoff on this process.
+        */
+        MakeMCEuropeanEngine<PseudoRandom> vanillaMc(
+            const ext::shared_ptr<GeneralizedBlackScholesProcess>& process,
+            const qlpb::McParameters& mc) {
+            MakeMCEuropeanEngine<PseudoRandom> engine(process);
+            if (mc.time_steps_per_year() > 0)
+                engine.withStepsPerYear(mc.time_steps_per_year());
+            else
+                engine.withSteps(1);
+            return engine;
+        }
+
         //! Refuses the variance-reduction switches an MC engine does not take.
         /*! Each MakeMC* builder takes a different subset; the rest were
             accepted, echoed back in the result, and never applied.
@@ -1948,10 +1965,7 @@ namespace qlbackend {
                                           "engine.mc.samples",
                                           "a Monte Carlo request needs samples");
                         return run(option,
-                                   MakeMCEuropeanEngine<PseudoRandom>(graph.process)
-                                       .withSteps(mc.time_steps_per_year() > 0
-                                                      ? mc.time_steps_per_year()
-                                                      : 1)
+                                   vanillaMc(graph.process, mc)
                                        .withSamples(mc.samples())
                                        .withSeed(mc.seed()),
                                    msg);
@@ -3142,8 +3156,7 @@ namespace qlbackend {
                 batchSeed = 1;
 
             option->setPricingEngine(
-                MakeMCEuropeanEngine<PseudoRandom>(graph.process)
-                    .withSteps(mc.time_steps_per_year() > 0 ? mc.time_steps_per_year() : 1)
+                vanillaMc(graph.process, mc)
                     .withSamples(thisBatch)
                     .withSeed(batchSeed));
 
