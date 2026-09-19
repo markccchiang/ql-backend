@@ -17,29 +17,12 @@ every curve on every keystroke.
 The wire format is Protobuf: one request frame in, exactly one terminal reply
 frame out — including for failures and cancellations.
 
-```mermaid
-flowchart LR
-    C["<b>browser / client</b><br/><i>holds the document:<br/>market and trade</i>"]
-    GW["<b>gateway</b><br/><i>sessions · routing<br/>backpressure</i>"]
-
-    subgraph W["worker threads — one session each"]
-        direction TB
-        A["<b>session A</b><br/><i>live QuantLib graph</i>"]
-        B["<b>session B</b><br/><i>live QuantLib graph</i>"]
-    end
-
-    C <-->|"WebSocket · Protobuf frames"| GW
-    GW --> A
-    GW --> B
-
-    classDef client fill:#f5f6f8,stroke:#8a94a6,color:#1d2430;
-    classDef core fill:#e8f0fb,stroke:#3b6ea5,color:#11314f;
-    classDef sess fill:#ffffff,stroke:#6b7687,color:#1d2430;
-    class C client;
-    class GW core;
-    class A,B sess;
-    style W fill:#eaf5ee,stroke:#3f8f5f,color:#123524;
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/architecture/architecture-dark.svg">
+    <img src="assets/architecture/architecture.svg" alt="Clients exchange Protobuf frames with ql-backend over a WebSocket. Inside one process, an event loop runs the gateway and the supervisor, which route each session to a worker thread holding its own live QuantLib graph. In the session shown, dragging the spot recomputes its engine and its price, and the curves are not rebuilt.">
+  </picture>
+</p>
 
 ## What it does today
 
