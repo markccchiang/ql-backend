@@ -536,7 +536,7 @@ def forward_frame(sid, row, performance=False, quanto=False):
 # Transport
 # ---------------------------------------------------------------------------
 
-async def collect(ws, want, timeout=120.0):
+async def collect(ws, want, timeout=120.0, frames=None):
     progress = 0
     deadline = time.time() + timeout
     while True:
@@ -545,6 +545,8 @@ async def collect(ws, want, timeout=120.0):
         f.ParseFromString(raw)
         if f.HasField("progress"):
             progress += 1
+            if frames is not None and f.request_id == want:
+                frames.append(f.progress)
             continue
         if f.request_id == want and f.terminal:
             return f, progress
@@ -875,7 +877,9 @@ async def main():
         broken = f.batch.requests.add()
         broken.CopyFrom(vanilla_frame(sid, row).price)
         broken.instrument.option.underlyings[0].spot_quote_id = "NOPE"
-        reply = await send(ws, f)
+        await ws.send(f.SerializeToString())
+        frames = []
+        reply, _ = await collect(ws, f.request_id, frames=frames)
 
         ok = reply.HasField("batch_result")
         check("a batch returns a BatchResult", ok,
@@ -901,6 +905,15 @@ async def main():
                   f"{E.Error.Code.Name(bad.error.code)} {bad.error.field_path!r}")
             check("and the batch was not abandoned", book.abandoned_after == 0,
                   f"abandoned_after={book.abandoned_after}")
+            # Progress per entry carries its NPV, and none for the one that
+            # failed: it used to read 0.0, which is a price.
+            check("a failed entry's progress has no running NPV, rather than 0",
+                  len(frames) == 4
+                  and all(p.HasField("running_npv") for p in frames[:3])
+                  and not frames[3].HasField("running_npv")
+                  and not any(p.HasField("scenario_point") for p in frames),
+                  " ".join(f"{p.running_npv:.4f}" if p.HasField("running_npv") else "unset"
+                           for p in frames))
 
         # A sweep inside a batch is refused by name rather than served: nesting
         # them is a product with no honest progress stream.
@@ -941,7 +954,9 @@ async def main():
         axis.linear.end = 120.0
         axis.linear.steps = 41
         axis.plot = R.RESULT_KIND_NPV
-        reply = await send(ws, f)
+        await ws.send(f.SerializeToString())
+        frames = []
+        reply, _ = await collect(ws, f.request_id, frames=frames)
         ok = reply.HasField("scenario_result")
         check("sweep returns a ScenarioResult", ok,
               "" if ok else f"{E.Error.Code.Name(reply.error.code)} {reply.error.message!r}")
@@ -949,6 +964,13 @@ async def main():
             sweep = reply.scenario_result
             check("sweep priced every point", len(sweep.prices) == 41,
                   f"points={len(sweep.prices)}")
+            # The first point is point 0, and says so: without presence it
+            # read the same as a frame from something that is not a sweep.
+            check("a sweep's progress names every point, the first included",
+                  [p.scenario_point if p.HasField("scenario_point") else None
+                   for p in frames] == list(range(41))
+                  and all(p.running_npv == q.npv for p, q in zip(frames, sweep.prices)),
+                  f"{len(frames)} frames, first={frames[0] if frames else None}")
             # The midpoint is the spot the session already held, so it must
             # reproduce the single-shot price exactly: same graph, same engine.
             mid = sweep.prices[20].npv

@@ -500,7 +500,9 @@ namespace qlbackend {
                 auto* p = o.mutable_progress();
                 p->set_completed(at + 1);
                 p->set_total(requests.size());
-                p->set_running_npv(entry->has_price() ? entry->price().npv() : 0.0);
+                // Unset for an entry that failed: 0.0 here read as a price.
+                if (entry->has_price())
+                    p->set_running_npv(entry->price().npv());
             });
 
             // A dirtied graph is only partly invalidated, so every later price
