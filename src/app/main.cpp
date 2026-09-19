@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <cctype>
 #include <cerrno>
+#include <csignal>
 #include <charconv>
 #include <cstdio>
 #include <cstdlib>
@@ -209,12 +210,24 @@ int main(int argc, char** argv) {
         return 2;
     }
 
+    // SIGTERM is how a container runtime or a service manager says stop, and
+    // with no handler it killed the process mid-request: no answer to what
+    // was running, and a close with no code. Now it drains -- nothing new is
+    // accepted, what is running gets Options::shutdownGrace -- and exits 0.
+    std::signal(SIGTERM, [](int) { qlbackend::Gateway::requestStop(); });
+    std::signal(SIGINT, [](int) { qlbackend::Gateway::requestStop(); });
+
     try {
         qlbackend::Gateway gateway(options);
-        std::printf("[ql-backend] listening on ws://%s:%d%s\n", options.host.c_str(), options.port,
-                    options.authToken.empty() ? "" : " (a token is required)");
-        std::fflush(stdout);
-        if (!gateway.run()) {
+        // Printed once the port is bound: before, it came ahead of a listen
+        // that could still fail, and a supervisor watching for the line was
+        // told the service was up when it was not.
+        const auto announce = [&options] {
+            std::printf("[ql-backend] listening on ws://%s:%d%s\n", options.host.c_str(),
+                        options.port, options.authToken.empty() ? "" : " (a token is required)");
+            std::fflush(stdout);
+        };
+        if (!gateway.run(announce)) {
             std::fprintf(stderr, "[ql-backend] could not listen on port %d\n", options.port);
             return 1;
         }

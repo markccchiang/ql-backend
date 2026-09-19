@@ -8,6 +8,7 @@
 #define qlbackend_gateway_gateway_hpp
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -129,6 +130,13 @@ namespace qlbackend {
                 the oldest is the likeliest to be abandoned.
             */
             std::size_t maxDetachedSessions = 16;
+
+            //! How long a stop waits for requests in flight to answer.
+            /*! After requestStop() nothing new is accepted; what is running
+                gets this long to finish, and then every socket is closed
+                with 1001 and the loop ends.
+            */
+            std::chrono::seconds shutdownGrace{10};
         };
 
         explicit Gateway(Options options);
@@ -139,7 +147,15 @@ namespace qlbackend {
         Gateway& operator=(const Gateway&) = delete;
 
         //! Listens, then runs the loop until it ends. False if the port is taken.
-        bool run();
+        /*! `onListening` is called once the socket is bound, and not before:
+            "listening" used to be printed ahead of a listen that could still
+            fail on a taken port.
+        */
+        bool run(const std::function<void()>& onListening = {});
+
+        //! Asks every running gateway to drain and stop. Async-signal-safe:
+        //! one lock-free store, read by the loop's own timer.
+        static void requestStop() noexcept;
 
       private:
         struct Impl;

@@ -22,9 +22,14 @@ namespace qlbackend {
     ThreadProcessHost::~ThreadProcessHost() {
         // Disowned first, then destroyed: the loop is gone by now, so a frame
         // posted from a worker thread would have nowhere to land.
+        // And told to stop: ~Worker joins its thread, and a batched run or a
+        // sweep left going would hold the process's exit until it finished.
         for (auto& [workerId, process] : processes_) {
-            for (auto& [sessionId, seat] : process.seats)
+            for (auto& [sessionId, seat] : process.seats) {
                 seat.alive->store(false);
+                if (seat.worker)
+                    seat.worker->abandon();
+            }
         }
     }
 

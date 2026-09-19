@@ -2,6 +2,7 @@
 
 #include "gateway.hpp"
 #include <algorithm>
+#include <atomic>
 #include "App.h"
 #include "quantlib/v2/envelope.pb.h"
 #include <ql/version.hpp>
@@ -19,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace qlpb = quantlib::v2;
 
@@ -130,6 +132,17 @@ namespace qlbackend {
     }
 
 
+    namespace {
+        //! Set from a signal handler, so a lock-free atomic and nothing else.
+        std::atomic<bool> stopRequested{false};
+        static_assert(std::atomic<bool>::is_always_lock_free);
+    }
+
+    void Gateway::requestStop() noexcept {
+        stopRequested.store(true, std::memory_order_relaxed);
+    }
+
+
     struct Gateway::Impl {
         explicit Impl(Options o) : options(o) {}
 
@@ -149,6 +162,55 @@ namespace qlbackend {
         };
 
         std::map<std::uint64_t, Conn> conns;
+
+        //! The loop's own handles, closed to end it on a stop.
+        us_listen_socket_t* listenSocket = nullptr;
+        us_timer_t* timer = nullptr;
+        //! Set once a stop has been asked for: nothing new is accepted.
+        bool isDraining = false;
+        std::chrono::steady_clock::time_point drainDeadline;
+
+        //! Called on every tick. Drains, then ends the loop.
+        /*! Nothing new is accepted from the moment a stop is seen -- the
+            listen socket is closed, and frames that would start work are
+            refused -- while what is already running gets shutdownGrace to
+            answer. Then every socket is told 1001 and the timer closed, and
+            with no handles left the loop returns.
+        */
+        void checkStop() {
+            if (!stopRequested.load(std::memory_order_relaxed))
+                return;
+            const auto now = std::chrono::steady_clock::now();
+            if (!isDraining) {
+                isDraining = true;
+                drainDeadline = now + options.shutdownGrace;
+                if (listenSocket != nullptr) {
+                    us_listen_socket_close(0, listenSocket);
+                    listenSocket = nullptr;
+                }
+                std::size_t running = 0;
+                for (const auto& [sessionId, ids] : outstanding)
+                    running += ids.size();
+                logf("stopping", std::to_string(running) + " requests in flight, " +
+                                     std::to_string(options.shutdownGrace.count()) +
+                                     " s to answer");
+            }
+            if (!outstanding.empty() && now < drainDeadline)
+                return;
+
+            std::vector<WS*> open;
+            for (const auto& [connId, conn] : conns)
+                if (conn.ws != nullptr)
+                    open.push_back(conn.ws);
+            for (auto* ws : open)
+                ws->end(1001, "the service is shutting down");
+            if (timer != nullptr) {
+                us_timer_close(timer);
+                timer = nullptr;
+            }
+            logf("stopped", outstanding.empty() ? "every request answered"
+                                                : "the grace ran out with requests in flight");
+        }
 
         //! Every session that exists, attached to a socket or not.
         /*! The token is the bearer secret a ResumeSession has to present, and
@@ -558,6 +620,14 @@ namespace qlbackend {
             const auto connId = ws->getUserData()->id;
             auto& conn = conns[connId];
 
+            // Draining: what is running may finish, and a cancel or a close
+            // may still help it along, but nothing new starts.
+            if (isDraining && !frame.has_cancel() && !frame.has_close_session()) {
+                reject(ws, frame.session_id(), frame.request_id(), qlpb::Error::OVERLOADED,
+                       "the service is shutting down");
+                return;
+            }
+
             // 0 is a replay's: the supervisor re-sends a session's log under
             // it, and onWorkerFrame drops every answer that carries it. A
             // client's request numbered 0 was served and never answered.
@@ -844,7 +914,7 @@ namespace qlbackend {
     Gateway::~Gateway() = default;
 
 
-    bool Gateway::run() {
+    bool Gateway::run(const std::function<void()>& onListening) {
         auto& impl = *impl_;
         auto* loop = uWS::Loop::get();
 
@@ -876,11 +946,16 @@ namespace qlbackend {
             });
 
         auto* timer = us_create_timer(reinterpret_cast<us_loop_t*>(loop), 0, sizeof(Impl*));
+        impl.timer = timer;
         *reinterpret_cast<Impl**>(us_timer_ext(timer)) = &impl;
         const auto tick = static_cast<int>(impl.options.deadlineTick.count());
         us_timer_set(
             timer,
-            [](us_timer_t* t) { (*reinterpret_cast<Impl**>(us_timer_ext(t)))->runDueDeadlines(); },
+            [](us_timer_t* t) {
+                auto* self = *reinterpret_cast<Impl**>(us_timer_ext(t));
+                self->runDueDeadlines();
+                self->checkStop();
+            },
             tick, tick);
 
         uWS::App::WebSocketBehavior<SocketData> behavior;
@@ -990,17 +1065,30 @@ namespace qlbackend {
                     res->writeHeader("Content-Type", "application/json")->end(body);
                 })
             .ws<SocketData>("/*", std::move(behavior))
-            .listen(impl.options.host, impl.options.port,
-                    [&](us_listen_socket_t* token) { listening = token != nullptr; });
+            // Exclusive: uSockets sets SO_REUSEPORT unless told not to, and a
+            // second service started on this port bound it too and took half
+            // the connections -- sessions split between two processes, and a
+            // resume that landed on the other one refused as unknown.
+            .listen(impl.options.host, impl.options.port, LIBUS_LISTEN_EXCLUSIVE_PORT,
+                    [&](us_listen_socket_t* token) {
+                listening = token != nullptr;
+                impl.listenSocket = token;
+            });
 
         if (!listening) {
             us_timer_close(timer);
+            impl.timer = nullptr;
             return false;
         }
+        if (onListening)
+            onListening();
 
         app.run();
 
-        us_timer_close(timer);
+        if (impl.timer != nullptr) {
+            us_timer_close(impl.timer);
+            impl.timer = nullptr;
+        }
         return true;
     }
 

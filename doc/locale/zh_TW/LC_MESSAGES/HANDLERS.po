@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ql-backend \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-19 11:37+0800\n"
+"POT-Creation-Date: 2026-09-19 11:43+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh_TW\n"
@@ -203,7 +203,11 @@ msgid ""
 "several sessions). A `request_id` must be non-zero — 0 is the service's "
 "own, for replays — and not one still in flight on the same session; "
 "either is `INVALID_ARGUMENT` on `request_id`."
-msgstr "每個訊框都帶著 `request_id`（由你配發，每個回覆都會回傳）與 `session_id`（每個伺服器訊框都會設定，因為一條連線可以持有好幾個工作階段）。`request_id` 必須非零——0 是服務自己重播時用的——也不能是同一工作階段上仍在處理中的代號；兩者都會在 `request_id` 上得到 `INVALID_ARGUMENT`。"
+msgstr ""
+"每個訊框都帶著 `request_id`（由你配發，每個回覆都會回傳）與 "
+"`session_id`（每個伺服器訊框都會設定，因為一條連線可以持有好幾個工作階段）。`request_id` 必須非零——0 "
+"是服務自己重播時用的——也不能是同一工作階段上仍在處理中的代號；兩者都會在 `request_id` 上得到 "
+"`INVALID_ARGUMENT`。"
 
 #: ../../HANDLERS.md:60 49072ac7bfad4060889fa25e63a5670b
 msgid "A session, end to end"
@@ -2054,18 +2058,37 @@ msgstr ""
 "以 `--token-file` 啟動時，回覆只帶 `status`、`build`、`quantlib` 與 "
 "`uptimeSeconds`，到此為止。這個端點無法向呼叫者索取權杖——容器執行環境手上沒有任何密鑰，卻仍然得決定要不要重啟行程——所以未經驗證的呼叫者能讀到的內容被縮減到只剩存活資訊，而不是完全開放。"
 
-#: ../../HANDLERS.md:740 a6144a97a03a4802b64473d69b0f242e
+#: ../../HANDLERS.md:740 e0a2f290851445ab8510d6d4bec4194f
+msgid "Starting and stopping"
+msgstr "啟動與停止"
+
+#: ../../HANDLERS.md:742 f3fa7491191646f6aefde47945ea4421
+msgid ""
+"`listening on …` is printed once the port is bound, and the port is bound"
+" exclusively: a second daemon on a port that is taken exits 1 rather than"
+" sharing it and taking some of the connections."
+msgstr "`listening on …` 要等埠真正綁定之後才會印出，而且這個埠是獨占綁定的：在已被占用的埠上啟動第二個常駐程式會以 1 結束，而不是與前一個共用這個埠、分走一部分連線。"
+
+#: ../../HANDLERS.md:746 b597544c35304551a7feef16e2e20cdf
+msgid ""
+"`SIGTERM` and `SIGINT` drain. Nothing new is accepted — the listening "
+"socket closes, and a frame that would start work is `OVERLOADED` — while "
+"requests already running get ten seconds to answer. Then every socket is "
+"closed with 1001 and the process exits 0."
+msgstr "`SIGTERM` 與 `SIGINT` 會先排空。不再接受任何新工作——監聽的 socket 會關閉，會啟動新工作的訊框得到 `OVERLOADED`——而已在執行的請求有十秒可以回覆。之後每條 socket 都以 1001 關閉，行程以 0 結束。"
+
+#: ../../HANDLERS.md:751 a6144a97a03a4802b64473d69b0f242e
 msgid "Origin, limits and the token"
 msgstr "Origin、限制與權杖"
 
-#: ../../HANDLERS.md:742 74225cd57da34499a7200a466c5424fe
+#: ../../HANDLERS.md:753 74225cd57da34499a7200a466c5424fe
 msgid ""
 "There is no notion of *who* a client is. This section is what stands in "
 "for that: a door that closes the browser, and a lock that can close "
 "everything else on the machine."
 msgstr "這裡沒有用戶端是*誰*的概念。這一節就是它的替代品：一扇把瀏覽器關在外面的門，以及一把可以把機器上其他一切都關在外面的鎖。"
 
-#: ../../HANDLERS.md:746 49028bfb032044f0b4e49789077a7cf6
+#: ../../HANDLERS.md:757 49028bfb032044f0b4e49789077a7cf6
 msgid ""
 "**Origin.** A WebSocket upgrade is not subject to the same-origin policy,"
 " so binding to loopback is not a boundary against a *browser*: any page "
@@ -2083,7 +2106,7 @@ msgstr ""
 "標頭必須在允許清單上，而**沒帶**的則放行：只有瀏覽器會送它，這表示這項檢查封住了瀏覽器這條路，而 "
 "`test/smoke_v2.py`、任何命令列工具，以及任何已經檢查過的代理伺服器，都維持原樣不受影響。"
 
-#: ../../HANDLERS.md:760 ef9ccc3fc3244df29f9afe886a5cd18b
+#: ../../HANDLERS.md:771 ef9ccc3fc3244df29f9afe886a5cd18b
 msgid ""
 "The defaults are the development server's origins (`5173`, `4173` on both"
 " `localhost` and `127.0.0.1`). A refused upgrade is `403 Forbidden` with "
@@ -2092,7 +2115,7 @@ msgstr ""
 "預設值是開發伺服器的來源（`localhost` 與 `127.0.0.1` 上的 `5173`、`4173`）。被拒絕的升級會得到附帶原因的 "
 "`403 Forbidden`，而不是直接斷線。"
 
-#: ../../HANDLERS.md:764 8fa0c37e95c540d5af0cddcb087fcc9a
+#: ../../HANDLERS.md:775 8fa0c37e95c540d5af0cddcb087fcc9a
 msgid ""
 "**Limits.** The other half of having no identity is that nothing stops "
 "one client taking everything:"
@@ -2223,7 +2246,7 @@ msgid ""
 "count a client could send"
 msgstr "每一項大小檢查都會做乘法，而沒有上限的乘積曾經溢位成一個用戶端送得出來的數目"
 
-#: ../../HANDLERS.md:776 ba16ab401fe64860b22f6136eee3da0b
+#: ../../HANDLERS.md:787 ba16ab401fe64860b22f6136eee3da0b
 msgid ""
 "`--max-connections` and `--max-sessions` move the first two. Both are "
 "refusals rather than breakages: close a session and the next one opens."
@@ -2231,7 +2254,7 @@ msgstr ""
 "`--max-connections` 與 `--max-sessions` "
 "可以調整前兩項。兩者都是拒絕而不是故障：關掉一個工作階段，下一個就開得起來。"
 
-#: ../../HANDLERS.md:779 d2a6c00a137048ea8f3aeb1b0b78fa06
+#: ../../HANDLERS.md:790 d2a6c00a137048ea8f3aeb1b0b78fa06
 msgid ""
 "**The token.** `Origin` bets that whoever might abuse the service is a "
 "page rather than a process, which is the right bet on a machine with one "
@@ -2243,7 +2266,7 @@ msgstr ""
 "押的是：可能濫用服務的是頁面而不是行程。在只有一位使用者的機器上這個賭注押對了，其他情況下就押錯了。沒有任何代理伺服器能補上這個缺口，因為代理伺服器是站在這個服務旁邊，而不是站在它的"
 " loopback socket 前面，所以密鑰必須放在這裡："
 
-#: ../../HANDLERS.md:789 54da847f790b40eeb430ff3c8dceb7ca
+#: ../../HANDLERS.md:800 54da847f790b40eeb430ff3c8dceb7ca
 msgid ""
 "Every client then presents it at the upgrade or is answered `401`, before"
 " a socket, a session or a worker seat exists. A file rather than a flag, "
@@ -2278,7 +2301,7 @@ msgstr "瀏覽器"
 msgid "`token.<token>` in the subprotocol list, beside `qlservice.v2`"
 msgstr "子協定清單中的 `token.<token>`，放在 `qlservice.v2` 旁邊"
 
-#: ../../HANDLERS.md:800 72b086127b6e4bc8a8920565ac95b901
+#: ../../HANDLERS.md:811 72b086127b6e4bc8a8920565ac95b901
 msgid ""
 "A browser gets the second row because it cannot set headers: `new "
 "WebSocket` takes a URL and a list of subprotocols and nothing else. The "
@@ -2291,13 +2314,13 @@ msgstr ""
 "與一份子協定清單，其他什麼都不收。服務只回應恰好一個協定，絕不回應權杖，因為如果瀏覽器指名了協定而伺服器一個都沒選，瀏覽器會讓握手失敗。URL "
 "查詢字串會是第三種做法，也是三者中最糟的：URL 會流進日誌、瀏覽紀錄與 referrer。"
 
-#: ../../HANDLERS.md:807 08d1e0a0401a4ee892151960af704018
+#: ../../HANDLERS.md:818 08d1e0a0401a4ee892151960af704018
 msgid ""
 "A wrong token and a missing one are the same `401`, for the reason a "
 "refused resume is one answer. The log says which."
 msgstr "錯誤的權杖和沒帶權杖都是同樣的 `401`，理由和被拒絕的接回只有一種答案相同。日誌會記下是哪一種。"
 
-#: ../../HANDLERS.md:810 72bda1905ae34ac19b838f508f9ca70e
+#: ../../HANDLERS.md:821 72bda1905ae34ac19b838f508f9ca70e
 msgid ""
 "**Fail closed on the address.** `--host` anywhere but loopback, with no "
 "token, is refused at startup with exit code 2 rather than served. "
@@ -2308,7 +2331,7 @@ msgstr ""
 "**位址上預設拒絕。**`--host` 設為 loopback 以外的位址卻沒有權杖時，會在啟動時以結束碼 2 "
 "拒絕，而不是照常服務。以上一切都是擋頁面的門，沒有一樣是抵擋網路的邊界，所以一個未經驗證、在可路由位址上回應的計價引擎，是意外的機會遠遠大於刻意的決定。"
 
-#: ../../HANDLERS.md:816 c83d44521a85497daa23bd2552289ef9
+#: ../../HANDLERS.md:827 c83d44521a85497daa23bd2552289ef9
 msgid ""
 "**What is deliberately not here.** TLS, and users. The token is one "
 "shared secret rather than an identity, and anything that can read the "
@@ -2323,11 +2346,11 @@ msgstr ""
 " TLS、進行驗證並檢查來源，而 `ql-backend` 繼續在它後面綁定 loopback。一個自己長出 TLS "
 "堆疊的計價引擎，會是更差的計價引擎，也是更差的邊緣伺服器。"
 
-#: ../../HANDLERS.md:824 33e1ab87a85a41468bf173f9ccdd8251
+#: ../../HANDLERS.md:835 33e1ab87a85a41468bf173f9ccdd8251
 msgid "Errors"
 msgstr "錯誤"
 
-#: ../../HANDLERS.md:826 0afac285f6084484aa9806cee7631f88
+#: ../../HANDLERS.md:837 0afac285f6084484aa9806cee7631f88
 msgid ""
 "Every rejection carries a `Code` and, where it is attributable to a wire "
 "field, a dotted proto path — "
@@ -2408,7 +2431,7 @@ msgstr ""
 msgid "infrastructure; retry or back off"
 msgstr "基礎設施問題；重試或退避"
 
-#: ../../HANDLERS.md:841 b467d3c152484c71a578efb44a56cb1c
+#: ../../HANDLERS.md:852 b467d3c152484c71a578efb44a56cb1c
 msgid ""
 "The three that a frontend must tell apart are `UNSPECIFIED_ENUM` (you "
 "left a field out), `INVALID_ARGUMENT` (you filled it in wrongly) and "
@@ -2418,11 +2441,11 @@ msgstr ""
 "前端必須區分清楚的三種是 `UNSPECIFIED_ENUM`（你漏填了某個欄位）、`INVALID_ARGUMENT`（你填錯了）與 "
 "`UNSUPPORTED`（請求格式正確，而這個建置拒絕拿替代品為它計價）。"
 
-#: ../../HANDLERS.md:846 a33eca76d0ea455b8a4f3b5a88921126
+#: ../../HANDLERS.md:857 a33eca76d0ea455b8a4f3b5a88921126
 msgid "Verification"
 msgstr "驗證"
 
-#: ../../HANDLERS.md:848 91aeb177dd0848738a54146f635596eb
+#: ../../HANDLERS.md:859 91aeb177dd0848738a54146f635596eb
 msgid ""
 "Every handler above is exercised by `test/smoke_v2.py`, which drives a "
 "running `ql-backend` over a real WebSocket: 369 rows of QuantLib's own "

@@ -737,6 +737,17 @@ token — a container runtime holds no secret and still has to decide whether to
 restart the process — so what an unauthenticated caller may read is trimmed to
 liveness rather than left open.
 
+### Starting and stopping
+
+`listening on …` is printed once the port is bound, and the port is bound
+exclusively: a second daemon on a port that is taken exits 1 rather than
+sharing it and taking some of the connections.
+
+`SIGTERM` and `SIGINT` drain. Nothing new is accepted — the listening socket
+closes, and a frame that would start work is `OVERLOADED` — while requests
+already running get ten seconds to answer. Then every socket is closed with
+1001 and the process exits 0.
+
 ### Origin, limits and the token
 
 There is no notion of *who* a client is. This section is what stands in for

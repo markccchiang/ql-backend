@@ -99,3 +99,16 @@ The resume section otherwise proves that a session, and the calculation running
 in it, survive a dropped socket — but the window *expiring* is a wall-clock
 wait, and sixty seconds of it does not belong in a test run. With a two-second
 window it is one more check.
+
+`test/lifecycle.py` checks what the suite cannot, because the suite talks to a
+daemon someone else started: the process itself. It starts the binary on port
+9181, twice, and needs nothing else running there:
+
+```bash
+/tmp/qlvenv/bin/python test/lifecycle.py /tmp/qlpb2 ./build/ql-backend
+```
+
+A second daemon on a port the first holds has to fail, without having said it
+was listening. `SIGTERM` has to drain: the Monte Carlo running when it arrives
+still gets its answer, the socket is then closed with 1001, and the process
+exits 0.
