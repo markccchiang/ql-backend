@@ -871,6 +871,40 @@ async def main():
         check("a greek the MC engine lacks is absent, not an error",
               reply.HasField("price_result") and "vega" not in reply.price_result.results)
 
+        # Request ids. 0 is what a replay's frames carry, and the gateway drops
+        # their answers as the client's business it is not -- so a request
+        # sent as 0 was priced and never answered. And an id already in flight
+        # on the session: two requests, one id, and the first answer untracked
+        # it while the second still ran. Both are refused on arrival now.
+        f = vanilla_frame(sid, row)
+        f.request_id = 0
+        await ws.send(f.SerializeToString())
+        try:
+            reply, _ = await collect(ws, 0, timeout=10.0)
+            check("a request numbered 0 is refused, not priced and left unanswered",
+                  reply.HasField("error") and reply.error.field_path == "request_id"
+                  and reply.error.code == E.Error.INVALID_ARGUMENT,
+                  f"{reply.WhichOneof('payload')} {reply.error.field_path!r}")
+        except asyncio.TimeoutError:
+            check("a request numbered 0 is refused, not priced and left unanswered", False,
+                  "no answer in 10 s")
+
+        slow = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(3, 4_000_000))
+        slow.price.engine.mc.progress_every_paths = 200_000
+        again = vanilla_frame(sid, row)
+        again.request_id = slow.request_id
+        await ws.send(slow.SerializeToString())
+        await ws.send(again.SerializeToString())
+        first, _ = await collect(ws, slow.request_id, timeout=60.0)
+        second, _ = await collect(ws, slow.request_id, timeout=120.0)
+        check("an id already in flight is refused, and the request holding it still answers",
+              first.HasField("error") and first.error.field_path == "request_id"
+              and first.error.code == E.Error.INVALID_ARGUMENT
+              and second.HasField("price_result")
+              and second.price_result.engine.method == EN.Engine.METHOD_MONTE_CARLO,
+              f"first={first.WhichOneof('payload')} {first.error.field_path!r} "
+              f"second={second.WhichOneof('payload')}")
+
         # Garman-Kohlhagen is Black-Scholes-Merton with the foreign rate where
         # the dividend yield goes, so on the same curves it is the same price.
         f = vanilla_frame(sid, row)

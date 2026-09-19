@@ -274,13 +274,15 @@ namespace qlbackend {
                     const std::string& sessionId,
                     std::uint64_t requestId,
                     qlpb::Error::Code code,
-                    const std::string& message) {
+                    const std::string& message,
+                    const std::string& fieldPath = {}) {
             qlpb::ServerFrame out;
             out.set_request_id(requestId);
             out.set_session_id(sessionId);
             out.set_terminal(true);
             out.mutable_error()->set_code(code);
             out.mutable_error()->set_message(message);
+            out.mutable_error()->set_field_path(fieldPath);
             std::string payload;
             if (!out.SerializeToString(&payload)) {
                 logf("serialization failed", sessionId);
@@ -479,8 +481,20 @@ namespace qlbackend {
             // from one that needs a kill (DESIGN §2.1). Frames the supervisor
             // emits itself arrive through its own sink and must not come back
             // to it (DESIGN §9.5).
-            if (frame.terminal())
-                supervisor->onRequestTerminated(frame.session_id(), frame);
+            //
+            // Its own guard: this is bookkeeping, and a throw from it used to
+            // escape to the one around this whole function, which dropped the
+            // frame -- a client left waiting forever for an answer that had
+            // been computed, the one thing DESIGN §3 promises cannot happen.
+            if (frame.terminal()) {
+                try {
+                    supervisor->onRequestTerminated(frame.session_id(), frame);
+                } catch (const std::exception& e) {
+                    logf("request bookkeeping failed", e.what());
+                } catch (...) {
+                    logf("request bookkeeping failed", "exception without a message");
+                }
+            }
 
             if (frame.has_session_opened()) {
                 // The token is minted and kept here rather than in the
@@ -543,6 +557,17 @@ namespace qlbackend {
         void handle(WS* ws, qlpb::ClientFrame& frame) {
             const auto connId = ws->getUserData()->id;
             auto& conn = conns[connId];
+
+            // 0 is a replay's: the supervisor re-sends a session's log under
+            // it, and onWorkerFrame drops every answer that carries it. A
+            // client's request numbered 0 was served and never answered.
+            if (frame.request_id() == 0) {
+                reject(ws, frame.session_id(), 0, qlpb::Error::INVALID_ARGUMENT,
+                       "request_id 0 is reserved for the service's own replays; number "
+                       "requests from 1",
+                       "request_id");
+                return;
+            }
 
             if (frame.has_open_session()) {
                 if (conn.openSessions.size() >= options.maxSessionsPerConnection) {
@@ -661,6 +686,20 @@ namespace qlbackend {
                 // request of the same id.
                 reject(ws, sessionId, frame.request_id(), qlpb::Error::SESSION_NOT_FOUND,
                        "no session '" + sessionId + "' on this connection");
+                return;
+            }
+
+            // One id, one request, while it is in flight. A second under the
+            // same id was served too; the first answer untracked the id while
+            // the second still ran, so a cancel of it found nothing to stop
+            // and the second answer arrived for a request the client thought
+            // was done.
+            if (const auto owed = outstanding.find(sessionId);
+                owed != outstanding.end() && owed->second.count(frame.request_id()) > 0) {
+                reject(ws, sessionId, frame.request_id(), qlpb::Error::INVALID_ARGUMENT,
+                       "request " + std::to_string(frame.request_id()) +
+                           " is still in flight on this session; use a new id",
+                       "request_id");
                 return;
             }
 

@@ -53,7 +53,9 @@ are also the three that can be stopped where they stand — see
 
 Every frame carries `request_id` (yours, echoed on every reply) and
 `session_id` (set on every server frame, because one socket can hold several
-sessions).
+sessions). A `request_id` must be non-zero — 0 is the service's own, for
+replays — and not one still in flight on the same session; either is
+`INVALID_ARGUMENT` on `request_id`.
 
 ### A session, end to end
 
