@@ -65,6 +65,48 @@ namespace qlbackend {
     */
     constexpr int kMaxCorrelationLabels = 100;
 
+    // -----------------------------------------------------------------------
+    // Engine sizes
+    // -----------------------------------------------------------------------
+    //
+    // Every count below reaches QuantLib as a loop bound or an allocation, and
+    // none of them can be interrupted once the engine is running: a lattice of
+    // four billion steps allocates for as long as memory lasts, and a Monte
+    // Carlo of 10^15 paths runs for days on a thread that a kill can only
+    // disown (DESIGN §3). The limits are sized like the ones above -- to catch
+    // a typo or a hostile frame, not to ration an honest request -- and are
+    // checked together at the top of Session::price, so a book entry and a
+    // sweep point meet the same rule as a single price.
+
+    //! The most steps one lattice may take. Desks use hundreds to a few
+    //! thousand; time grows with the square of this.
+    constexpr std::uint32_t kMaxLatticeSteps = 10000;
+
+    //! The most time steps, and separately the most asset steps, one custom
+    //! finite-difference grid may have. PRESET_FINE is 2000 x 800.
+    constexpr std::uint32_t kMaxFdTimeSteps = 10000;
+    constexpr std::uint32_t kMaxFdAssetSteps = 10000;
+
+    //! The most paths one Monte Carlo may draw. A hundred million is minutes
+    //! on one core, and ten more digits is a request nobody meant.
+    constexpr std::uint64_t kMaxMcSamples = 100000000;
+
+    //! The most time steps per year one Monte Carlo path may take.
+    constexpr std::uint32_t kMaxMcTimeStepsPerYear = 10000;
+
+    //! The most batches a batched Monte Carlo may split into.
+    /*! Each batch builds an engine and sends a Progress frame, so a batch of
+        one path over a million samples is a million engines and a million
+        frames -- slower than the calculation it reports on, and a flood on
+        the socket. Bounds progress_every_paths from below, relative to the
+        sample count.
+    */
+    constexpr std::uint64_t kMaxMcBatches = 10000;
+
+    //! The most evaluations one implied-volatility root find may take.
+    //! QuantLib's own default is 100.
+    constexpr std::uint32_t kMaxImpliedVolatilityEvaluations = 1000;
+
     //! Fills the reply to a Hello.
     /*! The lists here and the dispatch in session.cpp are the same fact told
         twice, and the second telling is the one that goes over the wire. They

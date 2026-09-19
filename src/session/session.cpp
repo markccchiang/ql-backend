@@ -1395,9 +1395,85 @@ namespace qlbackend {
     // Pricing
     // -----------------------------------------------------------------------
 
+    namespace {
+
+        //! Refuses an engine whose size is a typo or a hostile frame rather
+        //! than a request. The limits, and why each exists, are in
+        //! capabilities.hpp; this is the one place they are enforced.
+        void checkEngineLimits(const qlpb::PriceRequest& msg) {
+            const auto& engine = msg.engine();
+
+            if (engine.has_lattice()) {
+                const auto steps = engine.lattice().steps();
+                QLS_FIELD_REQUIRE(steps <= kMaxLatticeSteps, qlpb::Error::INVALID_ARGUMENT,
+                                  "engine.lattice.steps",
+                                  "a lattice takes at most " << kMaxLatticeSteps
+                                                             << " steps, got " << steps);
+            }
+
+            if (engine.has_fd() && engine.fd().has_custom()) {
+                const auto& grid = engine.fd().custom();
+                QLS_FIELD_REQUIRE(grid.time_steps() <= kMaxFdTimeSteps,
+                                  qlpb::Error::INVALID_ARGUMENT, "engine.fd.custom.time_steps",
+                                  "a finite-difference grid takes at most "
+                                      << kMaxFdTimeSteps << " time steps, got "
+                                      << grid.time_steps());
+                QLS_FIELD_REQUIRE(grid.asset_steps() <= kMaxFdAssetSteps,
+                                  qlpb::Error::INVALID_ARGUMENT, "engine.fd.custom.asset_steps",
+                                  "a finite-difference grid takes at most "
+                                      << kMaxFdAssetSteps << " asset steps, got "
+                                      << grid.asset_steps());
+            }
+
+            if (engine.has_mc()) {
+                const auto& mc = engine.mc();
+                QLS_FIELD_REQUIRE(mc.samples() <= kMaxMcSamples, qlpb::Error::INVALID_ARGUMENT,
+                                  "engine.mc.samples",
+                                  "a Monte Carlo draws at most " << kMaxMcSamples
+                                                                 << " paths, got "
+                                                                 << mc.samples());
+                QLS_FIELD_REQUIRE(mc.time_steps_per_year() <= kMaxMcTimeStepsPerYear,
+                                  qlpb::Error::INVALID_ARGUMENT, "engine.mc.time_steps_per_year",
+                                  "a Monte Carlo path takes at most "
+                                      << kMaxMcTimeStepsPerYear << " time steps a year, got "
+                                      << mc.time_steps_per_year());
+                if (mc.progress_every_paths() > 0) {
+                    // Divided rather than rounded up by adding, which is how
+                    // priceInBatches used to overflow on a sample count near
+                    // the top of uint64.
+                    const auto batch = mc.progress_every_paths();
+                    const auto batches = mc.samples() / batch + (mc.samples() % batch != 0 ? 1 : 0);
+                    QLS_FIELD_REQUIRE(batches <= kMaxMcBatches, qlpb::Error::INVALID_ARGUMENT,
+                                      "engine.mc.progress_every_paths",
+                                      "batches of " << batch << " paths split " << mc.samples()
+                                                    << " samples into " << batches
+                                                    << " batches, and the limit is "
+                                                    << kMaxMcBatches
+                                                    << ": each batch builds an engine and "
+                                                       "sends a progress frame");
+                }
+            }
+
+            if (msg.has_implied_volatility()) {
+                const auto evaluations = msg.implied_volatility().max_evaluations();
+                QLS_FIELD_REQUIRE(evaluations <= kMaxImpliedVolatilityEvaluations,
+                                  qlpb::Error::INVALID_ARGUMENT,
+                                  "implied_volatility.max_evaluations",
+                                  "an implied volatility takes at most "
+                                      << kMaxImpliedVolatilityEvaluations
+                                      << " evaluations, got " << evaluations);
+            }
+        }
+
+    }
+
+
     Session::PriceOutcome Session::price(const qlpb::PriceRequest& msg,
                                          const ProgressSink& progress) {
         QL_REQUIRE(!dirty_, "session is dirty and must be replayed before pricing");
+
+        // Before anything is built: every other path below trusts these sizes.
+        checkEngineLimits(msg);
 
         // Request options the schema offers and this build does not serve.
         // Rejected, not dropped: a client that asked for a cash-flow table
@@ -2897,7 +2973,10 @@ namespace qlbackend {
                           "a Monte Carlo request needs samples");
 
         const Size batch = mc.progress_every_paths();
-        const Size batches = (mc.samples() + batch - 1) / batch;
+        // Not (samples + batch - 1) / batch, which wraps to zero batches, and
+        // an NPV of zero with no error, for a sample count near the top of
+        // uint64. checkEngineLimits refuses those now; this stays exact anyway.
+        const Size batches = mc.samples() / batch + (mc.samples() % batch != 0 ? 1 : 0);
 
         // The batched result is NOT the single-shot result.
         //

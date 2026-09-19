@@ -57,11 +57,22 @@ HEALTH = "http://127.0.0.1:9111/healthz"
 # calendar, so a fixed evaluation date is as good as today's and reproduces.
 TODAY = date(2026, 9, 1)
 
-# A CRR lattice long enough to outlast the 250 ms stop grace many times over:
-# one engine call, which nothing can interrupt from outside, of about 4 s on
-# the laptop this was measured on and still over a second on one three times
-# faster. The cancel checks use it as the request that must not be stopped.
-LONG_LATTICE_STEPS = 150000
+# The engine limits in src/session/capabilities.hpp. A request may reach each
+# one; one past it is refused naming the field.
+MAX_LATTICE_STEPS = 10000
+MAX_FD_TIME_STEPS = 10000
+MAX_FD_ASSET_STEPS = 10000
+MAX_MC_SAMPLES = 100_000_000
+MAX_MC_TIME_STEPS_PER_YEAR = 10000
+MAX_MC_BATCHES = 10000
+MAX_IMPLIED_VOLATILITY_EVALUATIONS = 1000
+
+# A sweep of a lattice at the step limit, long enough to be running when a
+# cancel arrives -- about 3.5 s on the laptop this was measured on. The cancel
+# checks use it as the request a cancel aimed elsewhere must not touch: a stop
+# that reached it would show, because a sweep stops between points and says
+# how far it got.
+LONG_SWEEP_POINTS = 200
 
 
 def days(t):
@@ -1104,6 +1115,55 @@ async def main():
         await rejected("quanto FD with an explicit grid", f, "engine.fd.custom",
                        E.Error.UNSUPPORTED)
 
+        # Engine sizes past the limits in capabilities.hpp. Each is a loop
+        # bound or an allocation QuantLib cannot be interrupted in, so a size
+        # a few digits too long was a request that ran for days or took the
+        # process's memory with it. The largest values a field can hold are
+        # sent too, because those are what a hostile frame would carry.
+        INVALID = E.Error.INVALID_ARGUMENT
+        for steps in (MAX_LATTICE_STEPS + 1, 2**32 - 1):
+            f = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=steps)
+            await rejected(f"a lattice of {steps:,} steps", f, "engine.lattice.steps", INVALID)
+        reply = await send(ws, vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE,
+                                             steps=MAX_LATTICE_STEPS))
+        check("a lattice at the step limit still prices", reply.HasField("price_result"),
+              E.Error.Code.Name(reply.error.code) if reply.HasField("error") else "")
+
+        for field, value, limit in (("time_steps", 2**32 - 1, MAX_FD_TIME_STEPS),
+                                    ("asset_steps", MAX_FD_ASSET_STEPS + 1, MAX_FD_ASSET_STEPS)):
+            f = vanilla_frame(sid, row, EN.Engine.METHOD_FINITE_DIFFERENCE)
+            f.price.engine.fd.custom.time_steps = 400
+            f.price.engine.fd.custom.asset_steps = 200
+            f.price.engine.fd.custom.scheme = EN.FdParameters.Explicit.SCHEME_DOUGLAS
+            setattr(f.price.engine.fd.custom, field, value)
+            await rejected(f"an FD grid of {value:,} {field.replace('_', ' ')} (limit {limit:,})",
+                           f, f"engine.fd.custom.{field}", INVALID)
+
+        # The last of these is the sample count that used to wrap the batch
+        # count to zero and answer an NPV of 0 with no error.
+        for samples in (MAX_MC_SAMPLES + 1, 10**15, 2**64 - 1):
+            f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, samples))
+            f.price.engine.mc.progress_every_paths = 2
+            await rejected(f"a Monte Carlo of {samples:,} paths", f, "engine.mc.samples", INVALID)
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO, mc=(11, 1000))
+        f.price.engine.mc.time_steps_per_year = MAX_MC_TIME_STEPS_PER_YEAR + 1
+        await rejected("a Monte Carlo path of too many steps a year", f,
+                       "engine.mc.time_steps_per_year", INVALID)
+
+        f = vanilla_frame(sid, row, EN.Engine.METHOD_MONTE_CARLO,
+                          mc=(11, MAX_MC_BATCHES * 10 + 1))
+        f.price.engine.mc.progress_every_paths = 10   # one batch too many
+        await rejected("a Monte Carlo split into more batches than the limit", f,
+                       "engine.mc.progress_every_paths", INVALID)
+
+        f = vanilla_frame(sid, row)
+        f.price.results.append(R.RESULT_KIND_IMPLIED_VOLATILITY)
+        f.price.implied_volatility.target_price = 10.0
+        f.price.implied_volatility.max_evaluations = 2**32 - 1
+        await rejected("an implied volatility of four billion evaluations", f,
+                       "implied_volatility.max_evaluations", INVALID)
+
         f = vanilla_frame(sid, row)
         f.price.instrument.option.underlyings[0].spot_quote_id = "NOPE"
         await rejected("unknown quote id", f,
@@ -1890,9 +1950,30 @@ async def main():
         # A cancel stops the request it names and nothing else. The two ways
         # to get that wrong both used to end in a kill, which takes whatever
         # else is running on the worker with it: a target that is not running
-        # at all, and one still queued behind another request. A long lattice
-        # is the other request here, because nothing can stop it from outside:
-        # if the cancel reaches it, it dies rather than prices.
+        # at all, and one still queued behind another request. A long sweep is
+        # the other request here, because a stop that reached it would show:
+        # a sweep stops between points and says how far it got, and a kill
+        # would fail it outright. Left alone, it prices every point.
+        def long_sweep():
+            f = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=MAX_LATTICE_STEPS)
+            axis = f.price.scenarios.add()
+            axis.quote_id = "S"
+            axis.linear.begin = 60.0
+            axis.linear.end = 140.0
+            axis.linear.steps = LONG_SWEEP_POINTS
+            return f
+
+        def whole(frame):
+            return (frame.HasField("scenario_result")
+                    and frame.scenario_result.abandoned_after == 0
+                    and len(frame.scenario_result.prices) == LONG_SWEEP_POINTS)
+
+        def swept(frame):
+            if frame.HasField("scenario_result"):
+                r = frame.scenario_result
+                return f"{len(r.prices)} of {LONG_SWEEP_POINTS} points, abandoned_after={r.abandoned_after}"
+            return outcome(frame)
+
         async def terminals_for(*ids, timeout=60.0):
             """Every terminal frame for these ids, in the order they arrived."""
             order, frames = [], {}
@@ -1911,7 +1992,7 @@ async def main():
                 return E.Error.Code.Name(frame.error.code)
             return frame.WhichOneof("payload")
 
-        slow = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=LONG_LATTICE_STEPS)
+        slow = long_sweep()
         started = time.time()
         await ws.send(slow.SerializeToString())
         c = E.ClientFrame(request_id=next_id(), session_id=sid)
@@ -1921,11 +2002,10 @@ async def main():
         took = time.time() - started
         check("a cancel naming no running request is acknowledged",
               got[c.request_id].HasField("ack"), outcome(got[c.request_id]))
-        check("and stops nothing: the request that was running still prices",
-              got[slow.request_id].HasField("price_result"),
-              f"{outcome(got[slow.request_id])} after {took:.2f}s")
+        check("and stops nothing: the request that was running prices every point",
+              whole(got[slow.request_id]), f"{swept(got[slow.request_id])} after {took:.2f}s")
 
-        slow = vanilla_frame(sid, row, EN.Engine.METHOD_LATTICE, steps=LONG_LATTICE_STEPS)
+        slow = long_sweep()
         queued = vanilla_frame(sid, row)
         await ws.send(slow.SerializeToString())
         await ws.send(queued.SerializeToString())
@@ -1940,8 +2020,8 @@ async def main():
               f"{outcome(got[queued.request_id])}, answered "
               f"{'before' if order.index(queued.request_id) < order.index(slow.request_id) else 'after'}"
               " the request ahead of it")
-        check("and leaves the request ahead of it running",
-              got[slow.request_id].HasField("price_result"), outcome(got[slow.request_id]))
+        check("and leaves the request ahead of it running to the end",
+              whole(got[slow.request_id]), swept(got[slow.request_id]))
         check("and the cancel of a queued request is acknowledged",
               got[c.request_id].HasField("ack"), outcome(got[c.request_id]))
 
